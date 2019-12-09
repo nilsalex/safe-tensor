@@ -1,44 +1,112 @@
--- {-# LANGUAGE RankNTypes, GADTs, KindSignatures, DataKinds, TypeOperators, TypeFamilies, TemplateHaskell, TypeApplications, ScopedTypeVariables, UndecidableInstances, PolyKinds, StandaloneDeriving #-}
+-- {-# LANGUAGE RankNTypes, GADTs, KindSignatures, DataKinds, TypeOperators, TypeFamilies, TemplateHaskell, TypeApplications, ScopedTypeVariables, UndecidableInstances, PolyKinds, StandaloneDeriving, EmptyCase, InstanceSigs #-}
 
-{-# LANGUAGE RankNTypes, KindSignatures, DataKinds, StandaloneDeriving, GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE KindSignatures #-}
+-- {-# LANGUAGE NoStarIsType #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Lib where
 
-data Nat where
-    Zero :: Nat
-    Succ :: Nat -> Nat
+import Data.Singletons.Prelude
+import Data.Singletons.Prelude.List
+import Data.Singletons.TH
 
-deriving instance Show Nat
-deriving instance Eq Nat
-deriving instance Ord Nat
+import Data.List (sort)
 
-type Nat0 = Zero
-type Nat1 = Succ Nat0
-type Nat2 = Succ Nat1
-type Nat3 = Succ Nat2
-type Nat4 = Succ Nat3
-type Nat5 = Succ Nat4
-type Nat6 = Succ Nat5
-type Nat7 = Succ Nat6
-type Nat8 = Succ Nat7
-type Nat9 = Succ Nat8
-type Nat10 = Succ Nat9
-type Nat11 = Succ Nat10
+$(singletons [d|
+  data Nat where
+      Zero :: Nat
+      Succ :: Nat -> Nat
+  
+  data Slot = Slot { slotType :: Nat,
+                     slotRange :: Nat,
+                     slotId  :: Nat }
+  
+  type SlotLists = ([Slot], [Slot])
 
+  n0 :: Nat
+  n0 = Zero
 
-data Slot = Slot { slotType :: Nat,
-                   slotRange :: Nat,
-                   slotPos :: Bool,
-                   slotId  :: Nat } deriving (Show, Eq, Ord)
+  n1 :: Nat
+  n1 = Succ n0
 
-data Tensor :: [Slot] -> * -> * where
-    ZeroTensor :: forall (l :: [Slot]) v . Tensor l v
-    Scalar :: forall (l :: [Slot]) v. l ~ '[] => v -> Tensor l v
-    Tensor :: forall (l :: [Slot])
-                     (l' :: [Slot])
+  n2 :: Nat
+  n2 = Succ n1
+
+  n3 :: Nat
+  n3 = Succ n2
+
+  n4 :: Nat
+  n4 = Succ n3
+
+  deriving instance Show Nat
+  deriving instance Eq Nat
+  deriving instance Ord Nat
+  
+  deriving instance Show Slot
+  deriving instance Eq Slot
+  deriving instance Ord Slot
+
+  isSLEmpty :: SlotLists -> Bool
+  isSLEmpty (xs, ys) = null xs && null ys
+
+  slHeadTail :: SlotLists -> (Slot, SlotLists)
+  slHeadTail (xs, ys) =
+    case xs of
+      (x : xs') -> (x, (xs', ys))
+      []        -> case ys of
+                   (y : ys') -> (y, (xs, ys'))
+                   []        -> undefined
+
+  labels :: [Slot] -> [Nat]
+  labels = map (\(Slot _ _ l) -> l)
+
+  hasDuplicates :: (Ord a, Eq a) => [a] -> Bool
+  hasDuplicates = hasDuplicates' . sort
+  
+  hasDuplicates' :: Eq a => [a] -> Bool
+  hasDuplicates' [] = False
+  hasDuplicates' (x:[]) = False
+  hasDuplicates' (x:y:xs) = (x == y) || hasDuplicates' (y : xs)
+
+  saneLabels :: SlotLists -> Bool
+  saneLabels (xs, ys) = not $ hasDuplicates xs' || hasDuplicates ys'
+    where
+      xs' = labels xs
+      ys' = labels ys
+
+  addSLLists :: SlotLists -> SlotLists -> SlotLists
+  addSLLists (xs, ys) (xs', ys') = (xs ++ xs', ys ++ ys')
+
+  sortSLLists :: SlotLists -> SlotLists
+  sortSLLists (xs, ys) = (sort xs, sort ys)
+  |])
+
+data Tensor :: SlotLists -> * -> * where
+    ZeroTensor :: forall (l :: SlotLists) v . SaneLabels l ~ 'True => Tensor l v
+    Scalar :: forall (l :: SlotLists) v. (SaneLabels l ~ 'True, l ~ '( '[], '[])) => v -> Tensor l v
+    Tensor :: forall (l :: SlotLists)
+                     (l' :: SlotLists)
                      (s :: Slot)
                      v.
-              l ~ ('(:) s l') => [(Int, Tensor l' v)] -> Tensor l v
+              ('(s, l') ~ SlHeadTail l,
+               SaneLabels l ~ 'True) =>
+              [(Int, Tensor l' v)] -> Tensor l v
 
 deriving instance Show v => Show (Tensor k v)
 
@@ -62,7 +130,7 @@ addLists xs@((ix,vx):xs') ys@((iy,vy):ys')
     | ix < iy = (ix, vx) : addLists xs' ys
     | ix > iy = (iy, vy) : addLists xs ys'
 
-addTens' :: forall (l :: [Slot]) (l' :: [Slot]) v.
+addTens' :: forall (l :: SlotLists) (l' :: SlotLists) v.
             ((l ~ l'), Num v) =>
             Tensor l v -> Tensor l' v -> Tensor l v
 addTens' ZeroTensor t = t
@@ -72,23 +140,36 @@ addTens' (Tensor xs) (Tensor xs') = Tensor xs''
     where
        xs'' = unionWith addTens' id id xs xs' 
 
-negateTens' :: forall (l :: [Slot]) v. Num v =>
+negateTens' :: forall (l :: SlotLists) v. Num v =>
                Tensor l v -> Tensor l v
 negateTens' ZeroTensor = ZeroTensor
 negateTens' (Scalar s) = Scalar $ negate s
 negateTens' (Tensor x) = Tensor $ fmap (fmap negateTens') x
 
-subTens' :: forall (l :: [Slot]) (l' :: [Slot]) v.
+subTens' :: forall (l :: SlotLists) (l' :: SlotLists) v.
             ((l ~ l'), Num v) =>
             Tensor l v -> Tensor l' v -> Tensor l v
 subTens' t1 t2 = t1 `addTens'` (negateTens' t2)
 
-delta :: Tensor '[ 'Slot Nat0 Nat4 'True Nat0, 'Slot Nat0 Nat4 'False Nat1] Int
+prodTens' :: forall (l :: SlotLists) (l' :: SlotLists) (l'' :: SlotLists) v.
+             (Num v, l'' ~ AddSLLists l l', SaneLabels l'' ~ 'True) =>
+             Tensor l v -> Tensor l' v -> Tensor l'' v
+prodTens' _ _ = ZeroTensor
+
+toListTens :: forall (l :: SlotLists) v.
+              (SaneLabels l ~ 'True, SingI l) =>
+              Tensor l v -> [(([(Slot, Int)], [(Slot, Int)]), v)]
+toListTens ZeroTensor = []
+toListTens (Scalar s) = [(([], []), s)]
+toListTens (Tensor ms) = case sFst (sSlHeadTail (sing :: Sing l)) of
+    slot -> [(([(fromSing slot, 0)], []), undefined)]
+
+delta :: Tensor '( '[ 'Slot N0 N4 N0], '[ 'Slot N0 N4 N1]) Int
 delta = Tensor xs
   where
     xs = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..3]
 
-eta :: Tensor '[ 'Slot Nat0 Nat4 'True Nat0, 'Slot Nat0 Nat4 'True Nat1] Int
+eta :: Tensor '( '[ 'Slot N0 N4 N0, 'Slot N0 N4 N1], '[]) Int
 eta = Tensor xs
   where
     xs = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then -1 else 1))])) [0..3]
