@@ -7,7 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
--- {-# LANGUAGE NoStarIsType #-}
+{-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -19,6 +19,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Lib where
+
+import Data.Kind (Type)
 
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.List
@@ -73,6 +75,10 @@ $(singletons [d|
   nonZero Zero     = False
   nonZero (Succ n) = True
 
+  pred' :: Nat -> Nat
+  pred' (Succ n) = n
+  pred' Zero = error "predecessor of Zero"
+
   different :: Nat -> Nat -> Bool
   different Zero Zero = False
   different Zero (Succ n) = True
@@ -95,14 +101,25 @@ $(singletons [d|
       ascending (Con y) = isAscending' y
 
   head' :: ILists -> (VSpace, Nat)
-  head' ((v, l):_) = (v, case l of
-                           CovCon (a :| _) _ -> a
-                           Cov (a :| _)      -> a
-                           Con (a :| _)      -> a)
-  head' _ = error "head' of empty list"
+  head' xs = case headMaybe xs of
+               Just h -> h
+               Nothing -> error "head' of empty list"
+
+  headMaybe :: ILists -> Maybe (VSpace, Nat)
+  headMaybe ((v, l):_) = Just
+                         (v, case l of
+                               CovCon (a :| _) _ -> a
+                               Cov (a :| _)      -> a
+                               Con (a :| _)      -> a)
+  headMaybe [] = Nothing
 
   tail' :: ILists -> ILists
-  tail' ((v, l):ls) =
+  tail' xs = case tailMaybe xs of
+               Just xs' -> xs'
+               Nothing  -> error "tail' of empty list"
+
+  tailMaybe :: ILists -> Maybe ILists
+  tailMaybe ((v, l):ls) =
     let l' = case l of
                CovCon (a :| []) bs -> Just $ Con bs
                CovCon (a :| (a':as)) bs -> Just $ CovCon (a' :| as) bs
@@ -113,25 +130,35 @@ $(singletons [d|
                Con (a :| []) -> Nothing
                Con (a :| (a':as)) -> Just $ Con (a' :| as)
              in case l' of
-                  Just l'' -> (v, l''):ls
-                  Nothing  -> ls
-  tail' _ = error "tail' of empty list"
+                  Just l'' -> Just $ (v, l''):ls
+                  Nothing  -> Just ls
+  tailMaybe [] = Nothing
 
-  merge' :: ILists -> ILists -> ILists
-  merge' [] ys = ys
-  merge' xs [] = xs
-  merge' ((xv,xl):xs) ((yv,yl):ys) = 
+  mergeILs :: ILists -> ILists -> ILists
+  mergeILs [] ys = ys
+  mergeILs xs [] = xs
+  mergeILs ((xv,xl):xs) ((yv,yl):ys) = 
     if xv < yv
-    then (xv,xl) : merge' xs ((yv,yl):ys)
+    then (xv,xl) : mergeILs xs ((yv,yl):ys)
     else if yv > xv
-         then (yv,yl) : merge' ((xv,xl):xs) ys
-         else (xv, merge'' xl yl) : merge' xs ys
+         then (yv,yl) : mergeILs ((xv,xl):xs) ys
+         else (xv, mergeIL xl yl) : mergeILs xs ys
 
-  merge'' :: IList -> IList -> IList
-  merge'' (Cov xs) (Con ys) = CovCon xs ys
-  merge'' (Con xs) (Cov ys) = CovCon ys xs
+  mergeIL :: IList -> IList -> IList
+  mergeIL (CovCon xs ys) (CovCon xs' ys') = 
+    CovCon (mergeNE xs xs') (mergeNE ys ys')
+  mergeIL (CovCon xs ys) (Cov xs') = CovCon (mergeNE xs xs') ys
+  mergeIL (CovCon xs ys) (Con ys') = CovCon xs (mergeNE ys ys')
+  mergeIL (Cov xs) (CovCon xs' ys) = CovCon (mergeNE xs xs') ys
+  mergeIL (Cov xs) (Cov xs') = Cov (mergeNE xs xs')
+  mergeIL (Cov xs) (Con ys) = CovCon xs ys
+  mergeIL (Con ys) (CovCon xs ys') = CovCon xs (mergeNE ys ys')
+  mergeIL (Con ys) (Cov xs) = CovCon xs ys
+  mergeIL (Con ys) (Con ys') = Con (mergeNE ys ys')
 
   merge :: Ord a => [a] -> [a] -> [a]
+  merge [] ys = ys
+  merge xs [] = xs
   merge (x:xs) (y:ys) =
     if x < y
     then x : merge xs (y:ys)
@@ -148,13 +175,16 @@ $(singletons [d|
          else error "merging overlapping non-empty lists"
 
   |])
+  
+fromN :: Nat -> Int
+fromN Zero = 0
+fromN (Succ n) = 1 + fromN n
 
+toN :: Int -> Nat
+toN 0 = Zero
+toN n = Succ (toN (n-1))
 
-toInt :: Nat -> Int
-toInt Zero = 0
-toInt (Succ n) = toInt n + 1
-
-data Tensor :: ILists -> * -> * where
+data Tensor :: ILists -> Type -> Type where
     ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
     Scalar :: forall (l :: ILists) v. (Sane l ~ 'True, l ~ '[]) => v -> Tensor l v
     Tensor :: forall (l :: ILists)
@@ -164,7 +194,91 @@ data Tensor :: ILists -> * -> * where
                Tail' l ~ l') =>
               [(Int, Tensor l' v)] -> Tensor l v
 
-deriving instance Show v => Show (Tensor k v)
+instance (SingI l, Show v) => Show (Tensor l v) where
+  show = show . toRep
+
+deriving instance Eq v => Eq (Tensor l v)
+
+data VSpaceR = VSpaceR { vIdR :: Int,
+                         vDimR :: Int } deriving (Show, Ord, Eq)
+
+data IListR = CovConR (NonEmpty Int) (NonEmpty Int) |
+              CovR (NonEmpty Int) |
+              ConR (NonEmpty Int) deriving (Show, Ord, Eq)
+
+type IListsR = [(VSpaceR, IListR)]
+
+fromV :: VSpace -> VSpaceR
+fromV (VSpace i d) = VSpaceR (fromN i) (fromN d)
+
+toV :: VSpaceR -> VSpace
+toV (VSpaceR i d) = VSpace (toN i) (toN d)
+
+fromI :: IList -> IListR
+fromI (CovCon xs ys) = CovConR (fmap fromN xs) (fmap fromN ys)
+fromI (Cov xs)        = CovR (fmap fromN xs)
+fromI (Con xs)        = ConR (fmap fromN xs)
+
+toI :: IListR -> IList
+toI (CovConR xs ys) = CovCon (fmap toN xs) (fmap toN ys)
+toI (CovR xs)        = Cov (fmap toN xs)
+toI (ConR xs)        = Con (fmap toN xs)
+
+fromIs :: ILists -> IListsR
+fromIs = fmap (\(v, i) -> (fromV v, fromI i))
+
+toIs :: IListsR -> ILists
+toIs = fmap (\(v, i) -> (toV v, toI i))
+
+data TensorR :: Type -> Type where
+  ZeroTensorR :: IListsR -> TensorR v
+  ScalarR :: v -> TensorR v
+  TensorR :: (VSpaceR, Int) -> [(Int, TensorR v)] -> TensorR v
+
+deriving instance Show v => Show (TensorR v)
+deriving instance Eq v   => Eq (TensorR v)
+
+toRep :: forall l v.SingI l => Tensor l v -> TensorR v
+toRep ZeroTensor = let xs = fromSing (sing :: Sing l)
+                   in ZeroTensorR $ fromIs xs
+toRep (Scalar s) = ScalarR s
+toRep (Tensor ms) = let sl     = sTail' (sing :: Sing l)
+                        (v, i) = fromSing $ sHead' (sing :: Sing l)
+                        ms'    = fmap (fmap (\t -> withSingI sl $ toRep t)) ms
+                    in TensorR (fromV v, fromN i) ms'
+
+fromRep :: forall l v.SingI l => TensorR v -> Either String (Tensor l v)
+fromRep (ScalarR s) = case (sing :: Sing l) of
+                        SNil -> Right $ Scalar s
+                        _    -> Left "cannot construct Scalar with non-empty index list"
+fromRep (ZeroTensorR lr) =
+  case toSing (toIs lr) of
+    SomeSing sl' -> case sl' %~ (sing :: Sing l) of
+      Proved Refl -> case sSane (sing :: Sing l) of
+        STrue  -> Right ZeroTensor
+        SFalse -> Left "insane indices in ZeroTensor"
+      _           -> Left "indices in ZeroTensorR don't match type to be constructed"
+fromRep (TensorR (vr, ir) ms) =
+  case (sing :: Sing l) of
+    SNil -> Left "cannot reconstruct Tensor with empty index list"
+    _    ->
+      case toSing (toV vr) of
+        SomeSing sv -> case toSing (toN ir) of
+          SomeSing si -> case STuple2 sv si %~ sHead' (sing :: Sing l) of
+            Proved Refl -> case sSane (sing :: Sing l) of
+              STrue  ->
+               let sl  = sTail' (sing :: Sing l)
+                   ms' = fmap (fmap (\t -> withSingI sl $ fromRep t)) ms
+                   ms'' = filter (\(_, e) -> case e of
+                                               Left _ -> False
+                                               Right _ -> True) ms'
+                   ms''' = fmap (fmap (\e -> case e of
+                                               Right t -> t)) ms''
+               in case ms''' of
+                    [] -> Left "empty tensor"
+                    _  -> Right $ Tensor ms'''
+              SFalse -> Left "insane indices in Tensor"
+            _           -> Left "indices in TensorR don't match type to be constructed"
 
 removeZeros :: (Num v, Eq v) => Tensor l v -> Tensor l v
 removeZeros ZeroTensor = ZeroTensor
@@ -225,12 +339,12 @@ negateTens (Tensor x) = Tensor $ fmap (fmap negateTens) x
         Tensor l v -> Tensor l' v -> Tensor l v
 (&-) t1 t2 = t1 &+ (negateTens t2)
 
-{-
-prodTens' :: forall (l :: SlotLists) (l' :: SlotLists) (l'' :: SlotLists) v.
-             (Num v, l'' ~ AddSLLists l l', SaneLabels l'' ~ 'True) =>
-             Tensor l v -> Tensor l' v -> Tensor l'' v
-prodTens' _ _ = ZeroTensor
+(&*) :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
+               (Num v, l'' ~ MergeILs l l', Sane l'' ~ 'True) =>
+               Tensor l v -> Tensor l' v -> Tensor l'' v
+(&*) _ _ = ZeroTensor
 
+{-
 toListTens :: forall (l :: SlotLists) v.
               (SaneLabels l ~ 'True, SingI l) =>
               Tensor l v -> [(([(Slot, Int)], [(Slot, Int)]), v)]
@@ -255,7 +369,7 @@ delta :: forall (id :: Nat)
           Num v
          ) => Tensor l v
 delta = case (sing :: Sing n) of
-          sn -> let x = toInt (fromSing sn)
+          sn -> let x = fromN (fromSing sn)
                 in Tensor (f x)
   where
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
@@ -275,7 +389,7 @@ eta :: forall (id :: Nat)
         Num v
        ) => Tensor l v
 eta = case (sing :: Sing n) of
-        sn -> let x = toInt (fromSing sn)
+        sn -> let x = fromN (fromSing sn)
               in Tensor (f x)
   where
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then -1 else 1))])) [0..x - 1]
