@@ -173,9 +173,11 @@ contract ZeroTensor = let sl' = sContractL (sing :: Sing l)
 contract (Scalar v) = Scalar v
 contract (Tensor ms) =
   let sl = sing :: Sing l
-      sh = sHead sl
-  in case sSnd sh of
-       SCov _ -> undefined
+      st = sTail' sl
+  in case st of
+       SNil -> case sl %~ sContractL sl of
+                 Proved Refl -> Tensor ms
+       _    -> undefined
 
 toList :: forall l v.SingI l => Tensor l v -> [([Int], v)]
 toList ZeroTensor = []
@@ -194,10 +196,9 @@ delta :: forall (id :: Symbol)
                 v.
          (
           '[ '( 'VSpace id n, 'CovCon (a :| '[]) (b :| '[]))] ~ l,
-          (a /= b) ~ 'True,
-          Sane l ~ 'True,
+          Tail' (Tail' l) ~ '[],
+          Sane (Tail' l) ~ 'True,
           SingI n,
-          (n >= 0) ~ 'True,
           Num v
          ) => Tensor l v
 delta = case (sing :: Sing n) of
@@ -214,10 +215,8 @@ eta :: forall (id :: Symbol)
               v.
        (
         '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
-        (a /= b) ~ 'True,
-        Sane l ~ 'True,
+        (a < b) ~ 'True,
         SingI n,
-        (n >= 0) ~ 'True,
         Num v
        ) => Tensor l v
 eta = case (sing :: Sing n) of

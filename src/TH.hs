@@ -67,28 +67,42 @@ $(singletons [d|
       v < v' && isAscendingI is && sane ((v',is'):xs)
 
   head' :: ILists -> (VSpace Symbol Nat, Ix Symbol)
-  head' xs = case headMaybe xs of
-               Just h -> h
-               Nothing -> error "head' of empty list"
-
-  headMaybe :: ILists -> Maybe (VSpace Symbol Nat, Ix Symbol)
-  headMaybe ((v, l):_) = Just
-                         (v, case l of
-                               CovCon (a :| _) _ -> ICov a
-                               Cov (a :| _)      -> ICov a
-                               Con (a :| _)      -> ICon a)
-  headMaybe [] = Nothing
+  head' ((v, l):_) = (v, case l of
+                           CovCon (a :| _) (b :| _) ->
+                             case compare a b of
+                               LT -> ICov a
+                               EQ -> ICov a
+                               GT -> ICon b
+                           Cov (a :| _)      -> ICov a
+                           Con (a :| _)      -> ICon a)
+  head' [] = error "head' of empty list"
 
   tail' :: ILists -> ILists
-  tail' xs = case tailMaybe xs of
-               Just xs' -> xs'
-               Nothing  -> error "tail' of empty list"
-
-  tailMaybe :: ILists -> Maybe ILists
-  tailMaybe ((v, l):ls) =
+  tail' ((v, l):ls) =
     let l' = case l of
-               CovCon (a :| []) bs -> Just $ Con bs
-               CovCon (a :| (a':as)) bs -> Just $ CovCon (a' :| as) bs
+               CovCon (a :| []) (b :| []) ->
+                 case compare a b of
+                   LT -> Just $ Con (b :| [])
+                   EQ -> Just $ Con (b :| [])
+                   GT -> Just $ Cov (a :| [])
+
+               CovCon (a :| (a':as)) (b :| []) ->
+                 case compare a b of
+                   LT -> Just $ CovCon (a' :| as) (b :| [])
+                   EQ -> Just $ CovCon (a' :| as) (b :| [])
+                   GT -> Just $ Cov (a :| (a':as))
+
+               CovCon (a :| []) (b :| (b':bs)) ->
+                 case compare a b of
+                   LT -> Just $ Con (b :| (b':bs))
+                   EQ -> Just $ Con (b :| (b':bs))
+                   GT -> Just $ CovCon (a :| []) (b' :| bs)
+
+               CovCon (a :| (a':as)) (b :| (b':bs)) ->
+                 case compare a b of
+                   LT -> Just $ CovCon (a' :| as) (b :| (b':bs))
+                   EQ -> Just $ CovCon (a' :| as) (b :| (b':bs))
+                   GT -> Just $ CovCon (a :| (a':as)) (b' :| bs)
 
                Cov (a :| []) -> Nothing
                Cov (a :| (a':as)) -> Just $ Cov (a' :| as)
@@ -96,9 +110,9 @@ $(singletons [d|
                Con (a :| []) -> Nothing
                Con (a :| (a':as)) -> Just $ Con (a' :| as)
              in case l' of
-                  Just l'' -> Just $ (v, l''):ls
-                  Nothing  -> Just ls
-  tailMaybe [] = Nothing
+                  Just l'' -> (v, l''):ls
+                  Nothing  -> ls
+  tail' [] = error "tail' of empty list"
 
   mergeILs :: ILists -> ILists -> ILists
   mergeILs [] ys = ys
