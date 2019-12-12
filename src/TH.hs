@@ -37,8 +37,19 @@ $(singletons [d|
                             vDim :: b }
                     deriving (Show, Ord, Eq)
 
-  data Ix a    = ICov a | ICon a
-                 deriving (Show, Ord, Eq)
+  data Ix a    = ICov a | ICon a deriving (Show, Ord, Eq)
+
+  ixCompare :: Ord a => Ix a -> Ix a -> Ordering
+  ixCompare (ICov a) (ICov b) = compare a b
+  ixCompare (ICov a) (ICon b) = case compare a b of
+                                  LT -> LT
+                                  EQ -> LT
+                                  GT -> GT
+  ixCompare (ICon a) (ICov b) = case compare a b of
+                                  LT -> LT
+                                  EQ -> GT
+                                  GT -> GT
+  ixCompare (ICon a) (ICon b) = compare a b
   
   data IList a = CovCon (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
@@ -118,11 +129,10 @@ $(singletons [d|
   mergeILs [] ys = ys
   mergeILs xs [] = xs
   mergeILs ((xv,xl):xs) ((yv,yl):ys) = 
-    if xv < yv
-    then (xv,xl) : mergeILs xs ((yv,yl):ys)
-    else if yv > xv
-         then (yv,yl) : mergeILs ((xv,xl):xs) ys
-         else (xv, mergeIL xl yl) : mergeILs xs ys
+    case compare xv yv of
+      LT -> (xv,xl) : mergeILs xs ((yv,yl):ys)
+      EQ -> (xv, mergeIL xl yl) : mergeILs xs ys
+      GT -> (yv,yl) : mergeILs ((xv,xl):xs) ys
 
   mergeIL :: Ord a => IList a -> IList a -> IList a
   mergeIL (CovCon xs ys) (CovCon xs' ys') = 
@@ -140,19 +150,17 @@ $(singletons [d|
   merge [] ys = ys
   merge xs [] = xs
   merge (x:xs) (y:ys) =
-    if x < y
-    then x : merge xs (y:ys)
-    else if x > y
-         then y : merge (x:xs) ys
-         else error "merging overlapping lists"
+    case compare x y of
+      LT -> x : merge xs (y:ys)
+      EQ -> error "merging overlapping lists"
+      GT -> y : merge (x:xs) ys
 
   mergeNE :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
   mergeNE (x :| xs) (y :| ys) =
-    if x < y
-    then x :| merge xs (y:ys)
-    else if x > y
-         then y :| merge (x:xs) ys
-         else error "merging overlapping non-empty lists"
+    case compare x y of
+      LT -> x :| merge xs (y:ys)
+      EQ -> error "merging overlapping non-empty lists"
+      GT -> y :| merge (x:xs) ys
 
   contractL :: ILists -> ILists
   contractL [] = []
