@@ -140,4 +140,43 @@ $(singletons [d|
          then y :| merge (x:xs) ys
          else error "merging overlapping non-empty lists"
 
+  contractL :: ILists -> ILists
+  contractL [] = []
+  contractL ((v, is):xs) = case contractI is of
+                             Nothing -> contractL xs
+                             Just is' -> (v, is') : contractL xs
+
+  prepICov :: a -> IList a -> IList a
+  prepICov a (CovCon (x:|xs) y) = CovCon (a:|(x:xs)) y
+  prepICov a (Cov (x:|xs)) = Cov (a:|(x:xs))
+  prepICov a (Con y) = CovCon (a:|[]) y
+
+  prepICon :: a -> IList a -> IList a
+  prepICon a (CovCon x (y:|ys)) = CovCon (x) (a:|(y:ys))
+  prepICon a (Cov x) = CovCon x (a:|[])
+  prepICon a (Con (y:|ys)) = Con (a:|(y:ys))
+
+  contractI :: Ord a => IList a -> Maybe (IList a)
+  contractI (CovCon (x:|xs) (y:|ys)) =
+    case compare x y of
+      EQ -> case xs of
+              [] -> case ys of
+                      [] -> Nothing
+                      (y':ys') -> Just $ Con (y' :| ys')
+              (x':xs') -> case ys of
+                            [] -> Just $ Cov (x' :| xs')
+                            (y':ys') -> contractI $ CovCon (x':|xs') (y':|ys')
+      LT -> case xs of
+              [] -> Just $ CovCon (x:|xs) (y:|ys)
+              (x':xs') -> case contractI $ CovCon (x':|xs') (y:|ys) of
+                            Nothing -> Just $ Cov (x:|[])
+                            Just i  -> Just $ prepICov x i
+      GT -> case ys of
+              [] -> Just $ CovCon (x:|xs) (y:|ys)
+              (y':ys') -> case contractI $ CovCon (x:|xs) (y':|ys') of
+                            Nothing -> Just $ Con (y:|[])
+                            Just i  -> Just $ prepICon x i
+  contractI (Cov x) = Just $ Cov x
+  contractI (Con x) = Just $ Con x
+
   |])

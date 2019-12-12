@@ -164,6 +164,19 @@ negateT (Tensor x) = Tensor $ fmap (fmap negateT) x
 (&*) ZeroTensor _ = ZeroTensor
 (&*) _ ZeroTensor = ZeroTensor
 
+contract :: forall (l :: ILists) (l' :: ILists) v.
+            (l' ~ ContractL l, SingI l)
+            => Tensor l v -> Tensor l' v
+contract ZeroTensor = let sl' = sContractL (sing :: Sing l)
+                      in case sSane sl' of
+                           STrue -> ZeroTensor
+contract (Scalar v) = Scalar v
+contract (Tensor ms) =
+  let sl = sing :: Sing l
+      sh = sHead sl
+  in case sSnd sh of
+       SCov _ -> undefined
+
 toList :: forall l v.SingI l => Tensor l v -> [([Int], v)]
 toList ZeroTensor = []
 toList (Scalar s) = [([], s)]
