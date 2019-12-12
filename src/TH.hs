@@ -27,70 +27,25 @@ import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.List.NonEmpty hiding (sSort, SortSym0)
 import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
+import Data.Singletons.TypeLits
 
 import Data.List (sort)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 $(singletons [d|
-  data Nat where
-      Zero :: Nat
-      Succ :: Nat -> Nat
+  data VSpace a b = VSpace { vId :: a,
+                            vDim :: b }
+                    deriving (Show, Ord, Eq)
 
-  data VSpace = VSpace { vId :: Nat,
-                         vDim :: Nat }
-
-  data Ix    = ICov Nat | ICon Nat
+  data Ix a    = ICov a | ICon a
+                 deriving (Show, Ord, Eq)
   
-  data IList = CovCon (NonEmpty Nat) (NonEmpty Nat) |
-               Cov (NonEmpty Nat) |
-               Con (NonEmpty Nat)
+  data IList a = CovCon (NonEmpty a) (NonEmpty a) |
+                 Cov (NonEmpty a) |
+                 Con (NonEmpty a)
+                 deriving (Show, Ord, Eq)
 
-  type ILists = [(VSpace, IList)]
-
-  n0 :: Nat
-  n0 = Zero
-
-  n1 :: Nat
-  n1 = Succ n0
-
-  n2 :: Nat
-  n2 = Succ n1
-
-  n3 :: Nat
-  n3 = Succ n2
-
-  n4 :: Nat
-  n4 = Succ n3
-
-  deriving instance Show Nat
-  deriving instance Eq Nat
-  deriving instance Ord Nat
-  
-  deriving instance Show VSpace
-  deriving instance Eq VSpace
-  deriving instance Ord VSpace
-
-  deriving instance Show IList
-  deriving instance Eq IList
-  deriving instance Ord IList
-
-  deriving instance Show Ix
-  deriving instance Eq Ix
-  deriving instance Ord Ix
-
-  nonZero :: Nat -> Bool
-  nonZero Zero     = False
-  nonZero (Succ n) = True
-
-  pred' :: Nat -> Nat
-  pred' (Succ n) = n
-  pred' Zero = error "predecessor of Zero"
-
-  different :: Nat -> Nat -> Bool
-  different Zero Zero = False
-  different Zero (Succ n) = True
-  different (Succ n) Zero = True
-  different (Succ n) (Succ m) = different n m
+  type ILists = [(VSpace Symbol Nat, IList Symbol)]
 
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True
@@ -100,7 +55,7 @@ $(singletons [d|
   isAscending' :: Ord a => NonEmpty a -> Bool
   isAscending' (x :| xs) = isAscending (x:xs)
 
-  isAscendingI :: IList -> Bool
+  isAscendingI :: Ord a => IList a -> Bool
   isAscendingI (CovCon x y) = isAscending' x && isAscending' y
   isAscendingI (Cov x) = isAscending' x
   isAscendingI (Con y) = isAscending' y
@@ -111,12 +66,12 @@ $(singletons [d|
   sane ((v, is):(v', is'):xs) =
       v < v' && isAscendingI is && sane ((v',is'):xs)
 
-  head' :: ILists -> (VSpace, Ix)
+  head' :: ILists -> (VSpace Symbol Nat, Ix Symbol)
   head' xs = case headMaybe xs of
                Just h -> h
                Nothing -> error "head' of empty list"
 
-  headMaybe :: ILists -> Maybe (VSpace, Ix)
+  headMaybe :: ILists -> Maybe (VSpace Symbol Nat, Ix Symbol)
   headMaybe ((v, l):_) = Just
                          (v, case l of
                                CovCon (a :| _) _ -> ICov a
@@ -155,7 +110,7 @@ $(singletons [d|
          then (yv,yl) : mergeILs ((xv,xl):xs) ys
          else (xv, mergeIL xl yl) : mergeILs xs ys
 
-  mergeIL :: IList -> IList -> IList
+  mergeIL :: Ord a => IList a -> IList a -> IList a
   mergeIL (CovCon xs ys) (CovCon xs' ys') = 
     CovCon (mergeNE xs xs') (mergeNE ys ys')
   mergeIL (CovCon xs ys) (Cov xs') = CovCon (mergeNE xs xs') ys
@@ -186,11 +141,3 @@ $(singletons [d|
          else error "merging overlapping non-empty lists"
 
   |])
-
-fromN :: Nat -> Int
-fromN Zero = 0
-fromN (Succ n) = 1 + fromN n
-
-toN :: Int -> Nat
-toN 0 = Zero
-toN n = Succ (toN (n-1))
