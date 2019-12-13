@@ -201,4 +201,69 @@ $(singletons [d|
   contractI (Cov x) = Just $ Cov x
   contractI (Con x) = Just $ Con x
 
+  elemNE :: Ord a => a -> NonEmpty a -> Bool
+  elemNE a (x :| []) = a == x
+  elemNE a (x :| (x':xs)) = case compare a x of
+                              LT -> False
+                              EQ -> True
+                              GT -> elemNE a (x' :| xs)
+  
+  canTransposeCov :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
+  canTransposeCov _ _ _ [] = False
+  canTransposeCov v a b ((v',il):ls) =
+    case compare v v' of
+      LT -> False
+      GT -> canTransposeCov v a b ls
+      EQ -> case il of
+              Con _  -> canTransposeCov v a b ls
+              Cov cs -> case elemNE a cs of
+                          True -> case elemNE b cs of
+                                    True -> True
+                                    False -> False
+                          False -> case elemNE b cs of
+                                    True -> False
+                                    False -> canTransposeCov v a b ls
+              CovCon cs _ -> case elemNE a cs of
+                               True -> case elemNE b cs of
+                                         True -> True
+                                         False -> False
+                               False -> case elemNE b cs of
+                                         True -> False
+                                         False -> canTransposeCov v a b ls
+  
+  canTransposeCon :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
+  canTransposeCon _ _ _ [] = False
+  canTransposeCon v a b ((v',il):ls) =
+    case compare v v' of
+      LT -> False
+      GT -> canTransposeCon v a b ls
+      EQ -> case il of
+              Cov _  -> canTransposeCon v a b ls
+              Con cs -> case elemNE a cs of
+                          True -> case elemNE b cs of
+                                    True -> True
+                                    False -> False
+                          False -> case elemNE b cs of
+                                    True -> False
+                                    False -> canTransposeCon v a b ls
+              CovCon _ cs -> case elemNE a cs of
+                               True -> case elemNE b cs of
+                                         True -> True
+                                         False -> False
+                               False -> case elemNE b cs of
+                                         True -> False
+                                         False -> canTransposeCon v a b ls
+  
+  canTranspose :: (Ord a, Ord b) => VSpace a b -> Ix a -> Ix a -> [(VSpace a b, IList a)] -> Bool
+  canTranspose v (ICov a) (ICov b) l = case compare a b of
+                                         LT -> canTransposeCov v a b l
+                                         EQ -> False
+                                         GT -> False
+  canTranspose v (ICon a) (ICon b) l = case compare a b of
+                                         LT -> canTransposeCon v a b l
+                                         EQ -> False
+                                         GT -> False
+  canTranspose _ (ICon _) (ICov _) _ = False
+  canTranspose _ (ICov _) (ICon _) _ = False
+
   |])

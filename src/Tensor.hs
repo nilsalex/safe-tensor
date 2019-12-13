@@ -241,6 +241,19 @@ contract (Tensor ms) =
                               _        -> t'
                             _        -> t'
 
+transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
+             CanTranspose vs a b l ~ 'True =>
+             Sing vs -> Sing a -> Sing b -> Tensor l v -> Tensor l v
+transpose _ _ _ _ = error "not yet implemented"
+
+transpose' :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
+transpose' v ia ib t = withSomeSing v (\sv ->
+                         withSomeSing ia (\sia ->
+                           withSomeSing ib (\sib ->
+                             case sCanTranspose sv sia sib (sing :: Sing l) of
+                               STrue  -> Right $ transpose sv sia sib t
+                               SFalse -> Left $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!")))
+
 toList :: forall l v.SingI l => Tensor l v -> [([Int], v)]
 toList ZeroTensor = []
 toList (Scalar s) = [([], s)]
