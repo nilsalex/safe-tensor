@@ -257,13 +257,20 @@ $(singletons [d|
   canTranspose :: (Ord a, Ord b) => VSpace a b -> Ix a -> Ix a -> [(VSpace a b, IList a)] -> Bool
   canTranspose v (ICov a) (ICov b) l = case compare a b of
                                          LT -> canTransposeCov v a b l
-                                         EQ -> False
-                                         GT -> False
+                                         EQ -> True
+                                         GT -> canTransposeCov v b a l
   canTranspose v (ICon a) (ICon b) l = case compare a b of
                                          LT -> canTransposeCon v a b l
-                                         EQ -> False
-                                         GT -> False
+                                         EQ -> True
+                                         GT -> canTransposeCon v b a l
   canTranspose _ (ICon _) (ICov _) _ = False
   canTranspose _ (ICov _) (ICon _) _ = False
+
+  removeUntil :: Ix Symbol -> ILists -> ILists
+  removeUntil i ls = go i ls
+    where
+      go i' ls'
+        | snd (head' ls') == i' = tail' ls'
+        | otherwise             = go i $ tail' ls'
 
   |])

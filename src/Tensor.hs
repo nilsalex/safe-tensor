@@ -33,7 +33,7 @@ import Data.Singletons.Prelude.List.NonEmpty (SNonEmpty((:%|)))
 import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
-import Data.List (foldl')
+import Data.List (foldl',groupBy,sortBy)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 data Tensor :: ILists -> Type -> Type where
@@ -241,34 +241,45 @@ contract (Tensor ms) =
                               _        -> t'
                             _        -> t'
 
-transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
-             (CanTranspose vs a b l ~ 'True, SingI l) =>
-             Sing vs -> Sing a -> Sing b -> Tensor l v -> Tensor l v
-transpose _ _ _ ZeroTensor = ZeroTensor
-transpose _ _ _ (Scalar _) = error "This is not possible, might yet have to convince the type system."
-transpose v a b (Tensor ms) =
-  let sl = sing :: Sing l
-      sh = sHead' sl
-      sv = sFst sh
-      si = sSnd sh
-      st = sTail' sl
-  in withSingI st $
-     case sv %~ v of
-       Proved Refl -> case si %~ a of
-                        Proved Refl -> let ms' = ms
-                                       in Tensor ms'
-                        Disproved _ -> case sCanTranspose v a b st of
-                                         STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
-       Disproved _ -> case sCanTranspose v a b st of
-                        STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
+transpose' :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
+              (CanTranspose vs a b l ~ 'True, SingI l) =>
+              Sing vs -> Sing a -> Sing b -> Tensor l v -> Tensor l v
+transpose' _ _ _ ZeroTensor = ZeroTensor
+transpose' _ _ _ (Scalar _) = error "This is not possible, might yet have to convince the type system."
+transpose' v a b t@(Tensor ms) =
+  case a `sCompare` b of
+    SEQ -> t
+    SGT -> case sCanTranspose v b a (sing :: Sing l) %~ STrue of
+             Proved Refl -> transpose' v b a t
+    SLT ->
+      let sl = sing :: Sing l
+          sh = sHead' sl
+          sv = sFst sh
+          si = sSnd sh
+          st = sTail' sl
+      in withSingI st $
+         case sv %~ v of
+           Proved Refl -> case si %~ a of
+             Proved Refl -> let sl' = sRemoveUntil b sl
+                            in withSingI sl' $
+                               case sSane sl' %~ STrue of
+                                 Proved Refl ->
+                                   let tl  = toTListUntil b t
+                                       tl' = fmap (\(i:is, val) -> (last is : (init is ++ [i]),val)) tl
+                                       tl'' = sortBy (\(i,_) (i',_) -> i `compare` i') tl'
+                                   in  fromTList tl''
+             Disproved _ -> case sCanTranspose v a b st of
+                              STrue -> Tensor $ fmap (fmap (transpose' v a b)) ms
+           Disproved _ -> case sCanTranspose v a b st of
+                            STrue -> Tensor $ fmap (fmap (transpose' v a b)) ms
 
-transpose' :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
-transpose' v ia ib t = withSomeSing v $ \sv ->
-                       withSomeSing ia $ \sia ->
-                       withSomeSing ib $ \sib ->
-                         case sCanTranspose sv sia sib (sing :: Sing l) of
-                           STrue  -> Right $ transpose sv sia sib t
-                           SFalse -> Left $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
+transpose :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
+transpose v ia ib t = withSomeSing v $ \sv ->
+                      withSomeSing ia $ \sia ->
+                      withSomeSing ib $ \sib ->
+                        case sCanTranspose sv sia sib (sing :: Sing l) of
+                          STrue  -> Right $ transpose' sv sia sib t
+                          SFalse -> Left $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
 
 toList :: forall l v.SingI l => Tensor l v -> [([Int], v)]
 toList ZeroTensor = []
@@ -278,6 +289,58 @@ toList (Tensor ms) =
   in case st of
        SNil -> fmap (\(i, Scalar s)  -> ([i], s)) ms
        _    -> concat $ fmap (\(i, v) -> case v of Tensor t -> fmap (\(is, v') -> (i:is, v')) (withSingI st $ toList v)) ms
+
+fromList :: forall l v.(SingI l, Sane l ~ True) => [([Int], v)] -> Tensor l v
+fromList [] = ZeroTensor
+fromList [([], s)] = case sing :: Sing l of
+                       SNil -> Scalar s
+                       _    -> error "Cannot reconstruct tensor from empty index list"
+fromList xs =
+    let sl = sing :: Sing l
+        st = sTail' sl
+    in withSingI st $
+      case sSane st of
+        STrue -> Tensor $ fmap (fmap fromList) xs'''
+  where
+    xs' = fmap (\((i:is),v) -> (i,(is,v))) xs
+    xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
+    xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''
+
+toTListUntil :: forall (a :: Ix Symbol) l l' v.
+                (SingI l, SingI l', RemoveUntil a l ~ l', Sane l ~ True, Sane l' ~ True) =>
+                Sing a -> Tensor l v -> [([Int], Tensor l' v)]
+toTListUntil sa (Tensor ms) =
+    let sl = sing :: Sing l
+        st = sTail' sl
+        sh = sHead' sl
+    in case sSnd sh %~ sa of
+         Proved Refl -> withSingI st $
+                        case st %~ (sing :: Sing l') of
+                          Proved Refl -> fmap (\(i,v) -> (pure i,v)) ms
+         Disproved _ ->
+           withSingI st $
+           case sSane st %~ STrue of
+             Proved Refl ->
+               case sRemoveUntil sa st %~ (sing :: Sing l') of
+                 Proved Refl ->
+                   let ms' = fmap (\(i,v) -> (i,toTListUntil sa v)) ms
+                   in  concat $ fmap (\(i, xs) -> fmap (\(is, v) -> (i:is, v)) xs) ms'
+
+fromTList :: forall l l' v.(Sane l ~ True, Sane l' ~ True, SingI l, SingI l') =>
+                           [([Int], Tensor l v)] -> Tensor l' v
+fromTList [] = ZeroTensor
+fromTList [([],t)] = case (sing :: Sing l) %~ (sing :: Sing l') of
+                       Proved Refl -> t
+fromTList xs =
+    let sl' = sing :: Sing l'
+        st' = sTail' sl'
+    in withSingI st' $
+      case sSane st' of
+        STrue -> Tensor $ fmap (fmap fromTList) xs'''
+  where
+    xs' = fmap (\((i:is),v) -> (i,(is,v))) xs
+    xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
+    xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''
 
 delta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
          (
@@ -317,10 +380,11 @@ asym = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f x = (\i j -> (i, Tensor [(j, Scalar (case i `compare` j of
-                                             LT -> 1
-                                             EQ -> 0
-                                             GT -> -1))])) <$> [0..x-1] <*> [0..x-1]
+    f x = fmap (\i -> (i, Tensor $
+            fmap (\j -> (j, Scalar (case i `compare` j of
+                                      LT -> 1
+                                      EQ -> 0
+                                      GT -> -1))) [0..x-1])) [0..x-1]
 
 type V4 = 'VSpace "Spacetime" 4
 type Up2 a b = 'Cov (a :| '[b])
