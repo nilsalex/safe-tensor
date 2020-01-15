@@ -242,17 +242,33 @@ contract (Tensor ms) =
                             _        -> t'
 
 transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
-             CanTranspose vs a b l ~ 'True =>
+             (CanTranspose vs a b l ~ 'True, SingI l) =>
              Sing vs -> Sing a -> Sing b -> Tensor l v -> Tensor l v
-transpose _ _ _ _ = error "not yet implemented"
+transpose _ _ _ ZeroTensor = ZeroTensor
+transpose _ _ _ (Scalar _) = error "This is not possible, might yet have to convince the type system."
+transpose v a b (Tensor ms) =
+  let sl = sing :: Sing l
+      sh = sHead' sl
+      sv = sFst sh
+      si = sSnd sh
+      st = sTail' sl
+  in withSingI st $
+     case sv %~ v of
+       Proved Refl -> case si %~ a of
+                        Proved Refl -> let ms' = ms
+                                       in Tensor ms'
+                        Disproved _ -> case sCanTranspose v a b st of
+                                         STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
+       Disproved _ -> case sCanTranspose v a b st of
+                        STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
 transpose' :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
-transpose' v ia ib t = withSomeSing v (\sv ->
-                         withSomeSing ia (\sia ->
-                           withSomeSing ib (\sib ->
-                             case sCanTranspose sv sia sib (sing :: Sing l) of
-                               STrue  -> Right $ transpose sv sia sib t
-                               SFalse -> Left $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!")))
+transpose' v ia ib t = withSomeSing v $ \sv ->
+                       withSomeSing ia $ \sia ->
+                       withSomeSing ib $ \sib ->
+                         case sCanTranspose sv sia sib (sing :: Sing l) of
+                           STrue  -> Right $ transpose sv sia sib t
+                           SFalse -> Left $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
 
 toList :: forall l v.SingI l => Tensor l v -> [([Int], v)]
 toList ZeroTensor = []
@@ -290,6 +306,22 @@ eta = case (sing :: Sing n) of
   where
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then -1 else 1))])) [0..x - 1]
 
+asym :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+       (
+        '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
+        (a < b) ~ 'True,
+        SingI n,
+        Num v
+       ) => Tensor l v
+asym = case (sing :: Sing n) of
+        sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
+              in Tensor (f x)
+  where
+    f x = (\i j -> (i, Tensor [(j, Scalar (case i `compare` j of
+                                             LT -> 1
+                                             EQ -> 0
+                                             GT -> -1))])) <$> [0..x-1] <*> [0..x-1]
+
 type V4 = 'VSpace "Spacetime" 4
 type Up2 a b = 'Cov (a :| '[b])
 type UpDown a b = 'CovCon (a :| '[]) (b :| '[])
@@ -308,6 +340,9 @@ d_bq = delta
 
 e_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
 e_ab = eta
+
+as_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
+as_ab = asym
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
