@@ -25,6 +25,7 @@ import Internal
 
 import Data.Kind (Type)
 
+import Data.Text (Text)
 import Data.Singletons
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.Ord
@@ -217,8 +218,8 @@ contract (Tensor ms) =
                      in case sv %~ sv' of
                           Disproved _ -> t'
                           Proved Refl -> case si of
-                            SICov sa -> case si' of
-                              SICon sb -> case sa %~ sb of
+                            SICon sa -> case si' of
+                              SICov sb -> case sa %~ sb of
 
                                 Proved Refl -> 
                                           let ms' = fmap (\(i, v) -> case v of
@@ -342,9 +343,21 @@ fromTList xs =
     xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
     xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''
 
+delta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+          (
+           KnownNat n,
+           Num v,
+           '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[])) ] ~ l,
+           Tail' (Tail' l) ~ '[],
+           Sane (Tail' l) ~ 'True
+          ) =>
+          Sing id -> Sing n -> Sing a -> Sing b ->
+          Tensor l v
+delta' _ _ _ _ = delta
+
 delta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
          (
-          '[ '( 'VSpace id n, 'CovCon (a :| '[]) (b :| '[]))] ~ l,
+          '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[]))] ~ l,
           Tail' (Tail' l) ~ '[],
           Sane (Tail' l) ~ 'True,
           SingI n,
@@ -386,9 +399,28 @@ asym = case (sing :: Sing n) of
                                       EQ -> 0
                                       GT -> -1))) [0..x-1])) [0..x-1]
 
+type Tensor' v r = (forall l.SingI l => Tensor l v -> r) -> r
+
+withSomeDelta :: forall v r.Num v =>
+                 Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
+                 Tensor' v r
+withSomeDelta vid vdim a b f = 
+  withSomeSing vid $ \svid ->
+  withSomeSing vdim $ \svdim ->
+  withSomeSing a $ \sa ->
+  withSomeSing b $ \sb ->
+  withKnownNat svdim $
+  withKnownSymbol svid $
+  withKnownSymbol sa $
+  withKnownSymbol sb $
+  let sl = sDeltaILists svid svdim sa sb
+  in  case sTail' (sTail' sl) of
+        SNil -> case sSane (sTail' sl) %~ STrue of
+                  Proved Refl -> f $ delta' svid svdim sa sb
+
 type V4 = 'VSpace "Spacetime" 4
 type Up2 a b = 'Cov (a :| '[b])
-type UpDown a b = 'CovCon (a :| '[]) (b :| '[])
+type UpDown a b = 'ConCov (a :| '[]) (b :| '[])
 
 d_ap :: Tensor '[ '(V4, UpDown "p" "a") ] Rational
 d_ap = delta

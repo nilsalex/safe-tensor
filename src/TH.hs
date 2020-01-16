@@ -22,6 +22,8 @@ module TH where
 
 import Data.Kind (Type)
 
+import Data.Text (Text)
+
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.List.NonEmpty hiding (sSort, SortSym0)
@@ -37,26 +39,29 @@ $(singletons [d|
                             vDim :: b }
                     deriving (Show, Ord, Eq)
 
-  data Ix a    = ICov a | ICon a deriving (Show, Ord, Eq)
+  data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq)
 
   ixCompare :: Ord a => Ix a -> Ix a -> Ordering
-  ixCompare (ICov a) (ICov b) = compare a b
-  ixCompare (ICov a) (ICon b) = case compare a b of
+  ixCompare (ICon a) (ICon b) = compare a b
+  ixCompare (ICon a) (ICov b) = case compare a b of
                                   LT -> LT
                                   EQ -> LT
                                   GT -> GT
-  ixCompare (ICon a) (ICov b) = case compare a b of
+  ixCompare (ICov a) (ICon b) = case compare a b of
                                   LT -> LT
                                   EQ -> GT
                                   GT -> GT
-  ixCompare (ICon a) (ICon b) = compare a b
+  ixCompare (ICov a) (ICov b) = compare a b
   
-  data IList a = CovCon (NonEmpty a) (NonEmpty a) |
+  data IList a = ConCov (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
                  Con (NonEmpty a)
                  deriving (Show, Ord, Eq)
 
   type ILists = [(VSpace Symbol Nat, IList Symbol)]
+
+  deltaILists :: Symbol -> Nat -> Symbol -> Symbol -> ILists
+  deltaILists vid vdim a b = [(VSpace vid vdim, ConCov (a :| []) (b :| []))]
 
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True
@@ -67,9 +72,9 @@ $(singletons [d|
   isAscending' (x :| xs) = isAscending (x:xs)
 
   isAscendingI :: Ord a => IList a -> Bool
-  isAscendingI (CovCon x y) = isAscending' x && isAscending' y
-  isAscendingI (Cov x) = isAscending' x
-  isAscendingI (Con y) = isAscending' y
+  isAscendingI (ConCov x y) = isAscending' x && isAscending' y
+  isAscendingI (Con x) = isAscending' x
+  isAscendingI (Cov y) = isAscending' y
 
   sane :: ILists -> Bool
   sane [] = True
@@ -79,47 +84,47 @@ $(singletons [d|
 
   head' :: ILists -> (VSpace Symbol Nat, Ix Symbol)
   head' ((v, l):_) = (v, case l of
-                           CovCon (a :| _) (b :| _) ->
+                           ConCov (a :| _) (b :| _) ->
                              case compare a b of
-                               LT -> ICov a
-                               EQ -> ICov a
-                               GT -> ICon b
-                           Cov (a :| _)      -> ICov a
-                           Con (a :| _)      -> ICon a)
+                               LT -> ICon a
+                               EQ -> ICon a
+                               GT -> ICov b
+                           Con (a :| _)      -> ICon a
+                           Cov (a :| _)      -> ICov a)
   head' [] = error "head' of empty list"
 
   tail' :: ILists -> ILists
   tail' ((v, l):ls) =
     let l' = case l of
-               CovCon (a :| []) (b :| []) ->
+               ConCov (a :| []) (b :| []) ->
                  case compare a b of
-                   LT -> Just $ Con (b :| [])
-                   EQ -> Just $ Con (b :| [])
-                   GT -> Just $ Cov (a :| [])
+                   LT -> Just $ Cov (b :| [])
+                   EQ -> Just $ Cov (b :| [])
+                   GT -> Just $ Con (a :| [])
 
-               CovCon (a :| (a':as)) (b :| []) ->
+               ConCov (a :| (a':as)) (b :| []) ->
                  case compare a b of
-                   LT -> Just $ CovCon (a' :| as) (b :| [])
-                   EQ -> Just $ CovCon (a' :| as) (b :| [])
-                   GT -> Just $ Cov (a :| (a':as))
+                   LT -> Just $ ConCov (a' :| as) (b :| [])
+                   EQ -> Just $ ConCov (a' :| as) (b :| [])
+                   GT -> Just $ Con (a :| (a':as))
 
-               CovCon (a :| []) (b :| (b':bs)) ->
+               ConCov (a :| []) (b :| (b':bs)) ->
                  case compare a b of
-                   LT -> Just $ Con (b :| (b':bs))
-                   EQ -> Just $ Con (b :| (b':bs))
-                   GT -> Just $ CovCon (a :| []) (b' :| bs)
+                   LT -> Just $ Cov (b :| (b':bs))
+                   EQ -> Just $ Cov (b :| (b':bs))
+                   GT -> Just $ ConCov (a :| []) (b' :| bs)
 
-               CovCon (a :| (a':as)) (b :| (b':bs)) ->
+               ConCov (a :| (a':as)) (b :| (b':bs)) ->
                  case compare a b of
-                   LT -> Just $ CovCon (a' :| as) (b :| (b':bs))
-                   EQ -> Just $ CovCon (a' :| as) (b :| (b':bs))
-                   GT -> Just $ CovCon (a :| (a':as)) (b' :| bs)
-
-               Cov (a :| []) -> Nothing
-               Cov (a :| (a':as)) -> Just $ Cov (a' :| as)
+                   LT -> Just $ ConCov (a' :| as) (b :| (b':bs))
+                   EQ -> Just $ ConCov (a' :| as) (b :| (b':bs))
+                   GT -> Just $ ConCov (a :| (a':as)) (b' :| bs)
 
                Con (a :| []) -> Nothing
                Con (a :| (a':as)) -> Just $ Con (a' :| as)
+
+               Cov (a :| []) -> Nothing
+               Cov (a :| (a':as)) -> Just $ Cov (a' :| as)
              in case l' of
                   Just l'' -> (v, l''):ls
                   Nothing  -> ls
@@ -135,16 +140,16 @@ $(singletons [d|
       GT -> (yv,yl) : mergeILs ((xv,xl):xs) ys
 
   mergeIL :: Ord a => IList a -> IList a -> IList a
-  mergeIL (CovCon xs ys) (CovCon xs' ys') = 
-    CovCon (mergeNE xs xs') (mergeNE ys ys')
-  mergeIL (CovCon xs ys) (Cov xs') = CovCon (mergeNE xs xs') ys
-  mergeIL (CovCon xs ys) (Con ys') = CovCon xs (mergeNE ys ys')
-  mergeIL (Cov xs) (CovCon xs' ys) = CovCon (mergeNE xs xs') ys
-  mergeIL (Cov xs) (Cov xs') = Cov (mergeNE xs xs')
-  mergeIL (Cov xs) (Con ys) = CovCon xs ys
-  mergeIL (Con ys) (CovCon xs ys') = CovCon xs (mergeNE ys ys')
-  mergeIL (Con ys) (Cov xs) = CovCon xs ys
-  mergeIL (Con ys) (Con ys') = Con (mergeNE ys ys')
+  mergeIL (ConCov xs ys) (ConCov xs' ys') = 
+    ConCov (mergeNE xs xs') (mergeNE ys ys')
+  mergeIL (ConCov xs ys) (Con xs') = ConCov (mergeNE xs xs') ys
+  mergeIL (ConCov xs ys) (Cov ys') = ConCov xs (mergeNE ys ys')
+  mergeIL (Con xs) (ConCov xs' ys) = ConCov (mergeNE xs xs') ys
+  mergeIL (Con xs) (Con xs') = Con (mergeNE xs xs')
+  mergeIL (Con xs) (Cov ys) = ConCov xs ys
+  mergeIL (Cov ys) (ConCov xs ys') = ConCov xs (mergeNE ys ys')
+  mergeIL (Cov ys) (Con xs) = ConCov xs ys
+  mergeIL (Cov ys) (Cov ys') = Cov (mergeNE ys ys')
 
   merge :: Ord a => [a] -> [a] -> [a]
   merge [] ys = ys
@@ -168,38 +173,38 @@ $(singletons [d|
                              Nothing -> contractL xs
                              Just is' -> (v, is') : contractL xs
 
-  prepICov :: a -> IList a -> IList a
-  prepICov a (CovCon (x:|xs) y) = CovCon (a:|(x:xs)) y
-  prepICov a (Cov (x:|xs)) = Cov (a:|(x:xs))
-  prepICov a (Con y) = CovCon (a:|[]) y
-
   prepICon :: a -> IList a -> IList a
-  prepICon a (CovCon x (y:|ys)) = CovCon (x) (a:|(y:ys))
-  prepICon a (Cov x) = CovCon x (a:|[])
-  prepICon a (Con (y:|ys)) = Con (a:|(y:ys))
+  prepICon a (ConCov (x:|xs) y) = ConCov (a:|(x:xs)) y
+  prepICon a (Con (x:|xs)) = Con (a:|(x:xs))
+  prepICon a (Cov y) = ConCov (a:|[]) y
+
+  prepICov :: a -> IList a -> IList a
+  prepICov a (ConCov x (y:|ys)) = ConCov (x) (a:|(y:ys))
+  prepICov a (Con x) = ConCov x (a:|[])
+  prepICov a (Cov (y:|ys)) = Cov (a:|(y:ys))
 
   contractI :: Ord a => IList a -> Maybe (IList a)
-  contractI (CovCon (x:|xs) (y:|ys)) =
+  contractI (ConCov (x:|xs) (y:|ys)) =
     case compare x y of
       EQ -> case xs of
               [] -> case ys of
                       [] -> Nothing
-                      (y':ys') -> Just $ Con (y' :| ys')
+                      (y':ys') -> Just $ Cov (y' :| ys')
               (x':xs') -> case ys of
-                            [] -> Just $ Cov (x' :| xs')
-                            (y':ys') -> contractI $ CovCon (x':|xs') (y':|ys')
+                            [] -> Just $ Con (x' :| xs')
+                            (y':ys') -> contractI $ ConCov (x':|xs') (y':|ys')
       LT -> case xs of
-              [] -> Just $ CovCon (x:|xs) (y:|ys)
-              (x':xs') -> case contractI $ CovCon (x':|xs') (y:|ys) of
-                            Nothing -> Just $ Cov (x:|[])
-                            Just i  -> Just $ prepICov x i
-      GT -> case ys of
-              [] -> Just $ CovCon (x:|xs) (y:|ys)
-              (y':ys') -> case contractI $ CovCon (x:|xs) (y':|ys') of
-                            Nothing -> Just $ Con (y:|[])
+              [] -> Just $ ConCov (x:|xs) (y:|ys)
+              (x':xs') -> case contractI $ ConCov (x':|xs') (y:|ys) of
+                            Nothing -> Just $ Con (x:|[])
                             Just i  -> Just $ prepICon x i
-  contractI (Cov x) = Just $ Cov x
+      GT -> case ys of
+              [] -> Just $ ConCov (x:|xs) (y:|ys)
+              (y':ys') -> case contractI $ ConCov (x:|xs) (y':|ys') of
+                            Nothing -> Just $ Cov (y:|[])
+                            Just i  -> Just $ prepICov x i
   contractI (Con x) = Just $ Con x
+  contractI (Cov x) = Just $ Cov x
 
   elemNE :: Ord a => a -> NonEmpty a -> Bool
   elemNE a (x :| []) = a == x
@@ -207,29 +212,6 @@ $(singletons [d|
                               LT -> False
                               EQ -> True
                               GT -> elemNE a (x' :| xs)
-  
-  canTransposeCov :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
-  canTransposeCov _ _ _ [] = False
-  canTransposeCov v a b ((v',il):ls) =
-    case compare v v' of
-      LT -> False
-      GT -> canTransposeCov v a b ls
-      EQ -> case il of
-              Con _  -> canTransposeCov v a b ls
-              Cov cs -> case elemNE a cs of
-                          True -> case elemNE b cs of
-                                    True -> True
-                                    False -> False
-                          False -> case elemNE b cs of
-                                    True -> False
-                                    False -> canTransposeCov v a b ls
-              CovCon cs _ -> case elemNE a cs of
-                               True -> case elemNE b cs of
-                                         True -> True
-                                         False -> False
-                               False -> case elemNE b cs of
-                                         True -> False
-                                         False -> canTransposeCov v a b ls
   
   canTransposeCon :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
   canTransposeCon _ _ _ [] = False
@@ -246,7 +228,7 @@ $(singletons [d|
                           False -> case elemNE b cs of
                                     True -> False
                                     False -> canTransposeCon v a b ls
-              CovCon _ cs -> case elemNE a cs of
+              ConCov cs _ -> case elemNE a cs of
                                True -> case elemNE b cs of
                                          True -> True
                                          False -> False
@@ -254,17 +236,40 @@ $(singletons [d|
                                          True -> False
                                          False -> canTransposeCon v a b ls
   
+  canTransposeCov :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
+  canTransposeCov _ _ _ [] = False
+  canTransposeCov v a b ((v',il):ls) =
+    case compare v v' of
+      LT -> False
+      GT -> canTransposeCov v a b ls
+      EQ -> case il of
+              Con _  -> canTransposeCov v a b ls
+              Cov cs -> case elemNE a cs of
+                          True -> case elemNE b cs of
+                                    True -> True
+                                    False -> False
+                          False -> case elemNE b cs of
+                                    True -> False
+                                    False -> canTransposeCov v a b ls
+              ConCov _ cs -> case elemNE a cs of
+                               True -> case elemNE b cs of
+                                         True -> True
+                                         False -> False
+                               False -> case elemNE b cs of
+                                         True -> False
+                                         False -> canTransposeCov v a b ls
+  
   canTranspose :: (Ord a, Ord b) => VSpace a b -> Ix a -> Ix a -> [(VSpace a b, IList a)] -> Bool
+  canTranspose v (ICon a) (ICon b) l = case compare a b of
+                                         LT -> canTransposeCon v a b l
+                                         EQ -> True
+                                         GT -> canTransposeCov v b a l
   canTranspose v (ICov a) (ICov b) l = case compare a b of
                                          LT -> canTransposeCov v a b l
                                          EQ -> True
                                          GT -> canTransposeCov v b a l
-  canTranspose v (ICon a) (ICon b) l = case compare a b of
-                                         LT -> canTransposeCon v a b l
-                                         EQ -> True
-                                         GT -> canTransposeCon v b a l
-  canTranspose _ (ICon _) (ICov _) _ = False
   canTranspose _ (ICov _) (ICon _) _ = False
+  canTranspose _ (ICon _) (ICov _) _ = False
 
   removeUntil :: Ix Symbol -> ILists -> ILists
   removeUntil i ls = go i ls
