@@ -130,42 +130,55 @@ $(singletons [d|
                   Nothing  -> ls
   tail' [] = error "tail' of empty list"
 
-  mergeILs :: ILists -> ILists -> ILists
-  mergeILs [] ys = ys
-  mergeILs xs [] = xs
+  mergeILs :: ILists -> ILists -> Maybe ILists
+  mergeILs [] ys = Just ys
+  mergeILs xs [] = Just xs
   mergeILs ((xv,xl):xs) ((yv,yl):ys) = 
     case compare xv yv of
-      LT -> (xv,xl) : mergeILs xs ((yv,yl):ys)
-      EQ -> (xv, mergeIL xl yl) : mergeILs xs ys
-      GT -> (yv,yl) : mergeILs ((xv,xl):xs) ys
+      LT -> fmap ((xv,xl) :) $ mergeILs xs ((yv,yl):ys)
+      EQ -> do
+             xl' <- mergeIL xl yl
+             xs' <- mergeILs xs ys
+             Just $ (xv, xl') : ys
+      GT -> fmap ((yv,yl) :) $ mergeILs ((xv,xl):xs) ys
 
-  mergeIL :: Ord a => IList a -> IList a -> IList a
-  mergeIL (ConCov xs ys) (ConCov xs' ys') = 
-    ConCov (mergeNE xs xs') (mergeNE ys ys')
-  mergeIL (ConCov xs ys) (Con xs') = ConCov (mergeNE xs xs') ys
-  mergeIL (ConCov xs ys) (Cov ys') = ConCov xs (mergeNE ys ys')
-  mergeIL (Con xs) (ConCov xs' ys) = ConCov (mergeNE xs xs') ys
-  mergeIL (Con xs) (Con xs') = Con (mergeNE xs xs')
-  mergeIL (Con xs) (Cov ys) = ConCov xs ys
-  mergeIL (Cov ys) (ConCov xs ys') = ConCov xs (mergeNE ys ys')
-  mergeIL (Cov ys) (Con xs) = ConCov xs ys
-  mergeIL (Cov ys) (Cov ys') = Cov (mergeNE ys ys')
+  mergeIL :: Ord a => IList a -> IList a -> Maybe (IList a)
+  mergeIL (ConCov xs ys) (ConCov xs' ys') = do
+      xs'' <- mergeNE xs xs'
+      ys'' <- mergeNE ys ys'
+      Just $ ConCov xs'' ys''
+  mergeIL (ConCov xs ys) (Con xs') = do
+      xs'' <- mergeNE xs xs'
+      Just $ ConCov xs'' ys
+  mergeIL (ConCov xs ys) (Cov ys') = do
+      ys'' <- mergeNE ys ys'
+      Just $ ConCov xs ys''
+  mergeIL (Con xs) (ConCov xs' ys) = do
+      xs'' <- mergeNE xs xs'
+      Just $ ConCov xs'' ys
+  mergeIL (Con xs) (Con xs') = fmap Con $ mergeNE xs xs'
+  mergeIL (Con xs) (Cov ys) = Just $ ConCov xs ys
+  mergeIL (Cov ys) (ConCov xs ys') = do
+      ys'' <- mergeNE ys ys'
+      Just $ ConCov xs ys''
+  mergeIL (Cov ys) (Con xs) = Just $ ConCov xs ys
+  mergeIL (Cov ys) (Cov ys') = fmap Cov $ mergeNE ys ys'
 
-  merge :: Ord a => [a] -> [a] -> [a]
-  merge [] ys = ys
-  merge xs [] = xs
+  merge :: Ord a => [a] -> [a] -> Maybe [a]
+  merge [] ys = Just ys
+  merge xs [] = Just xs
   merge (x:xs) (y:ys) =
     case compare x y of
-      LT -> x : merge xs (y:ys)
-      EQ -> error "merging overlapping lists"
-      GT -> y : merge (x:xs) ys
+      LT -> fmap (x :) $ merge xs (y:ys)
+      EQ -> Nothing
+      GT -> fmap (y :) $ merge (x:xs) ys
 
-  mergeNE :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
+  mergeNE :: Ord a => NonEmpty a -> NonEmpty a -> Maybe (NonEmpty a)
   mergeNE (x :| xs) (y :| ys) =
     case compare x y of
-      LT -> x :| merge xs (y:ys)
-      EQ -> error "merging overlapping non-empty lists"
-      GT -> y :| merge (x:xs) ys
+      LT -> fmap (x :|) $ merge xs (y:ys)
+      EQ -> Nothing
+      GT -> fmap (y :|) $ merge (x:xs) ys
 
   contractL :: ILists -> ILists
   contractL [] = []

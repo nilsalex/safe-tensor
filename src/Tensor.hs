@@ -45,62 +45,12 @@ data Tensor :: ILists -> Type -> Type where
               [(Int, Tensor l' v)] -> Tensor l v
 
 deriving instance Eq v => Eq (Tensor l v)
+deriving instance Show v => Show (Tensor l v)
 
-instance (SingI l, Show v) => Show (Tensor l v) where
-  show = show . toRep
-
-type IxR = Ix (Demote Symbol)
-type VSpaceR = VSpace (Demote Symbol) (Demote Nat)
-type IListR = IList (Demote Symbol)
-type IListsR = [(VSpaceR, IListR)]
-
-data TensorR :: Type -> Type where
-  ZeroTensorR :: IListsR -> TensorR v
-  ScalarR :: v -> TensorR v
-  TensorR :: (VSpaceR, IxR) -> [(Int, TensorR v)] -> TensorR v
-    deriving (Show, Eq)
-
-toRep :: forall (l :: ILists) v.SingI l => Tensor l v -> TensorR v
-toRep ZeroTensor = let sl = sing :: Sing l
-                   in ZeroTensorR $ fromSing sl
-toRep (Scalar s) = ScalarR s
-toRep (Tensor ms) = let sl  = sTail' (sing :: Sing l)
-                        sp  = sHead' (sing :: Sing l)
-                        ms' = fmap (fmap (\t -> withSingI sl $ toRep t)) ms
-                    in TensorR (fromSing sp) ms'
-
-fromRep :: forall l v.SingI l => TensorR v -> Either String (Tensor l v)
-fromRep (ScalarR s) = case (sing :: Sing l) of
-                        SNil -> Right $ Scalar s
-                        _    -> Left "cannot construct Scalar with non-empty index list"
-fromRep (ZeroTensorR lr) =
-  case toSing lr of
-    SomeSing sl' -> case sl' %~ (sing :: Sing l) of
-      Proved Refl -> case sSane (sing :: Sing l) of
-        STrue  -> Right ZeroTensor
-        SFalse -> Left "insane indices in ZeroTensor"
-      _           -> Left "indices in ZeroTensorR don't match type to be constructed"
-fromRep (TensorR (vr, ir) ms) =
-  case (sing :: Sing l) of
-    SNil -> Left "cannot reconstruct Tensor with empty index list"
-    _    ->
-      case toSing vr of
-        SomeSing sv -> case toSing ir of
-          SomeSing si -> case STuple2 sv si %~ sHead' (sing :: Sing l) of
-            Proved Refl -> case sSane (sing :: Sing l) of
-              STrue  ->
-               let sl  = sTail' (sing :: Sing l)
-                   ms' = fmap (fmap (\t -> withSingI sl $ fromRep t)) ms
-                   ms'' = filter (\(_, e) -> case e of
-                                               Left _ -> False
-                                               Right _ -> True) ms'
-                   ms''' = fmap (fmap (\e -> case e of
-                                               Right t -> t)) ms''
-               in case ms''' of
-                    [] -> Left "empty tensor"
-                    _  -> Right $ Tensor ms'''
-              SFalse -> Left "insane indices in Tensor"
-            _           -> Left "indices in TensorR don't match type to be constructed"
+instance Functor (Tensor l) where
+  fmap f ZeroTensor = ZeroTensor
+  fmap f (Scalar s) = Scalar $ f s
+  fmap f (Tensor ms) = Tensor $ fmap (fmap (fmap f)) ms
 
 removeZeros :: (Num v, Eq v) => Tensor l v -> Tensor l v
 removeZeros ZeroTensor = ZeroTensor
@@ -132,21 +82,15 @@ removeZeros (Tensor ms) =
 
 infixl 6 &+
 
-negateT :: forall (l :: ILists) v. Num v =>
-           Tensor l v -> Tensor l v
-negateT ZeroTensor = ZeroTensor
-negateT (Scalar s) = Scalar $ negate s
-negateT (Tensor x) = Tensor $ fmap (fmap negateT) x
-
 (&-) :: forall (l :: ILists) (l' :: ILists) v.
         ((l ~ l'), Num v, Eq v) =>
         Tensor l v -> Tensor l' v -> Tensor l v
-(&-) t1 t2 = t1 &+ (negateT t2)
+(&-) t1 t2 = t1 &+ (fmap negate t2)
 
 infixl 6 &-
 
 (&*) :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
-               (Num v, l'' ~ MergeILs l l', Sane l'' ~ 'True,
+               (Num v, Just l'' ~ MergeILs l l', Sane l'' ~ 'True,
                 SingI l, SingI l') =>
                Tensor l v -> Tensor l' v -> Tensor l'' v
 (&*) (Scalar s) (Scalar t) = Scalar (s*t)
@@ -165,7 +109,7 @@ infixl 6 &-
       sh' = sHead' sl'
       st = sTail' sl
       st' = sTail' sl'
-      sl'' = sMergeILs sl sl'
+      SJust sl'' = sMergeILs sl sl'
   in case sSane sl'' of
        STrue -> case sSane (sTail' sl'') of
          STrue -> case sh of
@@ -173,16 +117,16 @@ infixl 6 &-
              case sh' of
                STuple2 sv' si' ->
                  case sCompare sv sv' of
-                   SLT -> case sMergeILs st sl' %~ sTail' sl'' of
+                   SLT -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
                             Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                   SGT -> case sMergeILs sl st' %~ sTail' sl'' of
+                   SGT -> case sMergeILs sl st' %~ SJust (sTail' sl'') of
                             Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st' $ (Tensor ms :: Tensor l v) &* t)) ms'
                    SEQ -> case sIxCompare si si' of
-                            SLT -> case sMergeILs st sl' %~ sTail' sl'' of
+                            SLT -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
                                      Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                            SEQ -> case sMergeILs st sl' %~ sTail' sl'' of
+                            SEQ -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
                                      Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                            SGT -> case sMergeILs sl st' %~ sTail' sl'' of
+                            SGT -> case sMergeILs sl st' %~ SJust (sTail' sl'') of
                                      Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st' $ (Tensor ms :: Tensor l v) &* t)) ms'
 (&*) ZeroTensor _ = ZeroTensor
 (&*) _ ZeroTensor = ZeroTensor
@@ -274,7 +218,10 @@ transpose' v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose' v a b)) ms
 
-transpose :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
+--transpose :: forall l v.SingI l => VSpaceR -> IxR -> IxR -> Tensor l v -> Either String (Tensor l v)
+transpose :: forall l v.SingI l =>
+             Demote (VSpace Symbol Nat) -> Demote (Ix Symbol) -> Demote (Ix Symbol) ->
+             Tensor l v -> Either String (Tensor l v)
 transpose v ia ib t = withSomeSing v $ \sv ->
                       withSomeSing ia $ \sia ->
                       withSomeSing ib $ \sib ->
@@ -371,7 +318,7 @@ delta = case (sing :: Sing n) of
 
 eta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
        (
-        '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
+        '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
         (a < b) ~ 'True,
         SingI n,
         Num v
@@ -380,11 +327,11 @@ eta = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then -1 else 1))])) [0..x - 1]
+    f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 asym :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
        (
-        '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
+        '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
         (a < b) ~ 'True,
         SingI n,
         Num v
@@ -399,12 +346,75 @@ asym = case (sing :: Sing n) of
                                       EQ -> 0
                                       GT -> -1))) [0..x-1])) [0..x-1]
 
-type Tensor' v r = (forall l.SingI l => Tensor l v -> r) -> r
+data OTens :: Type -> Type where
+  OTens :: SingI l => Tensor l v -> OTens v
 
-withSomeDelta :: forall v r.Num v =>
-                 Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
-                 Tensor' v r
-withSomeDelta vid vdim a b f = 
+deriving instance Show v => Show (OTens v)
+
+instance Functor OTens where
+  fmap f (OTens t) = OTens $ fmap f t
+
+multOTens :: Num v => OTens v -> OTens v -> Either String (OTens v)
+multOTens o1 o2 =
+  case o1 of
+    OTens (t1 :: Tensor l1 v) ->
+      case o2 of
+        OTens (t2 :: Tensor l2 v) ->
+          let sl1 = sing :: Sing l1
+              sl2 = sing :: Sing l2
+          in case sMergeILs sl1 sl2 of
+               SNothing  -> Left "Tensors have overlapping indices. Cannot multiply."
+               SJust sl' ->
+                 withSingI sl' $
+                 case sSane sl' %~ STrue of
+                   Proved Refl -> Right $ OTens (t1 &* t2)
+
+addOTens :: (Eq v, Num v) => OTens v -> OTens v -> Either String (OTens v)
+addOTens o1 o2 =
+  case o1 of
+    OTens (t1 :: Tensor l1 v) ->
+      case o2 of
+        OTens (t2 :: Tensor l2 v) ->
+          let sl1 = sing :: Sing l1
+              sl2 = sing :: Sing l2
+          in case sl1 %~ sl2 of
+               Proved Refl -> case sSane sl1 %~ STrue of
+                                Proved Refl -> Right $ OTens (t1 &+ t2)
+               Disproved _ -> Left "Generalized tensor ranks do not match. Cannot add."
+
+subOTens :: (Eq v, Num v) => OTens v -> OTens v -> Either String (OTens v)
+subOTens o1 o2 =
+  case o1 of
+    OTens (t1 :: Tensor l1 v) ->
+      case o2 of
+        OTens (t2 :: Tensor l2 v) ->
+          let sl1 = sing :: Sing l1
+              sl2 = sing :: Sing l2
+          in case sl1 %~ sl2 of
+               Proved Refl -> case sSane sl1 %~ STrue of
+                                Proved Refl -> Right $ OTens (t1 &- t2)
+               Disproved _ -> Left "Generalized tensor ranks do not match. Cannot add."
+
+contrOTens :: (Num v, Eq v) => OTens v -> OTens v
+contrOTens o =
+  case o of
+    OTens (t :: Tensor l v) ->
+      let sl = sing :: Sing l
+          sl' = sContractL sl
+      in withSingI sl' $
+         OTens $ contract t
+
+rankOTens :: OTens v -> Demote ILists
+rankOTens o =
+  case o of
+    OTens (t :: Tensor l v) ->
+      let sl = sing :: Sing l
+      in fromSing sl
+
+someDelta :: Num v =>
+             Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
+             OTens v
+someDelta vid vdim a b =
   withSomeSing vid $ \svid ->
   withSomeSing vdim $ \svdim ->
   withSomeSing a $ \sa ->
@@ -416,23 +426,14 @@ withSomeDelta vid vdim a b f =
   let sl = sDeltaILists svid svdim sa sb
   in  case sTail' (sTail' sl) of
         SNil -> case sSane (sTail' sl) %~ STrue of
-                  Proved Refl -> f $ delta' svid svdim sa sb
+                  Proved Refl -> OTens $ delta' svid svdim sa sb
 
 type V4 = 'VSpace "Spacetime" 4
-type Up2 a b = 'Cov (a :| '[b])
+type Up2 a b = 'Con (a :| '[b])
 type UpDown a b = 'ConCov (a :| '[]) (b :| '[])
 
 d_ap :: Tensor '[ '(V4, UpDown "p" "a") ] Rational
 d_ap = delta
-
-d_aq :: Tensor '[ '(V4, UpDown "q" "a") ] Rational
-d_aq = delta
-
-d_bp :: Tensor '[ '(V4, UpDown "p" "b") ] Rational
-d_bp = delta
-
-d_bq :: Tensor '[ '(V4, UpDown "q" "b") ] Rational
-d_bq = delta
 
 e_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
 e_ab = eta
