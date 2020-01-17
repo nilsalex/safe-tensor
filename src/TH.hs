@@ -20,18 +20,12 @@
 
 module TH where
 
-import Data.Kind (Type)
-
-import Data.Text (Text)
-
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.List
 import Data.Singletons.Prelude.List.NonEmpty hiding (sSort, SortSym0)
 import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List (sort)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 $(singletons [d|
@@ -75,6 +69,19 @@ $(singletons [d|
   isAscendingI (ConCov x y) = isAscending' x && isAscending' y
   isAscendingI (Con x) = isAscending' x
   isAscendingI (Cov y) = isAscending' y
+
+  lengthNE :: NonEmpty a -> Nat
+  lengthNE (_ :| []) = 1
+  lengthNE (_ :| (x:xs)) = 1 + lengthNE (x :| xs)
+
+  lengthIL :: IList a -> Nat
+  lengthIL (ConCov xs ys) = (lengthNE xs) + (lengthNE ys)
+  lengthIL (Con xs) = lengthNE xs
+  lengthIL (Cov ys) = lengthNE ys
+
+  lengthILs :: ILists -> Nat
+  lengthILs [] = 0
+  lengthILs ((_,x):xs) = lengthIL x + lengthILs xs
 
   sane :: ILists -> Bool
   sane [] = True
