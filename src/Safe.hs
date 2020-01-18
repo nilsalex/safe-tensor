@@ -35,9 +35,9 @@ import Data.Singletons.TypeLits
 import Data.List (foldl',groupBy,sortBy)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
-data Vec :: Nat -> Type -> Type where
-    VNil :: Vec 0 a
-    VCons :: a -> Vec n a -> Vec (n+1) a
+data Vec :: N -> Type -> Type where
+    VNil :: Vec Z a
+    VCons :: a -> Vec n a -> Vec (S n) a
 
 deriving instance Show a => Show (Vec n a)
 
@@ -231,56 +231,54 @@ toList (Tensor ms) =
   let st = sTail' (sing :: Sing l)
       sn = sing :: Sing n
       sm = sLengthILs st
-      sOne = sing :: Sing 1
   in case st of
        SNil ->
-         case sn %~ sOne of
-           Proved Refl -> fmap (\(i, Scalar s) -> (VCons i VNil, s)) ms
+         case sn of
+           SS SZ -> fmap (\(i, Scalar s) -> (VCons i VNil, s)) ms
        _    ->
-         withKnownNat sm $
-         case sn %~ (sm %+ sOne) of
-           Proved Refl ->
-             concat $
-             fmap (\(i, v) -> case v of Tensor t -> fmap (\(is, v') -> (VCons i is, v')) (withSingI st $ toList v)) ms
+         case sn of
+           SS sm' ->
+             withSingI sm' $
+             case sm %~ sm' of
+               Proved Refl ->
+                 concat $
+                 fmap (\(i, v) -> case v of Tensor t -> fmap (\(is, v') -> (VCons i is, v')) (withSingI st $ toList v)) ms
 
 lemma :: forall n m.(n-1 :~: m) -> (m+1 :~: n)
 lemma _ = unsafeCoerce (Refl @n)
 
+fromList' :: forall l v n.
+             (Sane l ~ True, LengthILs l ~ n) =>
+             Sing l -> [(Vec n Int, v)] -> Tensor l v
+fromList' sl [] = ZeroTensor
+fromList' sl xs =
+    let sn = sLengthILs sl
+        st = sTail' sl
+        sm = sLengthILs st
+    in case sn of
+         SZ ->
+           case sl %~ SNil of
+             Proved Refl -> Scalar $ snd (head xs)
+         SS sm' ->
+           withSingI sm' $
+           case sm %~ sm' of
+             Proved Refl ->
+               withSingI st $
+               case sSane st %~ STrue of
+                 Proved Refl ->
+                       case fmap (\((i `VCons` is),v) -> (i,(is ,v))) xs of
+                         xs' -> Tensor $ fmap (fmap (fromList' st)) $ myGroup xs'
+  where
+    myGroup ys =
+      let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
+      in fmap (\x -> (fst $ head x, fmap snd x)) ys'
+
 fromList :: forall l v n.
             (SingI l, Sane l ~ True, LengthILs l ~ n) =>
             [(Vec n Int, v)] -> Tensor l v
-fromList [] = ZeroTensor
-fromList xs =
-    let sl = sing :: Sing l
-        sn = sLengthILs sl
-        st = sTail' sl
-        sn' = sLengthILs st
-        sZero = sing :: Sing 0
-        sOne = sing :: Sing 1
-    in case sOne %<=? sn of
-         SFalse ->
-           case sl %~ SNil of
-             Proved Refl -> Scalar $ snd (head xs)
-         STrue ->
-           case sn' of
-             (sing :: Sing n') ->
-               let
-                 xs' = fmap (\((i `VCons` (is :: Vec n' Int)),v) -> (i,(is,v))) xs
-                 xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
-                 xs''' = fmap (\x -> (fst $ head x, fmap snd x)) xs''
-               in Tensor $ fmap (fmap fromList) xs'''
-{-
-fromList xs =
-    let sl = sing :: Sing l
-        st = sTail' sl
-    in withSingI st $
-      case sSane st of
-        STrue -> Tensor $ fmap (fmap fromList) xs'''
-  where
-    xs' = fmap (\((i:is),v) -> (i,(is,v))) xs
-    xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
-    xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''
--}
+fromList =
+  let sl = sing :: Sing l
+  in fromList' sl
 
 toTListUntil :: forall (a :: Ix Symbol) l l' v.
                 (SingI l, SingI l', RemoveUntil a l ~ l', Sane l ~ True, Sane l' ~ True) =>

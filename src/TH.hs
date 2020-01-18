@@ -29,6 +29,36 @@ import Data.Singletons.TypeLits
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 $(singletons [d|
+  data N where
+      Z :: N
+      S :: N -> N
+
+  deriving instance Show N
+  deriving instance Eq N
+  instance Ord N where
+    Z <= _         = True
+    (S n) <= Z     = False
+    (S n) <= (S m) = n <= m
+
+  instance Num N where
+    Z + n = n
+    (S n) + m = S $ n + m
+
+    n - Z         = n
+    --_ - n         = error ""
+    (S n) - (S m) = n - m
+
+    Z * _ = Z
+    (S n) * m = m + n * m
+
+    abs n = n
+    signum n = n
+
+    fromInteger n
+      | n == 0 = Z
+      | otherwise = S $ fromInteger (n-1)
+
+
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
                     deriving (Show, Ord, Eq)
@@ -70,17 +100,17 @@ $(singletons [d|
   isAscendingI (Con x) = isAscending' x
   isAscendingI (Cov y) = isAscending' y
 
-  lengthNE :: NonEmpty a -> Nat
-  lengthNE (_ :| []) = 1
-  lengthNE (_ :| (x:xs)) = 1 + lengthNE (x :| xs)
+  lengthNE :: NonEmpty a -> N
+  lengthNE (_ :| []) = S Z
+  lengthNE (_ :| (x:xs)) = S Z + lengthNE (x :| xs)
 
-  lengthIL :: IList a -> Nat
+  lengthIL :: IList a -> N
   lengthIL (ConCov xs ys) = (lengthNE xs) + (lengthNE ys)
   lengthIL (Con xs) = lengthNE xs
   lengthIL (Cov ys) = lengthNE ys
 
-  lengthILs :: ILists -> Nat
-  lengthILs [] = 0
+  lengthILs :: ILists -> N
+  lengthILs [] = Z
   lengthILs ((_,x):xs) = lengthIL x + lengthILs xs
 
   sane :: ILists -> Bool

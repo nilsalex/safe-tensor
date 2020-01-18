@@ -40,6 +40,19 @@ deriving instance Show v => Show (T v)
 instance Functor T where
   fmap f (T t) = T $ fmap f t
 
+vecToList :: Vec n a -> [a]
+vecToList VNil = []
+vecToList (x `VCons` xs) = x : vecToList xs
+
+vecFromList :: forall (n :: N) a m.
+               MonadError String m => Sing n -> [a] -> m (Vec n a)
+vecFromList SZ [] = return VNil
+vecFromList (SS sn) [] = throwError $ "List provided for vector reconstruction is too short."
+vecFromList SZ (_:_)   = throwError $ "List provided for vector reconstruction is too long."
+vecFromList (SS sn) (x:xs) = do
+  xs' <- vecFromList sn xs
+  return $ x `VCons` xs'
+
 (.*) :: (Num v, MonadError String m) => T v -> T v -> m (T v)
 (.*) o1 o2 =
   case o1 of
@@ -113,6 +126,25 @@ rankT o =
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
       in fromSing sl
+
+toListT :: T v -> [([Int], v)]
+toListT o =
+  case o of
+    T (t :: Tensor l v) -> let sl = sing :: Sing l
+                               sn = sLengthILs sl
+                           in withSingI sn $
+                              fmap (\(vec, val) -> (vecToList vec, val)) $ toList t
+
+fromListT :: MonadError String m => Demote ILists -> [([Int], v)] -> m (T v)
+fromListT ils xs =
+  withSomeSing ils $ \sils ->
+  withSingI sils $
+  let sn = sLengthILs sils
+  in case sSane sils %~ STrue of
+    Proved Refl -> fmap (T . fromList' sils) $ 
+                   mapM (\(vec, val) -> do
+                                         vec' <- vecFromList sn vec
+                                         return (vec', val)) xs
 
 someDelta :: Num v =>
              Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
