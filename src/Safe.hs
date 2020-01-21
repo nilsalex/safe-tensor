@@ -23,12 +23,11 @@ module Safe where
 import TH
 import Internal
 
-import Unsafe.Coerce (unsafeCoerce)
-
 import Data.Kind (Type)
 
 import Data.Singletons
 import Data.Singletons.Prelude
+import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
@@ -226,34 +225,35 @@ transpose v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
-transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) (ts :: [(N,N)]) v.
-                 (Transpositions vs tl l ~ 'Just ts, SingI l, SingI tl, SingI vs) =>
+transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) v.
+                 (IsJust (Transpositions vs tl l) ~ 'True, SingI l) =>
                  Sing vs -> Sing tl -> Tensor l v -> Tensor l v
 transposeMult _ _ ZeroTensor = ZeroTensor
 transposeMult sv stl t@(Tensor ms) =
     let sl = sing :: Sing l
-        stl = sing :: Sing tl
-        sv' = sing :: Sing vs
+        sh = sHead' sl
         st = sTail' sl
         sl' = sTail sl
-        SJust sts = sTranspositions sv stl sl
-    in case sv %~ sv' of
+        sts = sTranspositions sv stl sl
+    in case sv %~ sFst sh of
          Proved Refl ->
            case sSane sl' %~ STrue of
              Proved Refl ->
-               withSingI (sFst (sHead sl)) $
-               withSingI sl' $
-               let VSpace _ dim = fromSing sv
-                   ts  = fromSing sts
-                   ts' = go ts $ take (fromIntegral dim) [0..]
-                   xs  = toTListWhile t
-                   xs' = fmap (\(is, v) -> (transposeIndices ts' is, v)) xs
-                   xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
-               in  fromTList xs''
+               case sts of
+                 SJust sts' ->
+                   withSingI (sFst (sHead sl)) $
+                   withSingI sl' $
+                   let VSpace _ dim = fromSing sv
+                       ts  = fromSing sts'
+                       ts' = go ts $ take (fromIntegral dim) [0..]
+                       xs  = toTListWhile t
+                       xs' = fmap (\(is, v) -> (transposeIndices ts' is, v)) xs
+                       xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
+                   in  fromTList xs''
          Disproved _ ->
            withSingI st $
-           case sTranspositions sv stl st of
-             SJust _ -> Tensor $ fmap (fmap (transposeMult sv stl)) ms
+           case sIsJust (sTranspositions sv stl st) %~ STrue of
+             Proved Refl -> Tensor $ fmap (fmap (transposeMult sv stl)) ms
   where
     transposeIndices ts' is = fmap snd $
                               sortBy (\(i,_) (i',_) -> i `compare` i') $
@@ -289,9 +289,6 @@ toList (Tensor ms) =
                Proved Refl ->
                  concat $
                  fmap (\(i, v) -> case v of Tensor t -> fmap (\(is, v') -> (VCons i is, v')) (withSingI st $ toList v)) ms
-
-lemma :: forall n m.(n-1 :~: m) -> (m+1 :~: n)
-lemma _ = unsafeCoerce (Refl @n)
 
 fromList' :: forall l v n.
              (Sane l ~ True, LengthILs l ~ n) =>

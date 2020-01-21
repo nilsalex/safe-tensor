@@ -27,6 +27,7 @@ import Data.Kind (Type)
 
 import Data.Singletons
 import Data.Singletons.Prelude
+import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
@@ -119,6 +120,19 @@ transposeT v ia ib o =
          case sCanTranspose sv sia sib sl of
            STrue  -> return $ T $ transpose sv sia sib t
            SFalse -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
+
+transposeMultT :: MonadError String m =>
+                  Demote (VSpace Symbol Nat) -> Demote (TransList Symbol) -> T v -> m (T v)
+transposeMultT v tl o =
+  case o of
+    T (t :: Tensor l v) ->
+      let sl = sing :: Sing l
+      in withSingI sl $
+         withSomeSing v $ \sv ->
+         withSomeSing tl $ \stl ->
+         case sIsJust (sTranspositions sv stl sl) %~ STrue of
+           Proved Refl -> return $ T $ transposeMult sv stl t
+           Disproved _ -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show tl ++ "!"
 
 rankT :: T v -> Demote ILists
 rankT o =

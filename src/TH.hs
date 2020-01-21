@@ -342,6 +342,11 @@ $(singletons [d|
                                     sort targets == sources
         TransCov sources targets -> isAscendingNE sources &&
                                     sort targets == sources
+
+  canTransposeMult :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Bool
+  canTransposeMult vs tl ils = case transpositions vs tl ils of
+                                 Just _  -> True
+                                 Nothing -> False
   
   transpositions :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Maybe [(N,N)]
   transpositions _ _ []              = Nothing
@@ -369,58 +374,52 @@ $(singletons [d|
   
   zipCon :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
   zipCon (x :| xs) (y :| ys) =
-    case x `compare` y of
+    case ICon x `ixCompare` ICov y of
       LT -> case xs of
               []       -> Just x :| fmap (const Nothing) (y:ys)
-              (x':xs')  -> Just x <| zipCon (x' :| xs') (y :| ys)
-      EQ -> case xs of
-              []       -> Just x :| fmap (const Nothing) (y:ys)
               (x':xs') -> Just x <| zipCon (x' :| xs') (y :| ys)
-      GT -> case xs of
+      GT -> case ys of
               []       -> Nothing :| fmap Just (x : xs)
               (y':ys') -> Nothing <| zipCon (x :| xs) (y' :| ys')
   
   zipCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
   zipCov (x :| xs) (y :| ys) =
-    case x `compare` y of
+    case ICon x `ixCompare` ICov y of
       LT -> case xs of
               []       -> Nothing :| fmap Just (y:ys)
-              (x':xs')  -> Nothing <| zipCov (x' :| xs') (y :| ys)
-      EQ -> case xs of
-              []       -> Nothing :| fmap Just (y:ys)
               (x':xs') -> Nothing <| zipCov (x' :| xs') (y :| ys)
-      GT -> case xs of
+      GT -> case ys of
               []       -> Just y :| fmap (const Nothing) (x : xs)
               (y':ys') -> Just y <| zipCov (x :| xs) (y' :| ys')
   
-  transpositions' :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [(N,N)]
+  transpositions' :: Eq a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [(N,N)]
   transpositions' sources targets xs =
     do
-      ss <- go Z sources xs
-      ts <- go Z targets xs
+      ss <- mapM (\a -> find a xs') sources
+      ts <- mapM (\a -> find a xs') targets
       zip' ss ts
     where
-      go :: Ord a => N -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [N]
-      go n (s :| ss) (Nothing :| xs) = case xs of
-                                         [] -> Nothing
-                                         (x':xs') -> go (S n) (s :| ss) (x' :| xs')
-      go n (s :| ss) ((Just x) :| xs) =
-        case s `compare` x of
-          LT -> Nothing
-          EQ -> case ss of
-                  []       -> Just [n]
-                  (s':ss') ->
-                    case xs of
-                      [] -> Nothing
-                      (x':xs') -> fmap (n:) $ go (S n) (s' :| ss') (x' :| xs')
-          GT -> case xs of
-                  [] -> Nothing
-                  (x':xs') -> go (S n) (s :| ss) (x':|xs')
+      xs' = go' Z xs
   
-      zip' :: [a] -> [b] -> Maybe [(a,b)]
-      zip' [] [] = Nothing
-      zip' [] (_:_) = Nothing
-      zip' (_:_) [] = Nothing
-      zip' (x:xs) (y:ys) = fmap ((x,y):) $ zip' xs ys
+      go' :: N -> NonEmpty a -> NonEmpty (N,a)
+      go' n (x :| []) = (n,x) :| []
+      go' n (x :| (x':xs')) = (n,x) <| go' (S n) (x' :| xs')
+  
+      find :: Eq a => a -> NonEmpty (N, Maybe a) -> Maybe N
+      find a ((_,Nothing) :| []) = Nothing
+      find a ((_,Nothing) :| (x':xs')) = find a (x' :| xs')
+      find a ((n,Just x) :| xs)  =
+        case a == x of
+          True -> Just n
+          False  -> 
+            case xs of
+              [] -> Nothing
+              x':xs' -> find a (x' :| xs')
+  
+      zip' :: NonEmpty a -> NonEmpty b -> Maybe [(a,b)]
+      zip' (a :| []) (b :| []) = Just [(a,b)]
+      zip' (_ :| (_:_)) (_ :| []) = Nothing
+      zip' (_ :| []) (_ :| (_:_)) = Nothing
+      zip' (x:|(x':xs')) (y:|(y':ys')) = fmap ((x,y):) $ zip' (x':|xs') (y':|ys')
   |])
 
