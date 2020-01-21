@@ -21,12 +21,12 @@
 module TH where
 
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.List.NonEmpty --hiding (sSort, SortSym0)
+import Data.Singletons.Prelude.List.NonEmpty hiding (sLength)
 import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List.NonEmpty (NonEmpty((:|)),sort)
+import Data.List.NonEmpty (NonEmpty((:|)),sort,(<|))
 
 $(singletons [d|
   data N where
@@ -57,7 +57,6 @@ $(singletons [d|
     fromInteger n
       | n == 0 = Z
       | otherwise = S $ fromInteger (n-1)
-
 
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
@@ -344,26 +343,84 @@ $(singletons [d|
         TransCov sources targets -> isAscendingNE sources &&
                                     sort targets == sources
   
-  canTransposeMult :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Bool
-  canTransposeMult _ _ []              = False
-  canTransposeMult vs tl ((vs',il):is) =
-      case compare vs vs' of
-        LT -> False
-        GT -> canTransposeMult vs tl is
-        EQ ->
-          case il of
-            Con xsCon ->
-              case tl of
-                TransCon sources _ -> saneTransList tl && (sources `subsetNE` xsCon)
-                TransCov _ _ -> False
-            Cov xsCov ->
-              case tl of
-                TransCov sources _ -> saneTransList tl && (sources `subsetNE` xsCov)
-                TransCon _ _ -> False
-            ConCov xsCon xsCov ->
-              case tl of
-                TransCon sources _ -> saneTransList tl && (sources `subsetNE` xsCon)
-                TransCov sources _ -> saneTransList tl && (sources `subsetNE` xsCov)
-
+  transpositions :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Maybe [(N,N)]
+  transpositions _ _ []              = Nothing
+  transpositions vs tl ((vs',il):is) =
+      case saneTransList tl of
+        False -> Nothing
+        True ->
+          case compare vs vs' of
+            LT -> Nothing
+            GT -> transpositions vs tl is
+            EQ ->
+              case il of
+                Con xs ->
+                  case tl of
+                    TransCon sources targets -> transpositions' sources targets (fmap Just xs)
+                    TransCov _ _ -> Nothing
+                Cov xs ->
+                  case tl of
+                    TransCov sources targets -> transpositions' sources targets (fmap Just xs)
+                    TransCon _ _ -> Nothing
+                ConCov xsCon xsCov ->
+                  case tl of
+                    TransCon sources targets -> transpositions' sources targets (xsCon `zipCon` xsCov)
+                    TransCov sources targets -> transpositions' sources targets (xsCon `zipCov` xsCov)
+  
+  zipCon :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
+  zipCon (x :| xs) (y :| ys) =
+    case x `compare` y of
+      LT -> case xs of
+              []       -> Just x :| fmap (const Nothing) (y:ys)
+              (x':xs')  -> Just x <| zipCon (x' :| xs') (y :| ys)
+      EQ -> case xs of
+              []       -> Just x :| fmap (const Nothing) (y:ys)
+              (x':xs') -> Just x <| zipCon (x' :| xs') (y :| ys)
+      GT -> case xs of
+              []       -> Nothing :| fmap Just (x : xs)
+              (y':ys') -> Nothing <| zipCon (x :| xs) (y' :| ys')
+  
+  zipCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
+  zipCov (x :| xs) (y :| ys) =
+    case x `compare` y of
+      LT -> case xs of
+              []       -> Nothing :| fmap Just (y:ys)
+              (x':xs')  -> Nothing <| zipCov (x' :| xs') (y :| ys)
+      EQ -> case xs of
+              []       -> Nothing :| fmap Just (y:ys)
+              (x':xs') -> Nothing <| zipCov (x' :| xs') (y :| ys)
+      GT -> case xs of
+              []       -> Just y :| fmap (const Nothing) (x : xs)
+              (y':ys') -> Just y <| zipCov (x :| xs) (y' :| ys')
+  
+  transpositions' :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [(N,N)]
+  transpositions' sources targets xs =
+    do
+      ss <- go Z sources xs
+      ts <- go Z targets xs
+      zip' ss ts
+    where
+      go :: Ord a => N -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [N]
+      go n (s :| ss) (Nothing :| xs) = case xs of
+                                         [] -> Nothing
+                                         (x':xs') -> go (S n) (s :| ss) (x' :| xs')
+      go n (s :| ss) ((Just x) :| xs) =
+        case s `compare` x of
+          LT -> Nothing
+          EQ -> case ss of
+                  []       -> Just [n]
+                  (s':ss') ->
+                    case xs of
+                      [] -> Nothing
+                      (x':xs') -> fmap (n:) $ go (S n) (s' :| ss') (x' :| xs')
+          GT -> case xs of
+                  [] -> Nothing
+                  (x':xs') -> go (S n) (s :| ss) (x':|xs')
+  
+      zip' :: [a] -> [b] -> Maybe [(a,b)]
+      zip' [] [] = Nothing
+      zip' [] (_:_) = Nothing
+      zip' (_:_) [] = Nothing
+      zip' (x:xs) (y:ys) = fmap ((x,y):) $ zip' xs ys
   |])
 

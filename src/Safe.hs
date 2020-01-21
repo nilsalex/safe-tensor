@@ -35,6 +35,10 @@ import Data.Singletons.TypeLits
 import Data.List (foldl',groupBy,sortBy)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
+toInt :: N -> Int
+toInt Z = 0
+toInt (S n) = 1 + toInt n
+
 data Vec :: N -> Type -> Type where
     VNil :: Vec Z a
     VCons :: a -> Vec n a -> Vec (S n) a
@@ -222,15 +226,47 @@ transpose v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
-transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) v.
-                 (CanTransposeMult vs tl l ~ 'True, SingI l) =>
+transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) (ts :: [(N,N)]) v.
+                 (Transpositions vs tl l ~ 'Just ts, SingI l, SingI tl, SingI vs) =>
                  Sing vs -> Sing tl -> Tensor l v -> Tensor l v
 transposeMult _ _ ZeroTensor = ZeroTensor
-transposeMult _ _ (Scalar _) = error "This is not possible, might yet have to convince  the type system."
-transposeMult v tl t = fromList xs'
+transposeMult sv stl t@(Tensor ms) =
+    let sl = sing :: Sing l
+        stl = sing :: Sing tl
+        sv' = sing :: Sing vs
+        st = sTail' sl
+        sl' = sTail sl
+        SJust sts = sTranspositions sv stl sl
+    in case sv %~ sv' of
+         Proved Refl ->
+           case sSane sl' %~ STrue of
+             Proved Refl ->
+               withSingI (sFst (sHead sl)) $
+               withSingI sl' $
+               let VSpace _ dim = fromSing sv
+                   ts  = fromSing sts
+                   ts' = go ts $ take (fromIntegral dim) [0..]
+                   xs  = toTListWhile t
+                   xs' = fmap (\(is, v) -> (transposeIndices ts' is, v)) xs
+                   xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
+               in  fromTList xs''
+         Disproved _ ->
+           withSingI st $
+           case sTranspositions sv stl st of
+             SJust _ -> Tensor $ fmap (fmap (transposeMult sv stl)) ms
   where
-    xs  = toList t
-    xs' = _ xs
+    transposeIndices ts' is = fmap snd $
+                              sortBy (\(i,_) (i',_) -> i `compare` i') $
+                              zip ts' is
+
+    go :: [(N,N)] -> [Int] -> [Int]
+    go [] is = is
+    go ((s,t):ts) (i:is)
+      | s' == i = t' : go ts is
+      | s' >  i = i : go ((s,t):ts) is
+     where
+      s' = toInt s
+      t' = toInt t
 
 toList :: forall l v n.
           (SingI l, SingI n, LengthILs l ~ n) =>
@@ -289,6 +325,25 @@ fromList :: forall l v n.
 fromList =
   let sl = sing :: Sing l
   in fromList' sl
+
+toTListWhile :: forall l v vs.
+                (SingI l, SingI vs, vs ~ Fst (Head l), Sane l ~ True) =>
+                Tensor l v -> [([Int], Tensor (Tail l) v)]
+toTListWhile (Tensor ms) =
+  let svs = sing :: Sing vs
+      sl = sing :: Sing l
+      st = sTail' sl
+  in case st %~ sTail sl of
+       Proved Refl -> fmap (\(i,v) -> (pure i,v)) ms
+       Disproved _ ->
+         case sSane st %~ STrue of
+           Proved Refl ->
+             case sTail sl %~ sTail st of
+               Proved Refl ->
+                 withSingI st $
+                 withSingI (sFst (sHead st)) $
+                 let ms' = fmap (\(i,v) -> (i,toTListWhile v)) ms
+                 in  concat $ fmap (\(i, xs) -> fmap (\(is, v) -> (i:is, v)) xs) ms'
 
 toTListUntil :: forall (a :: Ix Symbol) l l' v.
                 (SingI l, SingI l', RemoveUntil a l ~ l', Sane l ~ True, Sane l' ~ True) =>
