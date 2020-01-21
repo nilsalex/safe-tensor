@@ -21,12 +21,12 @@
 module TH where
 
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.List.NonEmpty hiding (sSort, SortSym0)
+import Data.Singletons.Prelude.List.NonEmpty --hiding (sSort, SortSym0)
 import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List.NonEmpty (NonEmpty((:|)))
+import Data.List.NonEmpty (NonEmpty((:|)),sort)
 
 $(singletons [d|
   data N where
@@ -92,13 +92,13 @@ $(singletons [d|
   isAscending (x:[]) = True
   isAscending (x:y:xs) = x < y && isAscending ((y:xs))
 
-  isAscending' :: Ord a => NonEmpty a -> Bool
-  isAscending' (x :| xs) = isAscending (x:xs)
+  isAscendingNE :: Ord a => NonEmpty a -> Bool
+  isAscendingNE (x :| xs) = isAscending (x:xs)
 
   isAscendingI :: Ord a => IList a -> Bool
-  isAscendingI (ConCov x y) = isAscending' x && isAscending' y
-  isAscendingI (Con x) = isAscending' x
-  isAscendingI (Cov y) = isAscending' y
+  isAscendingI (ConCov x y) = isAscendingNE x && isAscendingNE y
+  isAscendingI (Con x) = isAscendingNE x
+  isAscendingI (Cov y) = isAscendingNE y
 
   lengthNE :: NonEmpty a -> N
   lengthNE (_ :| []) = S Z
@@ -256,6 +256,10 @@ $(singletons [d|
   contractI (Con x) = Just $ Con x
   contractI (Cov x) = Just $ Cov x
 
+  subsetNE :: Ord a => NonEmpty a -> NonEmpty a -> Bool
+  subsetNE (x :| []) ys = x `elemNE` ys
+  subsetNE (x :| (x':xs)) ys = (x `elemNE` ys) && ((x' :| xs) `subsetNE` ys)
+
   elemNE :: Ord a => a -> NonEmpty a -> Bool
   elemNE a (x :| []) = a == x
   elemNE a (x :| (x':xs)) = case compare a x of
@@ -328,4 +332,38 @@ $(singletons [d|
         | snd (head' ls') == i' = tail' ls'
         | otherwise             = go i $ tail' ls'
 
+  data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
+                     TransCov (NonEmpty a) (NonEmpty a)
+    deriving (Show, Eq)
+  
+  saneTransList :: (Ord a, Eq a) => TransList a -> Bool
+  saneTransList tl =
+      case tl of
+        TransCon sources targets -> isAscendingNE sources &&
+                                    sort targets == sources
+        TransCov sources targets -> isAscendingNE sources &&
+                                    sort targets == sources
+  
+  canTransposeMult :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Bool
+  canTransposeMult _ _ []              = False
+  canTransposeMult vs tl ((vs',il):is) =
+      case compare vs vs' of
+        LT -> False
+        GT -> canTransposeMult vs tl is
+        EQ ->
+          case il of
+            Con xsCon ->
+              case tl of
+                TransCon sources _ -> saneTransList tl && (sources `subsetNE` xsCon)
+                TransCov _ _ -> False
+            Cov xsCov ->
+              case tl of
+                TransCov sources _ -> saneTransList tl && (sources `subsetNE` xsCov)
+                TransCon _ _ -> False
+            ConCov xsCon xsCov ->
+              case tl of
+                TransCon sources _ -> saneTransList tl && (sources `subsetNE` xsCon)
+                TransCov sources _ -> saneTransList tl && (sources `subsetNE` xsCov)
+
   |])
+

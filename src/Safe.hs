@@ -222,6 +222,16 @@ transpose v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
+transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) v.
+                 (CanTransposeMult vs tl l ~ 'True, SingI l) =>
+                 Sing vs -> Sing tl -> Tensor l v -> Tensor l v
+transposeMult _ _ ZeroTensor = ZeroTensor
+transposeMult _ _ (Scalar _) = error "This is not possible, might yet have to convince  the type system."
+transposeMult v tl t = fromList xs'
+  where
+    xs  = toList t
+    xs' = _ xs
+
 toList :: forall l v n.
           (SingI l, SingI n, LengthILs l ~ n) =>
           Tensor l v -> [(Vec n Int, v)]
