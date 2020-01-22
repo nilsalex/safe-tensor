@@ -2,6 +2,7 @@
 
 module Example where
 
+import Basic
 import Tensor
 import Control.Monad.Except
 

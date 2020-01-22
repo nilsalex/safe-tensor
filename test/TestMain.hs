@@ -4,10 +4,13 @@
 
 module Main where
 
+import Safe
 import Tensor
+import Basic
 import TH
 
 import Control.Monad
+import Control.Monad.Except
 import System.Exit
 
 main :: IO ()
@@ -45,48 +48,61 @@ test1
     | otherwise = Left $ show t ++ "\ndoes not yield assocs\n" ++ show l
   where
     t = delta_pa
-    l = [([0,0],1), ([1,1],1), ([2,2],1), ([3,3],1)]
+    l = [(0 `VCons` (0 `VCons` VNil),1), (1 `VCons` (1 `VCons` VNil),1), (2 `VCons` (2 `VCons` VNil),1), (3 `VCons` (3 `VCons` VNil),1)]
 
 test2 :: Either String ()
 test2
     | l == toList t = Right ()
     | otherwise = Left $ show t ++ "\ndoes not yield assocs\n" ++ show l
   where
-    t = eta :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
-    l = [([0,0],1), ([1,1],-1), ([2,2],-1), ([3,3],-1)]
+    t = etaInv :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
+    l = [(0 `VCons` (0 `VCons` VNil),1), (1 `VCons` (1 `VCons` VNil),-1), (2 `VCons` (2 `VCons` VNil),-1), (3 `VCons` (3 `VCons` VNil),-1)]
 
 test3 :: Either String ()
-test3 = case fmap (t1 &-) t2 of
-          Right ZeroTensor -> Right ()
-          Right t -> Left $ show t ++ "\nis not ZeroTensor"
-          Left  e -> Left e
-  where
-    t1 = delta_pa &* delta_qb
-    t2 = transpose (VSpace "Spacetime" 4) (ICon "p") (ICon "q") $ delta_pb &* delta_qa
+test3 = runExcept $
+        do
+         let t1  = T $ delta_pa &* delta_qb
+         let t2' = T $ delta_pb &* delta_qa
+         t2 <- transposeT (VSpace "Spacetime" 4) (ICon "p") (ICon "q") t2'
+         diff <- t1 .- t2
+         case diff of
+           T ZeroTensor -> return ()
+           t            -> throwError $ show t ++ "\nis not ZeroTensor"
 
 test4 :: Either String ()
 test4 =
     do
-      symmetrizer <- transpose (VSpace "Spacetime" 4) (ICon "p") (ICon "q") t1
-      case contract (symmetrizer &* a1) &+ a2 of
-        ZeroTensor -> return ()
-        t          -> Left $ show t ++ "\nis not ZeroTensor"
+     let t1 = T _t1
+     let a1 = T _a1
+     let a2 = T _a2
+     symmetrizer <- transposeT (VSpace "Spacetime" 4) (ICon "p") (ICon "q") t1
+     p <- symmetrizer .* a1
+     s <- contractT p .+ a2
+     case s of
+       T ZeroTensor -> return ()
+       t            -> Left $ show t ++ "\n is not ZeroTensor"
   where
-    t1 = delta_pa &* delta_qb
-    a1 = asym :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
-    a2 = asym :: Tensor '[ '(V4, Up2 "p" "q") ] Rational
+    _t1 = delta_pa &* delta_qb
+    _a1 = asym :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
+    _a2 = asym :: Tensor '[ '(V4, Up2 "p" "q") ] Rational
  
 test5 :: Either String ()
-test5 = case fmap (t3 &-) t2 of
-          Right ZeroTensor -> Right ()
-          Right t -> Left $ show t ++ "\nis not ZeroTensor"
-          Left  e -> Left e
-  where
-    eta_ab = eta :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
-    eta_cd = eta :: Tensor '[ '(V4, Up2 "c" "d") ] Rational
-    eta_ad = eta :: Tensor '[ '(V4, Up2 "a" "d") ] Rational
-    eta_bc = eta :: Tensor '[ '(V4, Up2 "b" "c") ] Rational
+test5 =
+    do
+      eta_cd_eta_ab <- eta_cd .* eta_ab
+      eta_ab_eta_cd <- eta_ab .* eta_cd
+      eta_ad_eta_bc <- eta_ad .* eta_bc
 
-    t1 = (eta_cd &* eta_ab) &+ (eta_ab &* eta_cd)
-    t2 = transpose (VSpace "Spacetime" 4) (ICon "b") (ICon "d") t1
-    t3 = (eta_ad &* eta_bc) &+ (eta_ad &* eta_bc)
+      t1 <- eta_cd_eta_ab .+ eta_ab_eta_cd
+      t2 <- transposeT (VSpace "Spacetime" 4) (ICon "b") (ICon "d") t1
+      t3 <- eta_ad_eta_bc .+ eta_ad_eta_bc
+
+      r <- t3 .- t2
+      case r of
+        T ZeroTensor -> return ()
+        t            -> Left $ show t ++ "\nis not ZeroTensor"
+  where
+    eta_ab = T (etaInv :: Tensor '[ '(V4, Up2 "a" "b") ] Rational)
+    eta_cd = T (etaInv :: Tensor '[ '(V4, Up2 "c" "d") ] Rational)
+    eta_ad = T (etaInv :: Tensor '[ '(V4, Up2 "a" "d") ] Rational)
+    eta_bc = T (etaInv :: Tensor '[ '(V4, Up2 "b" "c") ] Rational)

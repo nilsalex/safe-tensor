@@ -160,35 +160,3 @@ fromListT ils xs =
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs
 
-someDelta :: Num v =>
-             Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
-             T v
-someDelta vid vdim a b =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing a $ \sa ->
-  withSomeSing b $ \sb ->
-  withKnownNat svdim $
-  withKnownSymbol svid $
-  withKnownSymbol sa $
-  withKnownSymbol sb $
-  let sl = sDeltaILists svid svdim sa sb
-  in  case sTail' (sTail' sl) of
-        SNil -> case sSane (sTail' sl) %~ STrue of
-                  Proved Refl -> T $ delta' svid svdim sa sb
-
-someEtaInv :: (Num v, MonadError String m) =>
-           Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
-           m (T v)
-someEtaInv vid vdim a b =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing a $ \sa ->
-  withSomeSing b $ \sb ->
-  withKnownNat svdim $
-  withKnownSymbol svid $
-  withKnownSymbol sa $
-  withKnownSymbol sb $
-  case sCompare sa sb of
-    SLT -> return $ T $ etaInv' svid svdim sa sb
-    _   -> throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b

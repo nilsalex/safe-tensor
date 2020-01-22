@@ -32,7 +32,6 @@ import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
 import Data.List (foldl',groupBy,sortBy)
-import Data.List.NonEmpty (NonEmpty((:|)))
 
 toInt :: N -> Int
 toInt Z = 0
@@ -43,6 +42,17 @@ data Vec :: N -> Type -> Type where
     VCons :: a -> Vec n a -> Vec (S n) a
 
 deriving instance Show a => Show (Vec n a)
+
+instance Eq a => Eq (Vec n a) where
+  VNil           == VNil           = True
+  (x `VCons` xs) == (y `VCons` ys) = x == y && xs == ys
+
+vecFromListUnsafe :: forall (n :: N) a.
+                     Sing n -> [a] -> Vec n a
+vecFromListUnsafe SZ [] = VNil
+vecFromListUnsafe (SS sn) (x:xs) =
+    let xs' = vecFromListUnsafe sn xs
+    in  x `VCons` xs'
 
 data Tensor :: ILists -> Type -> Type where
     ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
@@ -243,9 +253,10 @@ transposeMult sv stl t@(Tensor ms) =
                  SJust sts' ->
                    withSingI (sFst (sHead sl)) $
                    withSingI sl' $
-                   let VSpace _ dim = fromSing sv
+                   let sn = sLengthIL (sSnd (sHead sl))
+                       n  = fromSing sn
                        ts  = fromSing sts'
-                       ts' = go ts $ take (fromIntegral dim) [0..]
+                       ts' = go ts $ take' n 0
                        xs  = toTListWhile t
                        xs' = fmap (\(is, v) -> (transposeIndices ts' is, v)) xs
                        xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
@@ -255,6 +266,9 @@ transposeMult sv stl t@(Tensor ms) =
            case sIsJust (sTranspositions sv stl st) %~ STrue of
              Proved Refl -> Tensor $ fmap (fmap (transposeMult sv stl)) ms
   where
+    take' Z i = [i]
+    take' (S n) i = i : take' n (i+1)
+
     transposeIndices ts' is = fmap snd $
                               sortBy (\(i,_) (i',_) -> i `compare` i') $
                               zip ts' is
@@ -377,110 +391,3 @@ fromTList xs =
     xs' = fmap (\((i:is),v) -> (i,(is,v))) xs
     xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
     xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''
-
-delta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-          (
-           KnownNat n,
-           Num v,
-           '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[])) ] ~ l,
-           Tail' (Tail' l) ~ '[],
-           Sane (Tail' l) ~ 'True
-          ) =>
-          Sing id -> Sing n -> Sing a -> Sing b ->
-          Tensor l v
-delta' _ _ _ _ = delta
-
-delta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-         (
-          '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[]))] ~ l,
-          Tail' (Tail' l) ~ '[],
-          Sane (Tail' l) ~ 'True,
-          SingI n,
-          Num v
-         ) => Tensor l v
-delta = case (sing :: Sing n) of
-          sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
-                in Tensor (f x)
-  where
-    f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
-
-eta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-        (
-         '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
-         (a < b) ~ 'True,
-         SingI n,
-         Num v
-        ) =>
-        Sing id -> Sing n -> Sing a -> Sing b ->
-        Tensor l v
-eta' _ _ _ _ = eta
-
-eta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-       (
-        '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
-        (a < b) ~ 'True,
-        SingI n,
-        Num v
-       ) => Tensor l v
-eta = case (sing :: Sing n) of
-        sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
-              in Tensor (f x)
-  where
-    f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
-
-etaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-        (
-         '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
-         (a < b) ~ 'True,
-         SingI n,
-         Num v
-        ) =>
-        Sing id -> Sing n -> Sing a -> Sing b ->
-        Tensor l v
-etaInv' _ _ _ _ = etaInv
-
-etaInv :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-       (
-        '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
-        (a < b) ~ 'True,
-        SingI n,
-        Num v
-       ) => Tensor l v
-etaInv = case (sing :: Sing n) of
-        sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
-              in Tensor (f x)
-  where
-    f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
-
-asym :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
-       (
-        '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
-        (a < b) ~ 'True,
-        SingI n,
-        Num v
-       ) => Tensor l v
-asym = case (sing :: Sing n) of
-        sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
-              in Tensor (f x)
-  where
-    f x = fmap (\i -> (i, Tensor $
-            fmap (\j -> (j, Scalar (case i `compare` j of
-                                      LT -> 1
-                                      EQ -> 0
-                                      GT -> -1))) [0..x-1])) [0..x-1]
-
-type V4 = 'VSpace "Spacetime" 4
-type Up2 a b = 'Con (a :| '[b])
-type UpDown a b = 'ConCov (a :| '[]) (b :| '[])
-
-d_ap :: Tensor '[ '(V4, UpDown "p" "a") ] Rational
-d_ap = delta
-
-e_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
-e_ab = etaInv
-
-as_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
-as_ab = asym
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"

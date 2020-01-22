@@ -21,6 +21,7 @@
 module TH where
 
 import Data.Singletons.Prelude
+import Data.Singletons.Prelude.Enum
 import Data.Singletons.Prelude.List.NonEmpty hiding (sLength)
 import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
@@ -58,6 +59,11 @@ $(singletons [d|
       | n == 0 = Z
       | otherwise = S $ fromInteger (n-1)
 
+  fromNat :: Nat -> N
+  fromNat n = case n == 0 of
+                True -> Z
+                False -> S $ fromNat (pred n)
+
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
                     deriving (Show, Ord, Eq)
@@ -86,6 +92,24 @@ $(singletons [d|
   deltaILists :: Symbol -> Nat -> Symbol -> Symbol -> ILists
   deltaILists vid vdim a b = [(VSpace vid vdim, ConCov (a :| []) (b :| []))]
 
+  epsilonILists :: Symbol -> Nat -> NonEmpty Symbol -> Maybe ILists
+  epsilonILists vid vdim is =
+      case isLengthNE is vdim of
+        True  ->
+          case isAscendingNE is of
+            True -> Just [(VSpace vid vdim, Cov is)]
+            False -> Nothing
+        False -> Nothing
+
+  epsilonInvILists :: Symbol -> Nat -> NonEmpty Symbol -> Maybe ILists
+  epsilonInvILists vid vdim is =
+      case isLengthNE is vdim of
+        True  ->
+          case isAscendingNE is of
+            True -> Just [(VSpace vid vdim, Con is)]
+            False -> Nothing
+        False -> Nothing
+
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True
   isAscending (x:[]) = True
@@ -98,6 +122,10 @@ $(singletons [d|
   isAscendingI (ConCov x y) = isAscendingNE x && isAscendingNE y
   isAscendingI (Con x) = isAscendingNE x
   isAscendingI (Cov y) = isAscendingNE y
+
+  isLengthNE :: NonEmpty a -> Nat -> Bool
+  isLengthNE (_ :| []) l = l == 1
+  isLengthNE (_ :| (x:xs)) l = isLengthNE (x :| xs) (pred l)
 
   lengthNE :: NonEmpty a -> N
   lengthNE (_ :| []) = S Z
