@@ -1,18 +1,13 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -31,6 +26,8 @@ import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
+import Data.Bifunctor (first)
+
 import Control.Monad.Except
 
 data T :: Type -> Type where
@@ -48,8 +45,8 @@ vecToList (x `VCons` xs) = x : vecToList xs
 vecFromList :: forall (n :: N) a m.
                MonadError String m => Sing n -> [a] -> m (Vec n a)
 vecFromList SZ [] = return VNil
-vecFromList (SS sn) [] = throwError $ "List provided for vector reconstruction is too short."
-vecFromList SZ (_:_)   = throwError $ "List provided for vector reconstruction is too long."
+vecFromList (SS sn) [] = throwError "List provided for vector reconstruction is too short."
+vecFromList SZ (_:_)   = throwError "List provided for vector reconstruction is too long."
 vecFromList (SS sn) (x:xs) = do
   xs' <- vecFromList sn xs
   return $ x `VCons` xs'
@@ -71,7 +68,7 @@ vecFromList (SS sn) (x:xs) = do
 infixl 7 .*
 
 (#.) :: Num v => v -> T v -> T v
-(#.) s t = fmap (*s) t
+(#.) s = fmap (*s)
 
 infixl 7 #.
 
@@ -152,7 +149,7 @@ toListT o =
     T (t :: Tensor l v) -> let sl = sing :: Sing l
                                sn = sLengthILs sl
                            in withSingI sn $
-                              fmap (\(vec, val) -> (vecToList vec, val)) $ toList t
+                              first vecToList <$> toList t
 
 fromListT :: MonadError String m => Demote ILists -> [([Int], v)] -> m (T v)
 fromListT ils xs =
@@ -160,7 +157,7 @@ fromListT ils xs =
   withSingI sils $
   let sn = sLengthILs sils
   in case sSane sils %~ STrue of
-    Proved Refl -> fmap (T . fromList' sils) $ 
+    Proved Refl -> T . fromList' sils <$> 
                    mapM (\(vec, val) -> do
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs

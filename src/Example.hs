@@ -15,5 +15,4 @@ calc = do
   let d_bp = someDelta "Spacetime" 4 "b" "p"
   prod1 <- e_ab .* d_cp
   prod2 <- e_ac .* d_bp
-  sum   <- prod1 .+ prod2
-  return sum
+  prod1 .+ prod2

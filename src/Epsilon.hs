@@ -1,22 +1,16 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Epsilon where
@@ -36,7 +30,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad.Except
 
 permSign [] = 1
-permSign (_:[]) = 1
+permSign [_] = 1
 permSign (x:xs)
     | even (length defects) = permSign xs
     | odd (length defects)  = (-1) * permSign xs
@@ -61,7 +55,7 @@ epsilon' sid sn sis =
     sn' = sFromNat sn
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
-    xs = fmap (\p -> (vecFromListUnsafe sn' p, (fromIntegral (permSign p) :: v))) perms
+    xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
 epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NonEmpty Symbol) (l :: ILists) v.
               (
@@ -81,7 +75,7 @@ epsilonInv' sid sn sis =
     sn' = sFromNat sn
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
-    xs = fmap (\p -> (vecFromListUnsafe sn' p, (fromIntegral (permSign p) :: v))) perms
+    xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
 someEpsilon :: (Num v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> [Demote Symbol] ->

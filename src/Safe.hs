@@ -1,18 +1,14 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -31,6 +27,7 @@ import Data.Singletons.Prelude.Maybe
 import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
+import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
 data Tensor :: ILists -> Type -> Type where
@@ -81,7 +78,7 @@ infixl 6 &+
 (&-) :: forall (l :: ILists) (l' :: ILists) v.
         ((l ~ l'), Num v, Eq v) =>
         Tensor l v -> Tensor l' v -> Tensor l v
-(&-) t1 t2 = t1 &+ (fmap negate t2)
+(&-) t1 t2 = t1 &+ fmap negate t2
 
 infixl 6 &-
 
@@ -166,17 +163,17 @@ contract (Tensor ms) =
                                                                        Tensor vs ->
                                                                          case filter (\(i', _) -> i == i') vs of
                                                                               [] -> Nothing
-                                                                              (_, (v')):[] -> Just v'
+                                                                              [(_, v')] -> Just v'
                                                                               _ -> error "duplicate key in tensor assoc list") ms
-                                              ms'' = filter (\x -> case x of
-                                                                     Nothing -> False
-                                                                     Just x' -> True) ms'
+                                              ms'' = filter (\case
+                                                                 Nothing -> False
+                                                                 Just x' -> True) ms'
                                               ms''' = fmap (\(Just x) -> x) ms'' :: [Tensor (Tail' (Tail' l)) v]
                                           in case st' %~ sl' of
                                                     Proved Refl -> foldl' (&+) ZeroTensor ms'''
                                                     Disproved _ -> case sContractL st' %~ sl' of
                                                                      Proved Refl -> case sSane st' of
-                                                                                      STrue -> withSingI (st') $ contract $ foldl' (&+) ZeroTensor ms'''
+                                                                                      STrue -> withSingI st' $ contract $ foldl' (&+) ZeroTensor ms'''
 
                                 Disproved _ -> t'
                               _        -> t'
@@ -237,7 +234,7 @@ transposeMult sv stl t@(Tensor ms) =
                        ts  = fromSing sts'
                        ts' = go ts $ take' n 0
                        xs  = toTListWhile t
-                       xs' = fmap (\(is, v) -> (transposeIndices ts' is, v)) xs
+                       xs' = fmap (first (transposeIndices ts')) xs
                        xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
                    in  fromTList xs''
          Disproved _ ->
@@ -280,8 +277,7 @@ toList (Tensor ms) =
              withSingI sm' $
              case sm %~ sm' of
                Proved Refl ->
-                 concat $
-                 fmap (\(i, v) -> case v of Tensor t -> fmap (\(is, v') -> (VCons i is, v')) (withSingI st $ toList v)) ms
+                 concatMap (\(i, v) -> case v of Tensor t -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
 
 fromList' :: forall l v n.
              (Sane l ~ True, LengthILs l ~ n) =>
@@ -302,8 +298,8 @@ fromList' sl xs =
                withSingI st $
                case sSane st %~ STrue of
                  Proved Refl ->
-                       case fmap (\((i `VCons` is),v) -> (i,(is ,v))) xs of
-                         xs' -> Tensor $ fmap (fmap (fromList' st)) $ myGroup xs'
+                       case fmap (\(i `VCons` is,v) -> (i,(is ,v))) xs of
+                         xs' -> Tensor $ fmap (fromList' st) <$> myGroup xs'
   where
     myGroup ys =
       let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
@@ -324,7 +320,7 @@ toTListWhile (Tensor ms) =
       sl = sing :: Sing l
       st = sTail' sl
   in case st %~ sTail sl of
-       Proved Refl -> fmap (\(i,v) -> (pure i,v)) ms
+       Proved Refl -> fmap (first pure) ms
        Disproved _ ->
          case sSane st %~ STrue of
            Proved Refl ->
@@ -332,8 +328,8 @@ toTListWhile (Tensor ms) =
                Proved Refl ->
                  withSingI st $
                  withSingI (sFst (sHead st)) $
-                 let ms' = fmap (\(i,v) -> (i,toTListWhile v)) ms
-                 in  concat $ fmap (\(i, xs) -> fmap (\(is, v) -> (i:is, v)) xs) ms'
+                 let ms' = fmap (second toTListWhile) ms
+                 in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
 
 toTListUntil :: forall (a :: Ix Symbol) l l' v.
                 (SingI l, SingI l', RemoveUntil a l ~ l', Sane l ~ True, Sane l' ~ True) =>
@@ -345,15 +341,15 @@ toTListUntil sa (Tensor ms) =
     in case sSnd sh %~ sa of
          Proved Refl -> withSingI st $
                         case st %~ (sing :: Sing l') of
-                          Proved Refl -> fmap (\(i,v) -> (pure i,v)) ms
+                          Proved Refl -> fmap (first pure) ms
          Disproved _ ->
            withSingI st $
            case sSane st %~ STrue of
              Proved Refl ->
                case sRemoveUntil sa st %~ (sing :: Sing l') of
                  Proved Refl ->
-                   let ms' = fmap (\(i,v) -> (i,toTListUntil sa v)) ms
-                   in  concat $ fmap (\(i, xs) -> fmap (\(is, v) -> (i:is, v)) xs) ms'
+                   let ms' = fmap (second (toTListUntil sa)) ms
+                   in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
 
 fromTList :: forall l l' v.(Sane l ~ True, Sane l' ~ True, SingI l, SingI l') =>
                            [([Int], Tensor l v)] -> Tensor l' v
@@ -367,6 +363,6 @@ fromTList xs =
       case sSane st' of
         STrue -> Tensor $ fmap (fmap fromTList) xs'''
   where
-    xs' = fmap (\((i:is),v) -> (i,(is,v))) xs
+    xs' = fmap (\(i:is,v) -> (i,(is,v))) xs
     xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
     xs''' = fmap (\x -> (fst $ head x, map snd x)) xs''

@@ -1,22 +1,16 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Sym2 where
@@ -60,7 +54,7 @@ sym2Assocs sn = assocs
     maxInd = fromIntegral n - (1 :: Int)
     assocs = (\a b -> let v = vec a b
                       in case Map.lookup v tm of
-                           Just i -> (a `VCons` (b `VCons` (i `VCons` VNil)), (1 :: v))
+                           Just i -> (a `VCons` (b `VCons` (i `VCons` VNil)), 1 :: v)
                            _      -> error $ "indices " ++ show (min a b, max a b) ++
                                              " not present in triangle map " ++ show tm)
              <$> [0..maxInd] <*> [0..maxInd]
@@ -79,7 +73,7 @@ sym2AssocsFac sn = assocs
                            let v = vec a b
                            i <- Map.lookup v tm
                            f <- Map.lookup v fm
-                           return (a `VCons` (b `VCons` (i `VCons` VNil)), (1 / f :: v))) of
+                           return (a `VCons` (b `VCons` (i `VCons` VNil)), 1 / f :: v)) of
                         Just x -> x
                         Nothing -> error "")
              <$> [0..maxInd] <*> [0..maxInd]

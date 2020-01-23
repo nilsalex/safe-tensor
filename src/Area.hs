@@ -1,22 +1,16 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Area where
@@ -60,6 +54,22 @@ facMapArea = Map.fromList $ [(a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
       | a == c && b == d = 4
       | otherwise        = 8
 
+areaSign :: (Ord a, Num v) => a -> a -> a -> a -> Maybe v
+areaSign a b c d
+  | a == b = Nothing
+  | c == d = Nothing
+  | a > b  = ((-1) *) <$> areaSign b a c d
+  | c > d  = ((-1) *) <$> areaSign a b d c
+  | otherwise = Just 1
+
+sortArea :: Ord a => a -> a -> a -> a -> Vec (S (S (S (S Z)))) a
+sortArea a b c d
+  | a > b = sortArea b a c d
+  | c > d = sortArea a b d c
+  | (a,b) > (c,d) = sortArea c d a b
+  | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
+
+
 injAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
                (
@@ -81,21 +91,8 @@ injAreaCon' sid sa sb sc sd si =
                      s <- areaSign a b c d 
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
-                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s :: v)))
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s :: v))
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
-
-    areaSign a b c d
-      | a == b = Nothing
-      | c == d = Nothing
-      | a > b  = fmap ((-1) *) $ areaSign b a c d
-      | c > d  = fmap ((-1) *) $ areaSign a b d c
-      | otherwise = Just 1
-
-    sortArea a b c d
-      | a > b = sortArea b a c d
-      | c > d = sortArea a b d c
-      | (a,b) > (c,d) = sortArea c d a b
-      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
 injAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -118,21 +115,8 @@ injAreaCov' sid sa sb sc sd si =
                      s <- areaSign a b c d 
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
-                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s :: v)))
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s :: v))
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
-
-    areaSign a b c d
-      | a == b = Nothing
-      | c == d = Nothing
-      | a > b  = fmap ((-1) *) $ areaSign b a c d
-      | c > d  = fmap ((-1) *) $ areaSign a b d c
-      | otherwise = Just 1
-
-    sortArea a b c d
-      | a > b = sortArea b a c d
-      | c > d = sortArea a b d c
-      | (a,b) > (c,d) = sortArea c d a b
-      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
 surjAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -157,21 +141,8 @@ surjAreaCon' sid sa sb sc sd si =
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      f <- Map.lookup v fm
-                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s/f :: v)))
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s/f :: v))
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
-
-    areaSign a b c d
-      | a == b = Nothing
-      | c == d = Nothing
-      | a > b  = fmap ((-1) *) $ areaSign b a c d
-      | c > d  = fmap ((-1) *) $ areaSign a b d c
-      | otherwise = Just 1
-
-    sortArea a b c d
-      | a > b = sortArea b a c d
-      | c > d = sortArea a b d c
-      | (a,b) > (c,d) = sortArea c d a b
-      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
 surjAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -196,21 +167,8 @@ surjAreaCov' sid sa sb sc sd si =
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      f <- Map.lookup v fm
-                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s/f :: v)))
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s/f :: v))
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
-
-    areaSign a b c d
-      | a == b = Nothing
-      | c == d = Nothing
-      | a > b  = fmap ((-1) *) $ areaSign b a c d
-      | c > d  = fmap ((-1) *) $ areaSign a b d c
-      | otherwise = Just 1
-
-    sortArea a b c d
-      | a > b = sortArea b a c d
-      | c > d = sortArea a b d c
-      | (a,b) > (c,d) = sortArea c d a b
-      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
 someInjAreaCon :: (Num v, MonadError String m) =>
                   Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->

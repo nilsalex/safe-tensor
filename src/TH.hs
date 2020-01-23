@@ -6,7 +6,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
@@ -114,7 +113,7 @@ $(singletons [d|
         False -> Nothing
 
   sym2Dim :: Nat -> Nat
-  sym2Dim n = go 0 n
+  sym2Dim = go 0
     where
       go :: Nat -> Nat -> Nat
       go acc n = case n == 0 of
@@ -171,8 +170,8 @@ $(singletons [d|
 
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True
-  isAscending (x:[]) = True
-  isAscending (x:y:xs) = x < y && isAscending ((y:xs))
+  isAscending [x] = True
+  isAscending (x:y:xs) = x < y && isAscending (y:xs)
 
   isAscendingNE :: Ord a => NonEmpty a -> Bool
   isAscendingNE (x :| xs) = isAscending (x:xs)
@@ -191,7 +190,7 @@ $(singletons [d|
   lengthNE (_ :| (x:xs)) = S Z + lengthNE (x :| xs)
 
   lengthIL :: IList a -> N
-  lengthIL (ConCov xs ys) = (lengthNE xs) + (lengthNE ys)
+  lengthIL (ConCov xs ys) = lengthNE xs + lengthNE ys
   lengthIL (Con xs) = lengthNE xs
   lengthIL (Cov ys) = lengthNE ys
 
@@ -201,7 +200,7 @@ $(singletons [d|
 
   sane :: ILists -> Bool
   sane [] = True
-  sane ((_, is):[]) = isAscendingI is
+  sane [(_, is)] = isAscendingI is
   sane ((v, is):(v', is'):xs) =
       v < v' && isAscendingI is && sane ((v',is'):xs)
 
@@ -258,12 +257,12 @@ $(singletons [d|
   mergeILs xs [] = Just xs
   mergeILs ((xv,xl):xs) ((yv,yl):ys) = 
     case compare xv yv of
-      LT -> fmap ((xv,xl) :) $ mergeILs xs ((yv,yl):ys)
+      LT -> ((xv,xl) :) <$> mergeILs xs ((yv,yl):ys)
       EQ -> do
              xl' <- mergeIL xl yl
              xs' <- mergeILs xs ys
              Just $ (xv, xl') : xs'
-      GT -> fmap ((yv,yl) :) $ mergeILs ((xv,xl):xs) ys
+      GT -> ((yv,yl) :) <$> mergeILs ((xv,xl):xs) ys
 
   mergeIL :: Ord a => IList a -> IList a -> Maybe (IList a)
   mergeIL (ConCov xs ys) (ConCov xs' ys') = do
@@ -279,29 +278,29 @@ $(singletons [d|
   mergeIL (Con xs) (ConCov xs' ys) = do
       xs'' <- mergeNE xs xs'
       Just $ ConCov xs'' ys
-  mergeIL (Con xs) (Con xs') = fmap Con $ mergeNE xs xs'
+  mergeIL (Con xs) (Con xs') = Con <$> mergeNE xs xs'
   mergeIL (Con xs) (Cov ys) = Just $ ConCov xs ys
   mergeIL (Cov ys) (ConCov xs ys') = do
       ys'' <- mergeNE ys ys'
       Just $ ConCov xs ys''
   mergeIL (Cov ys) (Con xs) = Just $ ConCov xs ys
-  mergeIL (Cov ys) (Cov ys') = fmap Cov $ mergeNE ys ys'
+  mergeIL (Cov ys) (Cov ys') = Cov <$> mergeNE ys ys'
 
   merge :: Ord a => [a] -> [a] -> Maybe [a]
   merge [] ys = Just ys
   merge xs [] = Just xs
   merge (x:xs) (y:ys) =
     case compare x y of
-      LT -> fmap (x :) $ merge xs (y:ys)
+      LT -> (x :) <$> merge xs (y:ys)
       EQ -> Nothing
-      GT -> fmap (y :) $ merge (x:xs) ys
+      GT -> (y :) <$> merge (x:xs) ys
 
   mergeNE :: Ord a => NonEmpty a -> NonEmpty a -> Maybe (NonEmpty a)
   mergeNE (x :| xs) (y :| ys) =
     case compare x y of
-      LT -> fmap (x :|) $ merge xs (y:ys)
+      LT -> (x :|) <$> merge xs (y:ys)
       EQ -> Nothing
-      GT -> fmap (y :|) $ merge (x:xs) ys
+      GT -> (y :|) <$> merge (x:xs) ys
 
   contractL :: ILists -> ILists
   contractL [] = []
@@ -315,7 +314,7 @@ $(singletons [d|
   prepICon a (Cov y) = ConCov (a:|[]) y
 
   prepICov :: a -> IList a -> IList a
-  prepICov a (ConCov x (y:|ys)) = ConCov (x) (a:|(y:ys))
+  prepICov a (ConCov x (y:|ys)) = ConCov x (a:|(y:ys))
   prepICov a (Con x) = ConCov x (a:|[])
   prepICov a (Cov (y:|ys)) = Cov (a:|(y:ys))
 
@@ -482,8 +481,8 @@ $(singletons [d|
   transpositions' :: Eq a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [(N,N)]
   transpositions' sources targets xs =
     do
-      ss <- mapM (\a -> find a xs') sources
-      ts <- mapM (\a -> find a xs') targets
+      ss <- mapM (`find` xs') sources
+      ts <- mapM (`find` xs') targets
       zip' ss ts
     where
       xs' = go' Z xs
@@ -507,7 +506,7 @@ $(singletons [d|
       zip' (a :| []) (b :| []) = Just [(a,b)]
       zip' (_ :| (_:_)) (_ :| []) = Nothing
       zip' (_ :| []) (_ :| (_:_)) = Nothing
-      zip' (x:|(x':xs')) (y:|(y':ys')) = fmap ((x,y):) $ zip' (x':|xs') (y':|ys')
+      zip' (x:|(x':xs')) (y:|(y':ys')) = ((x,y):) <$> zip' (x':|xs') (y':|ys')
   |])
 
 toInt :: N -> Int
