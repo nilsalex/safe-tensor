@@ -121,18 +121,24 @@ $(singletons [d|
                    True  -> acc
                    False -> go (acc + n) (pred n)
 
-  injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   injSym2ConILists vid vdim a b i =
-      [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]
+      let ils = [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]
+      in case sane ils of
+           True -> Just ils
+           False -> Nothing
 
-  injSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  injSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   injSym2CovILists vid vdim a b i =
-      [(VSpace vid vdim, Cov (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Con (i :| []))]
+      let ils = [(VSpace vid vdim, Cov (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Con (i :| []))]
+      in case sane ils of
+           True -> Just ils
+           False -> Nothing
 
-  surjSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  surjSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   surjSym2ConILists = injSym2CovILists
 
-  surjSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  surjSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   surjSym2CovILists = injSym2ConILists
 
   injAreaConILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
@@ -162,14 +168,6 @@ $(singletons [d|
     in case sane ils of
          True -> Just ils
          False -> Nothing
-
-  interAreaConILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
-  interAreaConILists vid m n a b =
-    [(VSpace vid 4, ConCov (m :| []) (n :| [])), (VSpace (vid <> "Area") 21, ConCov (b :| []) (a :| []))]
-
-  interAreaCovILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
-  interAreaCovILists vid m n a b =
-    [(VSpace vid 4, ConCov (n :| []) (m :| [])), (VSpace (vid <> "Area") 21, ConCov (a :| []) (b :| []))]
 
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True

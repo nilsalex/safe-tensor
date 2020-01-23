@@ -2,7 +2,8 @@
 
 module Example where
 
-import Basic
+import Delta
+import Sym2
 import Tensor
 import Control.Monad.Except
 

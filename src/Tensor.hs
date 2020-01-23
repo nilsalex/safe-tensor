@@ -70,6 +70,11 @@ vecFromList (SS sn) (x:xs) = do
                    Proved Refl -> return $ T (t1 &* t2)
 infixl 7 .*
 
+(#.) :: Num v => v -> T v -> T v
+(#.) s t = fmap (*s) t
+
+infixl 7 #.
+
 (.+) :: (Eq v, Num v, MonadError String m) => T v -> T v -> m (T v)
 (.+) o1 o2 =
   case o1 of

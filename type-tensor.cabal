@@ -27,6 +27,10 @@ library
       Safe
       Example
       Basic
+      Delta
+      Epsilon
+      Sym2
+      Area
   hs-source-dirs:
       src
   build-depends:
