@@ -286,17 +286,16 @@ surjSym2Cov =
 
     vec a b = min a b `VCons` (max a b `VCons` VNil)
 
-injAreaCon :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+injAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
                (
-                InjAreaConILists id a b c d i ~ l,
-                (a < b) ~ 'True,
-                (b < c) ~ 'True,
-                (c < d) ~ 'True,
+                InjAreaConILists id a b c d i ~ 'Just l,
                 SingI l,
                 Num v
-               ) => Tensor l v
-injAreaCon =
+               ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor l v
+injAreaCon' sid sa sb sc sd si =
+    case sLengthILs sl of
+      SS (SS (SS (SS (SS SZ)))) ->
         case sSane sl %~ STrue of
           Proved Refl -> fromList assocs
   where
@@ -324,17 +323,16 @@ injAreaCon =
       | (a,b) > (c,d) = sortArea c d a b
       | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
-injAreaCov :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+injAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
                (
-                InjAreaCovILists id a b c d i ~ l,
-                (a < b) ~ 'True,
-                (b < c) ~ 'True,
-                (c < d) ~ 'True,
+                InjAreaCovILists id a b c d i ~ 'Just l,
                 SingI l,
                 Num v
-               ) => Tensor l v
-injAreaCov =
+               ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor l v
+injAreaCov' sid sa sb sc sd si =
+    case sLengthILs sl of
+      SS (SS (SS (SS (SS SZ)))) ->
         case sSane sl %~ STrue of
           Proved Refl -> fromList assocs
   where
@@ -362,19 +360,18 @@ injAreaCov =
       | (a,b) > (c,d) = sortArea c d a b
       | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
-surjAreaCon :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+surjAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
                (
-                SurjAreaConILists id a b c d i ~ l,
-                (a < b) ~ 'True,
-                (b < c) ~ 'True,
-                (c < d) ~ 'True,
+                SurjAreaConILists id a b c d i ~ 'Just l,
                 SingI l,
                 Fractional v
-               ) => Tensor l v
-surjAreaCon =
+               ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor l v
+surjAreaCon' sid sa sb sc sd si =
+    case sLengthILs sl of
+      SS (SS (SS (SS (SS SZ)))) ->
         case sSane sl %~ STrue of
-          Proved Refl -> fromList (assocs :: [(Vec (S (S (S (S (S Z))))) Int, v)])
+          Proved Refl -> fromList assocs
   where
     sl = sing :: Sing l
     tm = trianMapArea
@@ -402,19 +399,18 @@ surjAreaCon =
       | (a,b) > (c,d) = sortArea c d a b
       | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
-surjAreaCov :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+surjAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
                (
-                SurjAreaCovILists id a b c d i ~ l,
-                (a < b) ~ 'True,
-                (b < c) ~ 'True,
-                (c < d) ~ 'True,
+                SurjAreaCovILists id a b c d i ~ 'Just l,
                 SingI l,
                 Fractional v
-               ) => Tensor l v
-surjAreaCov =
+               ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor l v
+surjAreaCov' sid sa sb sc sd si =
+    case sLengthILs sl of
+      SS (SS (SS (SS (SS SZ)))) ->
         case sSane sl %~ STrue of
-          Proved Refl -> fromList (assocs :: [(Vec (S (S (S (S (S Z))))) Int, v)])
+          Proved Refl -> fromList assocs
   where
     sl = sing :: Sing l
     tm = trianMapArea
@@ -520,6 +516,90 @@ someEpsilonInv vid vdim (i:is) =
       withSingI sl $
       return $ T $ epsilonInv svid svdim sis
     SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
+
+someInjAreaCon :: (Num v, MonadError String m) =>
+                  Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                  m (T v)
+someInjAreaCon vid a b c d i =
+  withSomeSing vid $ \svid ->
+  withSomeSing a   $ \sa ->
+  withSomeSing b   $ \sb ->
+  withSomeSing c   $ \sc ->
+  withSomeSing d   $ \sd ->
+  withSomeSing i   $ \si ->
+  case sInjAreaConILists svid sa sb sc sd si of
+    SJust sl ->
+      withSingI sl $
+      case sSane sl %~ STrue of
+        Proved Refl -> return $ T $ injAreaCon' svid sa sb sc sd si
+
+someSurjAreaCon :: (Fractional v, MonadError String m) =>
+                  Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                  m (T v)
+someSurjAreaCon vid a b c d i =
+  withSomeSing vid $ \svid ->
+  withSomeSing a   $ \sa ->
+  withSomeSing b   $ \sb ->
+  withSomeSing c   $ \sc ->
+  withSomeSing d   $ \sd ->
+  withSomeSing i   $ \si ->
+  case sSurjAreaConILists svid sa sb sc sd si of
+    SJust sl ->
+      withSingI sl $
+      case sSane sl %~ STrue of
+        Proved Refl -> return $ T $ surjAreaCon' svid sa sb sc sd si
+
+someInjAreaCov :: (Num v, MonadError String m) =>
+                  Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                  m (T v)
+someInjAreaCov vid a b c d i =
+  withSomeSing vid $ \svid ->
+  withSomeSing a   $ \sa ->
+  withSomeSing b   $ \sb ->
+  withSomeSing c   $ \sc ->
+  withSomeSing d   $ \sd ->
+  withSomeSing i   $ \si ->
+  case sInjAreaCovILists svid sa sb sc sd si of
+    SJust sl ->
+      withSingI sl $
+      case sSane sl %~ STrue of
+        Proved Refl -> return $ T $ injAreaCov' svid sa sb sc sd si
+
+someSurjAreaCov :: (Fractional v, MonadError String m) =>
+                  Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                  m (T v)
+someSurjAreaCov vid a b c d i =
+  withSomeSing vid $ \svid ->
+  withSomeSing a   $ \sa ->
+  withSomeSing b   $ \sb ->
+  withSomeSing c   $ \sc ->
+  withSomeSing d   $ \sd ->
+  withSomeSing i   $ \si ->
+  case sSurjAreaCovILists svid sa sb sc sd si of
+    SJust sl ->
+      withSingI sl $
+      case sSane sl %~ STrue of
+        Proved Refl -> return $ T $ surjAreaCov' svid sa sb sc sd si
+
+someInterAreaCon :: (Fractional v, Eq v, MonadError String m) =>
+                    Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                    m (T v)
+someInterAreaCon vid m n a b =
+  do
+    i <- someInjAreaCon vid " 1" " 2" " 3" m a
+    j <- someSurjAreaCon vid " 1" " 2" " 3" n b
+    prod <- i .* j
+    return $ contractT prod
+
+someInterAreaCov :: (Fractional v, Eq v, MonadError String m) =>
+                    Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
+                    m (T v)
+someInterAreaCov vid m n a b =
+  do
+    i <- someInjAreaCov vid " 1" " 2" " 3" m a
+    j <- someSurjAreaCov vid " 1" " 2" " 3" n b
+    prod <- i .* j
+    return $ contractT prod
 
 type V4 = 'VSpace "Spacetime" 4
 type Up2 a b = 'Con (a :| '[b])
