@@ -20,6 +20,8 @@
 
 module TH where
 
+import Data.Kind (Type)
+
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.Enum
 import Data.Singletons.Prelude.List.NonEmpty hiding (sLength)
@@ -450,4 +452,33 @@ $(singletons [d|
       zip' (_ :| []) (_ :| (_:_)) = Nothing
       zip' (x:|(x':xs')) (y:|(y':ys')) = fmap ((x,y):) $ zip' (x':|xs') (y':|ys')
   |])
+
+toInt :: N -> Int
+toInt Z = 0
+toInt (S n) = 1 + toInt n
+
+data Vec :: N -> Type -> Type where
+    VNil :: Vec Z a
+    VCons :: a -> Vec n a -> Vec (S n) a
+
+deriving instance Show a => Show (Vec n a)
+
+instance Eq a => Eq (Vec n a) where
+  VNil           == VNil           = True
+  (x `VCons` xs) == (y `VCons` ys) = x == y && xs == ys
+
+instance Ord a => Ord (Vec n a) where
+  VNil `compare` VNil = EQ
+  (x `VCons` xs) `compare` (y `VCons` ys) =
+    case x `compare` y of
+      LT -> LT
+      EQ -> xs `compare` ys
+      GT -> GT
+
+vecFromListUnsafe :: forall (n :: N) a.
+                     Sing n -> [a] -> Vec n a
+vecFromListUnsafe SZ [] = VNil
+vecFromListUnsafe (SS sn) (x:xs) =
+    let xs' = vecFromListUnsafe sn xs
+    in  x `VCons` xs'
 

@@ -21,6 +21,7 @@
 module Basic where
 
 import TH
+import Internal
 import Safe
 import Tensor
 
@@ -73,14 +74,6 @@ epsilonInv sid sn sis =
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, (fromIntegral (permSign p) :: v))) perms
-
-permSign [] = 1
-permSign (_:[]) = 1
-permSign (x:xs)
-    | even (length defects) = permSign xs
-    | odd (length defects)  = (-1) * permSign xs
-  where
-    defects = filter (<x) xs
 
 delta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
           (
@@ -172,6 +165,13 @@ asym = case (sing :: Sing n) of
                                       LT -> 1
                                       EQ -> 0
                                       GT -> -1))) [0..x-1])) [0..x-1]
+
+surjSym2Con :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
+                      (i :: Symbol) (l :: ILists) v.
+               (
+
+               ) => Tensor l v
+surjSym2Con
 
 someDelta :: Num v =>
              Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->

@@ -33,27 +33,6 @@ import Data.Singletons.TypeLits
 
 import Data.List (foldl',groupBy,sortBy)
 
-toInt :: N -> Int
-toInt Z = 0
-toInt (S n) = 1 + toInt n
-
-data Vec :: N -> Type -> Type where
-    VNil :: Vec Z a
-    VCons :: a -> Vec n a -> Vec (S n) a
-
-deriving instance Show a => Show (Vec n a)
-
-instance Eq a => Eq (Vec n a) where
-  VNil           == VNil           = True
-  (x `VCons` xs) == (y `VCons` ys) = x == y && xs == ys
-
-vecFromListUnsafe :: forall (n :: N) a.
-                     Sing n -> [a] -> Vec n a
-vecFromListUnsafe SZ [] = VNil
-vecFromListUnsafe (SS sn) (x:xs) =
-    let xs' = vecFromListUnsafe sn xs
-    in  x `VCons` xs'
-
 data Tensor :: ILists -> Type -> Type where
     ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
     Scalar :: forall (l :: ILists) v.  l ~ '[] => v -> Tensor l v
