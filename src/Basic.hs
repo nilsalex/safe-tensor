@@ -33,6 +33,10 @@ import Data.Singletons.TypeLits
 import Data.List (sort,permutations)
 import Data.List.NonEmpty (NonEmpty(..))
 
+import Data.Maybe (catMaybes)
+
+import qualified Data.Map.Strict as Map
+
 import Control.Monad.Except
 
 epsilon :: forall (id :: Symbol) (n :: Nat) (is :: NonEmpty Symbol) (l :: ILists) v.
@@ -166,12 +170,277 @@ asym = case (sing :: Sing n) of
                                       EQ -> 0
                                       GT -> -1))) [0..x-1])) [0..x-1]
 
+injSym2Con :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
+                      (i :: Symbol) (l :: ILists) v.
+               (
+                InjSym2ConILists id n a b i ~ l,
+                (a < b) ~ 'True,
+                KnownNat n,
+                SingI l,
+                Num v
+               ) => Tensor l v
+injSym2Con =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    sn = sing :: Sing n
+    n  = withKnownNat sn (natVal sn)
+    tm = trianMapSym2 n
+    maxInd = fromIntegral n - (1 :: Int)
+    assocs = (\a b -> let v = vec a b
+                      in case Map.lookup v tm of
+                           Just i -> (a `VCons` (b `VCons` (i `VCons` VNil)), (1 :: v))
+                           _      -> error $ "indices " ++ show (min a b, max a b) ++
+                                             " not present in triangle map " ++ show tm)
+             <$> [0..maxInd] <*> [0..maxInd]
+
+    vec a b = min a b `VCons` (max a b `VCons` VNil)
+
+injSym2Cov :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
+                      (i :: Symbol) (l :: ILists) v.
+               (
+                InjSym2CovILists id n a b i ~ l,
+                (a < b) ~ 'True,
+                KnownNat n,
+                SingI l,
+                Num v
+               ) => Tensor l v
+injSym2Cov =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    sn = sing :: Sing n
+    n  = withKnownNat sn (natVal sn)
+    tm = trianMapSym2 n
+    maxInd = fromIntegral n - (1 :: Int)
+    assocs = (\a b -> let v = vec a b
+                      in case Map.lookup v tm of
+                           Just i -> (a `VCons` (b `VCons` (i `VCons` VNil)), (1 :: v))
+                           _      -> error $ "indices " ++ show (min a b, max a b) ++
+                                             " not present in triangle map " ++ show tm)
+             <$> [0..maxInd] <*> [0..maxInd]
+
+    vec a b = min a b `VCons` (max a b `VCons` VNil)
+
 surjSym2Con :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
                       (i :: Symbol) (l :: ILists) v.
                (
-
+                SurjSym2ConILists id n a b i ~ l,
+                (a < b) ~ 'True,
+                KnownNat n,
+                SingI l,
+                Fractional v
                ) => Tensor l v
-surjSym2Con
+surjSym2Con =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    sn = sing :: Sing n
+    n  = withKnownNat sn (natVal sn)
+    tm = trianMapSym2 n
+    fm = facMapSym2 n
+    maxInd = fromIntegral (withKnownNat sn (natVal sn)) - (1 :: Int)
+    assocs = (\a b -> case
+                        (do
+                           let v = vec a b
+                           i <- Map.lookup v tm
+                           f <- Map.lookup v fm
+                           return (a `VCons` (b `VCons` (i `VCons` VNil)), (1 / f :: v))) of
+                        Just x -> x
+                        Nothing -> error "")
+             <$> [0..maxInd] <*> [0..maxInd]
+
+    vec a b = min a b `VCons` (max a b `VCons` VNil)
+
+surjSym2Cov :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
+                      (i :: Symbol) (l :: ILists) v.
+               (
+                SurjSym2CovILists id n a b i ~ l,
+                (a < b) ~ 'True,
+                KnownNat n,
+                SingI l,
+                Fractional v
+               ) => Tensor l v
+surjSym2Cov =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    sn = sing :: Sing n
+    n  = withKnownNat sn (natVal sn)
+    tm = trianMapSym2 n
+    fm = facMapSym2 n
+    maxInd = fromIntegral (withKnownNat sn (natVal sn)) - (1 :: Int)
+    assocs = (\a b -> case
+                        (do
+                           let v = vec a b
+                           i <- Map.lookup v tm
+                           f <- Map.lookup v fm
+                           return (a `VCons` (b `VCons` (i `VCons` VNil)), (1 / f :: v))) of
+                        Just x -> x
+                        Nothing -> error "")
+             <$> [0..maxInd] <*> [0..maxInd]
+
+    vec a b = min a b `VCons` (max a b `VCons` VNil)
+
+injAreaCon :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+                     (i :: Symbol) (l :: ILists) v.
+               (
+                InjAreaConILists id a b c d i ~ l,
+                (a < b) ~ 'True,
+                (b < c) ~ 'True,
+                (c < d) ~ 'True,
+                SingI l,
+                Num v
+               ) => Tensor l v
+injAreaCon =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    tm = trianMapArea
+    assocs = catMaybes $
+             (\a b c d ->
+                  do
+                     s <- areaSign a b c d 
+                     let v = sortArea a b c d
+                     i <- Map.lookup v tm
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s :: v)))
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+
+    areaSign a b c d
+      | a == b = Nothing
+      | c == d = Nothing
+      | a > b  = fmap ((-1) *) $ areaSign b a c d
+      | c > d  = fmap ((-1) *) $ areaSign a b d c
+      | otherwise = Just 1
+
+    sortArea a b c d
+      | a > b = sortArea b a c d
+      | c > d = sortArea a b d c
+      | (a,b) > (c,d) = sortArea c d a b
+      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
+
+injAreaCov :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+                     (i :: Symbol) (l :: ILists) v.
+               (
+                InjAreaCovILists id a b c d i ~ l,
+                (a < b) ~ 'True,
+                (b < c) ~ 'True,
+                (c < d) ~ 'True,
+                SingI l,
+                Num v
+               ) => Tensor l v
+injAreaCov =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList assocs
+  where
+    sl = sing :: Sing l
+    tm = trianMapArea
+    assocs = catMaybes $
+             (\a b c d ->
+                  do
+                     s <- areaSign a b c d 
+                     let v = sortArea a b c d
+                     i <- Map.lookup v tm
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s :: v)))
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+
+    areaSign a b c d
+      | a == b = Nothing
+      | c == d = Nothing
+      | a > b  = fmap ((-1) *) $ areaSign b a c d
+      | c > d  = fmap ((-1) *) $ areaSign a b d c
+      | otherwise = Just 1
+
+    sortArea a b c d
+      | a > b = sortArea b a c d
+      | c > d = sortArea a b d c
+      | (a,b) > (c,d) = sortArea c d a b
+      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
+
+surjAreaCon :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+                     (i :: Symbol) (l :: ILists) v.
+               (
+                SurjAreaConILists id a b c d i ~ l,
+                (a < b) ~ 'True,
+                (b < c) ~ 'True,
+                (c < d) ~ 'True,
+                SingI l,
+                Fractional v
+               ) => Tensor l v
+surjAreaCon =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList (assocs :: [(Vec (S (S (S (S (S Z))))) Int, v)])
+  where
+    sl = sing :: Sing l
+    tm = trianMapArea
+    fm = facMapArea
+    assocs = catMaybes $
+             (\a b c d ->
+                  do
+                     s <- areaSign a b c d 
+                     let v = sortArea a b c d
+                     i <- Map.lookup v tm
+                     f <- Map.lookup v fm
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s/f :: v)))
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+
+    areaSign a b c d
+      | a == b = Nothing
+      | c == d = Nothing
+      | a > b  = fmap ((-1) *) $ areaSign b a c d
+      | c > d  = fmap ((-1) *) $ areaSign a b d c
+      | otherwise = Just 1
+
+    sortArea a b c d
+      | a > b = sortArea b a c d
+      | c > d = sortArea a b d c
+      | (a,b) > (c,d) = sortArea c d a b
+      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
+
+surjAreaCov :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
+                     (i :: Symbol) (l :: ILists) v.
+               (
+                SurjAreaCovILists id a b c d i ~ l,
+                (a < b) ~ 'True,
+                (b < c) ~ 'True,
+                (c < d) ~ 'True,
+                SingI l,
+                Fractional v
+               ) => Tensor l v
+surjAreaCov =
+        case sSane sl %~ STrue of
+          Proved Refl -> fromList (assocs :: [(Vec (S (S (S (S (S Z))))) Int, v)])
+  where
+    sl = sing :: Sing l
+    tm = trianMapArea
+    fm = facMapArea
+    assocs = catMaybes $
+             (\a b c d ->
+                  do
+                     s <- areaSign a b c d 
+                     let v = sortArea a b c d
+                     i <- Map.lookup v tm
+                     f <- Map.lookup v fm
+                     return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), (s/f :: v)))
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+
+    areaSign a b c d
+      | a == b = Nothing
+      | c == d = Nothing
+      | a > b  = fmap ((-1) *) $ areaSign b a c d
+      | c > d  = fmap ((-1) *) $ areaSign a b d c
+      | otherwise = Just 1
+
+    sortArea a b c d
+      | a > b = sortArea b a c d
+      | c > d = sortArea a b d c
+      | (a,b) > (c,d) = sortArea c d a b
+      | otherwise = a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
 
 someDelta :: Num v =>
              Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->

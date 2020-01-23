@@ -52,7 +52,7 @@ trianMapArea = Map.fromList $ zip indices4 indices1
                   d <- [c+1..3],
                   not (a == c && b > d) ]
 
-facMapSym2 :: Integral a => a -> Map.Map (Vec (S (S Z)) Int) Int
+facMapSym2 :: (Integral a, Num b) => a -> Map.Map (Vec (S (S Z)) Int) b
 facMapSym2 n = Map.fromList $ [(a `VCons` (b `VCons` VNil), fac a b) |
                                   a <- [0..maxInd], b <- [a..maxInd] ]
   where
@@ -61,7 +61,7 @@ facMapSym2 n = Map.fromList $ [(a `VCons` (b `VCons` VNil), fac a b) |
       | a == b    = 1
       | otherwise = 2
 
-facMapArea :: Map.Map (Vec (S (S (S (S Z)))) Int) Int
+facMapArea :: Num b => Map.Map (Vec (S (S (S (S Z)))) Int) b
 facMapArea = Map.fromList $ [(a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil))), fac a b c d) |
                                 a <- [0..2],
                                 b <- [a+1..3],

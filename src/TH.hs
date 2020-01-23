@@ -17,6 +17,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module TH where
 
@@ -112,6 +113,44 @@ $(singletons [d|
             False -> Nothing
         False -> Nothing
 
+  sym2Dim :: Nat -> Nat
+  sym2Dim n = go 0 n
+    where
+      go :: Nat -> Nat -> Nat
+      go acc n = case n == 0 of
+                   True  -> acc
+                   False -> go (acc + n) (pred n)
+
+  injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  injSym2ConILists vid vdim a b i =
+      [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]
+
+  injSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  injSym2CovILists vid vdim a b i =
+      [(VSpace vid vdim, Cov (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Con (i :| []))]
+
+  surjSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  surjSym2ConILists = injSym2CovILists
+
+  surjSym2CovILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> ILists
+  surjSym2CovILists = injSym2ConILists
+
+  injAreaConILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
+  injAreaConILists vid a b c d i =
+    [(VSpace vid 4, Con (a :| [b,c,d])), (VSpace (vid <> "Area") 21, Cov (i :| []))]
+
+  injAreaCovILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
+  injAreaCovILists vid a b c d i =
+    [(VSpace vid 4, Cov (a :| [b,c,d])), (VSpace (vid <> "Area") 21, Con (i :| []))]
+
+  surjAreaConILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
+  surjAreaConILists vid a b c d i =
+    [(VSpace vid 4, Cov (a :| [b,c,d])), (VSpace (vid <> "Area") 21, Con (i :| []))]
+
+  surjAreaCovILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> ILists
+  surjAreaCovILists vid a b c d i =
+    [(VSpace vid 4, Con (a :| [b,c,d])), (VSpace (vid <> "Area") 21, Cov (i :| []))]
+
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True
   isAscending (x:[]) = True
@@ -205,7 +244,7 @@ $(singletons [d|
       EQ -> do
              xl' <- mergeIL xl yl
              xs' <- mergeILs xs ys
-             Just $ (xv, xl') : ys
+             Just $ (xv, xl') : xs'
       GT -> fmap ((yv,yl) :) $ mergeILs ((xv,xl):xs) ys
 
   mergeIL :: Ord a => IList a -> IList a -> Maybe (IList a)
