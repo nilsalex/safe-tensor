@@ -600,12 +600,12 @@ $(singletons [d|
                   j':js' -> j <| go (i :| is) (j' :| js')
   
   relabelTranspositions' :: Ord a => NonEmpty (a,a) -> [(N,N)]
-  relabelTranspositions' is = go'' is''''
+  relabelTranspositions' is = go'' is'''
     where
       is' = go Z is
       is'' = sortBy (\a b -> snd a `compare` snd b) is'
       is''' = go' Z is''
-      is'''' = sort is'''
+      --is'''' = sort is'''
   
       go :: N -> NonEmpty (a,b) -> NonEmpty (N,b)
       go n ((_,y) :| [])     = (n,y) :| []
@@ -615,9 +615,9 @@ $(singletons [d|
       go' n ((x,_) :| [])     = (x,n) :| []
       go' n ((x,_) :| (i:is)) = (x,n) <| go' (S n) (i :| is)
   
-      go'' :: NonEmpty a -> [a]
-      go'' (x :| []) = [x]
-      go'' (x :| (y:ys)) = x : go'' (y :| ys)
+      go'' :: NonEmpty (a,a) -> [(a,a)]
+      go'' ((x1,x2) :| []) = [(x2,x1)]
+      go'' ((x1,x2) :| (y:ys)) = (x2,x1) : go'' (y :| ys)
 
   |])
 
