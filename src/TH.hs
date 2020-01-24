@@ -507,6 +507,54 @@ $(singletons [d|
       zip' (_ :| (_:_)) (_ :| []) = Nothing
       zip' (_ :| []) (_ :| (_:_)) = Nothing
       zip' (x:|(x':xs')) (y:|(y':ys')) = ((x,y):) <$> zip' (x':|xs') (y':|ys')
+
+  saneRelabelList :: Ord a => NonEmpty (a,a) -> Bool
+  saneRelabelList xs = isAscendingNE xs &&
+                       isAscendingNE xs'
+    where
+      xs' = sort $ fmap (\(a,b) -> (b,a)) xs
+  
+  relabelNE :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty a)
+  relabelNE relabelList indices = go relabelList indices
+    where
+      go :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty a)
+      go ((source,target) :| ms) (x :| xs) =
+        case source `compare` x of
+          LT -> Nothing
+          EQ ->
+            case ms of
+              []     -> Just $ target :| xs
+              m':ms' ->
+                case xs of
+                  []     -> Nothing
+                  x':xs' -> (target <|) <$> go (m' :| ms') (x' :| xs')
+          GT ->
+            case ms of
+              []     -> Just $ x :| xs
+              m':ms' -> go (m' :| ms') (x :| xs)
+
+  relabelIL :: Ord a => NonEmpty (a,a) -> IList a -> Maybe (IList a)
+  relabelIL rl (Con is) =
+    do
+      is' <- Con . sort <$> relabelNE rl is
+      case isAscendingI is' of
+        True -> return is'
+        False -> Nothing
+  relabelIL rl (Cov is) =
+    do
+      is' <- Cov . sort <$> relabelNE rl is
+      case isAscendingI is' of
+        True -> return is'
+        False -> Nothing
+  relabelIL rl (ConCov is js) =
+    do
+      is' <- sort <$> relabelNE rl is
+      js' <- sort <$> relabelNE rl js
+      let l' = ConCov is' js'
+      case isAscendingI l' of
+        True -> return l'
+        False -> Nothing
+
   |])
 
 toInt :: N -> Int
