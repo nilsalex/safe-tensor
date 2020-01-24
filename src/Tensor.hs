@@ -28,6 +28,8 @@ import Data.Singletons.TypeLits
 
 import Data.Bifunctor (first)
 
+import Data.List.NonEmpty (NonEmpty(..))
+
 import Control.Monad.Except
 
 data T :: Type -> Type where
@@ -124,17 +126,52 @@ transposeT v ia ib o =
            SFalse -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
 
 transposeMultT :: MonadError String m =>
-                  Demote (VSpace Symbol Nat) -> Demote (TransList Symbol) -> T v -> m (T v)
-transposeMultT v tl o =
+                  Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
+transposeMultT _ [] [] _ = throwError $ "Empty lists for transpositions!"
+transposeMultT v (con:cons) [] o =
   case o of
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
+          cons' = con :| cons
+          tl = (\xs ys -> TransCon xs ys) (fmap fst cons') (fmap snd cons')
       in withSingI sl $
          withSomeSing v $ \sv ->
          withSomeSing tl $ \stl ->
          case sIsJust (sTranspositions sv stl sl) %~ STrue of
            Proved Refl -> return $ T $ transposeMult sv stl t
            Disproved _ -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show tl ++ "!"
+transposeMultT v [] (cov:covs) o =
+  case o of
+    T (t :: Tensor l v) ->
+      let sl = sing :: Sing l
+          covs' = cov :| covs
+          tl = (\xs ys -> TransCon xs ys) (fmap fst covs') (fmap snd covs')
+      in withSingI sl $
+         withSomeSing v $ \sv ->
+         withSomeSing tl $ \stl ->
+         case sIsJust (sTranspositions sv stl sl) %~ STrue of
+           Proved Refl -> return $ T $ transposeMult sv stl t
+           Disproved _ -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show tl ++ "!"
+transposeMultT _ _ _ _ = throwError $ "Simultaneous transposition of contravariant and covariant indices not yet supported!"
+
+relabelT :: MonadError String m =>
+            Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
+relabelT _ [] _ = throwError $ "Empty list for relabelling!"
+relabelT v (r:rs) o =
+  case o of
+    T (t :: Tensor l v) ->
+      let sl = sing :: Sing l
+          rl = r :| rs
+      in withSingI sl $
+         withSomeSing v $ \sv ->
+         withSomeSing rl $ \srl ->
+         case sRelabelILs sv srl sl of
+           SJust sl' ->
+             withSingI sl' $
+             case sSane sl' %~ STrue of
+               Proved Refl -> return $ T $ relabel sv srl t
+               Disproved _ -> throwError $ "Cannot relabel indices " ++ show v ++ " " ++ show rl ++ "!"
+           _ -> throwError $ "Cannot relabel indices " ++ show v ++ " " ++ show rl ++ "!"
 
 rankT :: T v -> Demote ILists
 rankT o =

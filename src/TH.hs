@@ -517,7 +517,7 @@ $(singletons [d|
       xs' = sort $ fmap (\(a,b) -> (b,a)) xs
   
   relabelNE :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty (a,a))
-  relabelNE relabelList indices = go relabelList indices
+  relabelNE = go
     where
       go :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty (a,a))
       go ((source,target) :| ms) (x :| xs) =
@@ -543,7 +543,7 @@ $(singletons [d|
   relabelILs vs rls ((vs',il):ils) =
     case vs `compare` vs' of
       LT -> Nothing
-      EQ -> fmap (\il' -> (vs',il'):ils) $ relabelIL rls il
+      EQ -> (\il' -> (vs',il'):ils) <$> relabelIL rls il
       GT -> ((vs',il) :) <$> relabelILs vs rls ils
 
   relabelIL :: Ord a => NonEmpty (a,a) -> IList a -> Maybe (IList a)
@@ -584,7 +584,7 @@ $(singletons [d|
       Just (ConCov is' js') -> Just $ relabelTranspositions' $ is' `zipConCov` js'
   
   zipConCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
-  zipConCov xs ys = go xs ys
+  zipConCov = go
     where
       go :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
       go (i :| is) (j :| js) =
