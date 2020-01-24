@@ -258,6 +258,56 @@ transposeMult sv stl t@(Tensor ms) =
       s' = toInt s
       t' = toInt t
 
+relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelList) (l1 :: ILists) (l2 :: ILists) v.
+                 (RelabelILs vs rl l1 ~ 'Just l2, Sane l2 ~ 'True, SingI l1, SingI l2) =>
+                 Sing vs -> Sing rl -> Tensor l1 v -> Tensor l2 v
+relabel _ _ ZeroTensor = ZeroTensor
+relabel sv srl t@(Tensor ms) =
+    let sl1 = sing :: Sing l1
+        sl2 = sing :: Sing l2
+        sh = sHead' sl1
+        sl1' = sTail' sl1
+        sl2' = sTail' sl2
+        sl1'' = sTail sl1
+        sts = sRelabelTranspositions srl (sSnd (sHead sl1))
+    in case sv %~ sFst sh of
+         Proved Refl ->
+           case sSane sl1'' %~ STrue of
+             Proved Refl ->
+               case sts of
+                 SJust sts' ->
+                   withSingI (sFst (sHead sl1)) $
+                   withSingI sl1'' $
+                   let sn = sLengthIL (sSnd (sHead sl1))
+                       n  = fromSing sn
+                       ts  = fromSing sts'
+                       ts' = go ts $ take' n 0
+                       xs  = toTListWhile t
+                       xs' = fmap (first (transposeIndices ts')) xs
+                       xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
+                   in  fromTList xs''
+         Disproved _ ->
+           case sRelabelILs sv srl sl1' %~ SJust sl2' of
+             Proved Refl ->
+               case sSane sl2' %~ STrue of
+                 Proved Refl -> withSingI sl1' $ withSingI sl2' $ Tensor $ fmap (fmap (relabel sv srl)) ms
+  where
+    take' Z i = [i]
+    take' (S n) i = i : take' n (i+1)
+
+    transposeIndices ts' is = fmap snd $
+                              sortBy (\(i,_) (i',_) -> i `compare` i') $
+                              zip ts' is
+
+    go :: [(N,N)] -> [Int] -> [Int]
+    go [] is = is
+    go ((s,t):ts) (i:is)
+      | s' == i = t' : go ts is
+      | s' >  i = i : go ((s,t):ts) is
+     where
+      s' = toInt s
+      t' = toInt t
+
 toList :: forall l v n.
           (SingI l, SingI n, LengthILs l ~ n) =>
           Tensor l v -> [(Vec n Int, v)]

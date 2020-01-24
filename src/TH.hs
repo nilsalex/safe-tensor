@@ -29,7 +29,7 @@ import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List.NonEmpty (NonEmpty((:|)),sort,(<|))
+import Data.List.NonEmpty (NonEmpty((:|)),sort,sortBy,(<|))
 
 $(singletons [d|
   data N where
@@ -508,45 +508,65 @@ $(singletons [d|
       zip' (_ :| []) (_ :| (_:_)) = Nothing
       zip' (x:|(x':xs')) (y:|(y':ys')) = ((x,y):) <$> zip' (x':|xs') (y':|ys')
 
+  type RelabelList = NonEmpty (Symbol,Symbol)
+
   saneRelabelList :: Ord a => NonEmpty (a,a) -> Bool
   saneRelabelList xs = isAscendingNE xs &&
                        isAscendingNE xs'
     where
       xs' = sort $ fmap (\(a,b) -> (b,a)) xs
   
-  relabelNE :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty a)
+  relabelNE :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty (a,a))
   relabelNE relabelList indices = go relabelList indices
     where
-      go :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty a)
+      go :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty (a,a))
       go ((source,target) :| ms) (x :| xs) =
         case source `compare` x of
-          LT -> Nothing
+          LT ->
+            case ms of
+              []     -> Just $ (\a -> (a,a)) <$> (x :| xs)
+              m':ms' -> go (m' :| ms') (x :| xs)
           EQ ->
             case ms of
-              []     -> Just $ target :| xs
+              []     -> Just $ ((target,source) :|) $ fmap (\a -> (a,a)) xs
               m':ms' ->
                 case xs of
-                  []     -> Nothing
-                  x':xs' -> (target <|) <$> go (m' :| ms') (x' :| xs')
+                  []     -> Just $ (target,source) :| []
+                  x':xs' -> ((target,source) <|) <$> go (m' :| ms') (x' :| xs')
           GT ->
-            case ms of
-              []     -> Just $ x :| xs
-              m':ms' -> go (m' :| ms') (x :| xs)
+            case xs of
+              []     -> Just $ (x,x) :| []
+              x':xs' -> ((x,x) <|) <$> go ((source,target) :| ms) (x' :| xs')
+  
+  relabelILs :: VSpace Symbol Nat -> RelabelList -> ILists -> Maybe ILists
+  relabelILs _ _ [] = Nothing
+  relabelILs vs rls ((vs',il):ils) =
+    case vs `compare` vs' of
+      LT -> Nothing
+      EQ -> fmap (\il' -> (vs',il'):ils) $ relabelIL rls il
+      GT -> ((vs',il) :) <$> relabelILs vs rls ils
 
   relabelIL :: Ord a => NonEmpty (a,a) -> IList a -> Maybe (IList a)
-  relabelIL rl (Con is) =
+  relabelIL rl is = case relabelIL' rl is of
+                      Nothing -> Nothing
+                      Just (Con is') -> Just $ Con $ fst <$> is'
+                      Just (Cov is') -> Just $ Cov $ fst <$> is'
+                      Just (ConCov is' js') -> Just $ ConCov (fst <$> is') (fst <$> js')
+  
+  relabelIL' :: Ord a => NonEmpty (a,a) -> IList a -> Maybe (IList (a,a))
+  relabelIL' rl (Con is) =
     do
       is' <- Con . sort <$> relabelNE rl is
       case isAscendingI is' of
         True -> return is'
         False -> Nothing
-  relabelIL rl (Cov is) =
+  relabelIL' rl (Cov is) =
     do
       is' <- Cov . sort <$> relabelNE rl is
       case isAscendingI is' of
         True -> return is'
         False -> Nothing
-  relabelIL rl (ConCov is js) =
+  relabelIL' rl (ConCov is js) =
     do
       is' <- sort <$> relabelNE rl is
       js' <- sort <$> relabelNE rl js
@@ -554,6 +574,50 @@ $(singletons [d|
       case isAscendingI l' of
         True -> return l'
         False -> Nothing
+  
+  relabelTranspositions :: Ord a => NonEmpty (a,a) -> IList a -> Maybe [(N,N)]
+  relabelTranspositions rl is =
+    case relabelIL' rl is of
+      Nothing -> Nothing
+      Just (Con is') -> Just $ relabelTranspositions' is'
+      Just (Cov is') -> Just $ relabelTranspositions' is'
+      Just (ConCov is' js') -> Just $ relabelTranspositions' $ is' `zipConCov` js'
+  
+  zipConCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
+  zipConCov xs ys = go xs ys
+    where
+      go :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
+      go (i :| is) (j :| js) =
+        case i `compare` j of
+          LT -> case is of
+                  [] -> i <| (j:|js)
+                  i':is' -> i <| go (i' :| is') (j :| js)
+          EQ -> case is of
+                  [] -> i <| (j:|js)
+                  i':is' -> i <| go (i' :| is') (j :| js)
+          GT -> case js of
+                  [] -> j <| (i:|is)
+                  j':js' -> j <| go (i :| is) (j' :| js')
+  
+  relabelTranspositions' :: Ord a => NonEmpty (a,a) -> [(N,N)]
+  relabelTranspositions' is = go'' is''''
+    where
+      is' = go Z is
+      is'' = sortBy (\a b -> snd a `compare` snd b) is'
+      is''' = go' Z is''
+      is'''' = sort is'''
+  
+      go :: N -> NonEmpty (a,b) -> NonEmpty (N,b)
+      go n ((_,y) :| [])     = (n,y) :| []
+      go n ((_,y) :| (i:is)) = (n,y) <| go (S n) (i :| is)
+  
+      go' :: N -> NonEmpty (a,b) -> NonEmpty (a,N)
+      go' n ((x,_) :| [])     = (x,n) :| []
+      go' n ((x,_) :| (i:is)) = (x,n) <| go' (S n) (i :| is)
+  
+      go'' :: NonEmpty a -> [a]
+      go'' (x :| []) = [x]
+      go'' (x :| (y:ys)) = x : go'' (y :| ys)
 
   |])
 
