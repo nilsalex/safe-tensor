@@ -25,10 +25,11 @@ import Data.Singletons.Decide
 import Data.Singletons.TypeLits
 
 import Data.List (sort,permutations)
-import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE (NonEmpty(..),sort)
 
 import Control.Monad.Except
-
+ 
+permSign :: Num v => Ord a => [a] -> v
 permSign [] = 1
 permSign [_] = 1
 permSign (x:xs)
@@ -37,7 +38,7 @@ permSign (x:xs)
   where
     defects = filter (<x) xs
 
-epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NonEmpty Symbol) (l :: ILists) v.
+epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
               (
                KnownNat n,
                Num v,
@@ -57,7 +58,7 @@ epsilon' sid sn sis =
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
-epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NonEmpty Symbol) (l :: ILists) v.
+epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
               (
                KnownNat n,
                Num v,
@@ -77,33 +78,35 @@ epsilonInv' sid sn sis =
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
-someEpsilon :: (Num v, MonadError String m) =>
-                  Demote Symbol -> Demote Nat -> [Demote Symbol] ->
-                  m (T v)
+someEpsilon :: forall v m.(Num v, MonadError String m) =>
+               Demote Symbol -> Demote Nat -> [Demote Symbol] ->
+               m (T v)
 someEpsilon _ _ [] = throwError "Empty index list!"
 someEpsilon vid vdim (i:is) =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing (i :| is) $ \sis ->
-  withKnownNat svdim $
-  case sEpsilonILists svid svdim sis of
-    SJust sl ->
-      withSingI sl $
-      return $ T $ epsilon' svid svdim sis
-    SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
+  let sign = permSign (i:is) :: v
+  in withSomeSing vid $ \svid ->
+     withSomeSing vdim $ \svdim ->
+     withSomeSing (NE.sort (i NE.:| is)) $ \sis ->
+     withKnownNat svdim $
+     case sEpsilonILists svid svdim sis of
+       SJust sl ->
+         withSingI sl $
+         return $ T $ (* sign) <$> epsilon' svid svdim sis
+       SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
 
-someEpsilonInv :: (Num v, MonadError String m) =>
+someEpsilonInv :: forall v m.(Num v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> [Demote Symbol] ->
                   m (T v)
 someEpsilonInv _ _ [] = throwError "Empty index list!"
 someEpsilonInv vid vdim (i:is) =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing (i :| is) $ \sis ->
-  withKnownNat svdim $
-  case sEpsilonInvILists svid svdim sis of
-    SJust sl ->
-      withSingI sl $
-      return $ T $ epsilonInv' svid svdim sis
-    SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
+  let sign = permSign (i:is) :: v
+  in withSomeSing vid $ \svid ->
+     withSomeSing vdim $ \svdim ->
+     withSomeSing (NE.sort (i NE.:| is)) $ \sis ->
+     withKnownNat svdim $
+     case sEpsilonInvILists svid svdim sis of
+       SJust sl ->
+         withSingI sl $
+         return $ T $ (* sign) <$> epsilonInv' svid svdim sis
+       SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
 

@@ -28,7 +28,7 @@ import Data.Singletons.TypeLits
 
 import Data.Bifunctor (first)
 
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..),sort)
 
 import Control.Monad.Except
 
@@ -132,7 +132,7 @@ transposeMultT v (con:cons) [] o =
   case o of
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
-          cons' = con :| cons
+          cons' = sort $ con :| cons
           tl = (\xs ys -> TransCon xs ys) (fmap fst cons') (fmap snd cons')
       in withSingI sl $
          withSomeSing v $ \sv ->
@@ -144,7 +144,7 @@ transposeMultT v [] (cov:covs) o =
   case o of
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
-          covs' = cov :| covs
+          covs' = sort $ cov :| covs
           tl = (\xs ys -> TransCon xs ys) (fmap fst covs') (fmap snd covs')
       in withSingI sl $
          withSomeSing v $ \sv ->
@@ -161,7 +161,7 @@ relabelT v (r:rs) o =
   case o of
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
-          rl = r :| rs
+          rl = sort $ r :| rs
       in withSingI sl $
          withSomeSing v $ \sv ->
          withSomeSing rl $ \srl ->
