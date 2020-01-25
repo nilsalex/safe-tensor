@@ -25,8 +25,8 @@ type V4 = 'VSpace "Spacetime" 4
 type Up2 a b = 'Con (a :| '[b])
 type UpDown a b = 'ConCov (a :| '[]) (b :| '[])
 
-d_ap :: Tensor '[ '(V4, UpDown "p" "a") ] Rational
+d_ap :: Num v => Tensor '[ '(V4, UpDown "p" "a") ] v
 d_ap = delta
 
-e_ab :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
+e_ab :: Num v => Tensor '[ '(V4, Up2 "a" "b") ] v
 e_ab = etaInv

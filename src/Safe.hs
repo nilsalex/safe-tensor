@@ -105,7 +105,7 @@ infixl 6 &-
                (Num v, Just l'' ~ MergeILs l l', Sane l'' ~ 'True,
                 SingI l, SingI l') =>
                Tensor l v -> Tensor l' v -> Tensor l'' v
-(&*) (Scalar s) (Scalar t) = Scalar (s*t)
+(&*) (Scalar s) (Scalar t) = Scalar (s * t)
 (&*) (Scalar s) (Tensor ms) =
   let sl' = sTail' (sing :: Sing l')
   in case sSane sl' of

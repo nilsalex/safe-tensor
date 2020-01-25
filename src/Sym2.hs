@@ -303,10 +303,10 @@ someInterSym2Con vid dim m n a b = t
   where
     Right t = runExcept $
      do
-       (j :: T Rational) <- someSurjSym2Con vid dim " " n a
-       (i :: T Rational) <- someInjSym2Con vid dim " " m b
-       prod <- i .* j
-       let res = contractT $ fmap (*(-2)) prod
+       j <- someSurjSym2Con vid dim " " n a
+       i <- someInjSym2Con vid dim " " m b
+       product <- i .* j
+       let res = contractT $ fmap ((-2) *) product
        return $ fmap (\i -> if denominator i == 1
                             then fromIntegral (numerator i)
                             else error "") res
@@ -318,10 +318,10 @@ someInterSym2Cov vid dim m n a b = t
   where
     Right t = runExcept $
       do
-        (j :: T Rational) <- someSurjSym2Cov vid dim " " m a
-        (i :: T Rational) <- someInjSym2Cov vid dim " " n b
-        prod <- i .* j
-        let res = contractT $ fmap (*2) prod
+        j <- someSurjSym2Cov vid dim " " m a
+        i <- someInjSym2Cov vid dim " " n b
+        product <- i .* j
+        let res = contractT $ fmap (2*) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
                              else error "") res

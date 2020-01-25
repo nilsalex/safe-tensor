@@ -249,10 +249,10 @@ someInterAreaCon vid m n a b = t
   where
     Right t = runExcept $
       do
-        (j :: T Rational) <- someSurjAreaCon vid " 1" " 2" " 3" n a
-        (i :: T Rational) <- someInjAreaCon vid " 1" " 2" " 3" m b
-        prod <- i .* j
-        let res = contractT $ fmap (*(-4)) prod
+        j <- someSurjAreaCon vid " 1" " 2" " 3" n a
+        i <- someInjAreaCon vid " 1" " 2" " 3" m b
+        product <- i .* j
+        let res = contractT $ fmap (*(-4)) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
                              else error "") res
@@ -264,10 +264,10 @@ someInterAreaCov vid m n a b = t
   where
     Right t = runExcept $
       do
-        (j :: T Rational) <- someSurjAreaCov vid " 1" " 2" " 3" m a
-        (i :: T Rational) <- someInjAreaCov vid " 1" " 2" " 3" n b
-        prod <- i .* j
-        let res = contractT $ fmap (*4) prod
+        j <- someSurjAreaCov vid " 1" " 2" " 3" m a
+        i <- someInjAreaCov vid " 1" " 2" " 3" n b
+        product <- i .* j
+        let res = contractT $ fmap (*4) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
                              else error "") res
