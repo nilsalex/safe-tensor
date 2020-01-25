@@ -170,92 +170,104 @@ surjAreaCov' sid sa sb sc sd si =
                      return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s/f :: v))
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
 
-someInjAreaCon :: (Num v, MonadError String m) =>
+_injAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
+_injAreaCon id i =
+  withSomeSing id    $ \sid ->
+  withSomeSing i     $ \si  ->
+  withSomeSing " 01" $ \s01 ->
+  withSomeSing " 02" $ \s02 ->
+  withSomeSing " 03" $ \s03 ->
+  withSomeSing " 04" $ \s04 ->
+    case sInjAreaConILists sid s01 s02 s03 s04 si of
+      SJust sl -> withSingI sl $ T $ injAreaCon' sid s01 s02 s03 s04 si
+
+_injAreaCov :: Num v => Demote Symbol -> Demote Symbol -> T v
+_injAreaCov id i =
+  withSomeSing id    $ \sid ->
+  withSomeSing i     $ \si  ->
+  withSomeSing " 01" $ \s01 ->
+  withSomeSing " 02" $ \s02 ->
+  withSomeSing " 03" $ \s03 ->
+  withSomeSing " 04" $ \s04 ->
+    case sInjAreaCovILists sid s01 s02 s03 s04 si of
+      SJust sl -> withSingI sl $ T $ injAreaCov' sid s01 s02 s03 s04 si
+
+_surjAreaCon :: Fractional v => Demote Symbol -> Demote Symbol -> T v
+_surjAreaCon id i =
+  withSomeSing id    $ \sid ->
+  withSomeSing i     $ \si  ->
+  withSomeSing " 01" $ \s01 ->
+  withSomeSing " 02" $ \s02 ->
+  withSomeSing " 03" $ \s03 ->
+  withSomeSing " 04" $ \s04 ->
+    case sSurjAreaConILists sid s01 s02 s03 s04 si of
+      SJust sl -> withSingI sl $ T $ surjAreaCon' sid s01 s02 s03 s04 si
+
+_surjAreaCov :: Fractional v => Demote Symbol -> Demote Symbol -> T v
+_surjAreaCov id i =
+  withSomeSing id    $ \sid ->
+  withSomeSing i     $ \si  ->
+  withSomeSing " 01" $ \s01 ->
+  withSomeSing " 02" $ \s02 ->
+  withSomeSing " 03" $ \s03 ->
+  withSomeSing " 04" $ \s04 ->
+    case sSurjAreaCovILists sid s01 s02 s03 s04 si of
+      SJust sl -> withSingI sl $ T $ surjAreaCov' sid s01 s02 s03 s04 si
+
+someInjAreaCon :: forall v m.(Num v, MonadError String m) =>
                   Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someInjAreaCon vid a b c d i =
-  withSomeSing vid $ \svid ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing c   $ \sc ->
-  withSomeSing d   $ \sd ->
-  withSomeSing i   $ \si ->
-  case sInjAreaConILists svid sa sb sc sd si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ injAreaCon' svid sa sb sc sd si
+someInjAreaCon vid a b c d i = relabelT (VSpace vid 4) [(" 01",a), (" 02",b), (" 03",c), (" 04",d)] t
+  where
+    t = _injAreaCon vid i :: T v
 
-someSurjAreaCon :: (Fractional v, MonadError String m) =>
+someInjAreaCov :: forall v m.(Num v, MonadError String m) =>
                   Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someSurjAreaCon vid a b c d i =
-  withSomeSing vid $ \svid ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing c   $ \sc ->
-  withSomeSing d   $ \sd ->
-  withSomeSing i   $ \si ->
-  case sSurjAreaConILists svid sa sb sc sd si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ surjAreaCon' svid sa sb sc sd si
+someInjAreaCov vid a b c d i = relabelT (VSpace vid 4) [(" 01",a), (" 02",b), (" 03",c), (" 04",d)] t
+  where
+    t = _injAreaCov vid i :: T v
 
-someInjAreaCov :: (Num v, MonadError String m) =>
+someSurjAreaCon :: forall v m.(Fractional v, MonadError String m) =>
                   Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someInjAreaCov vid a b c d i =
-  withSomeSing vid $ \svid ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing c   $ \sc ->
-  withSomeSing d   $ \sd ->
-  withSomeSing i   $ \si ->
-  case sInjAreaCovILists svid sa sb sc sd si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ injAreaCov' svid sa sb sc sd si
+someSurjAreaCon vid a b c d i = relabelT (VSpace vid 4) [(" 01",a), (" 02",b), (" 03",c), (" 04",d)] t
+  where
+    t = _surjAreaCon vid i :: T v
 
-someSurjAreaCov :: (Fractional v, MonadError String m) =>
+someSurjAreaCov :: forall v m.(Fractional v, MonadError String m) =>
                   Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someSurjAreaCov vid a b c d i =
-  withSomeSing vid $ \svid ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing c   $ \sc ->
-  withSomeSing d   $ \sd ->
-  withSomeSing i   $ \si ->
-  case sSurjAreaCovILists svid sa sb sc sd si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ surjAreaCov' svid sa sb sc sd si
+someSurjAreaCov vid a b c d i = relabelT (VSpace vid 4) [(" 01",a), (" 02",b), (" 03",c), (" 04",d)] t
+  where
+    t = _surjAreaCov vid i :: T v
 
-someInterAreaCon :: (Num v, MonadError String m) =>
+someInterAreaCon :: Num v =>
                     Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
-                    m (T v)
-someInterAreaCon vid m n a b =
-  do
-    (j :: T Rational) <- someSurjAreaCon vid " 1" " 2" " 3" n a
-    (i :: T Rational) <- someInjAreaCon vid " 1" " 2" " 3" m b
-    prod <- i .* j
-    let res = contractT $ fmap (*(-4)) prod
-    return $ fmap (\i -> if denominator i == 1
-                         then fromIntegral (numerator i)
-                         else error "") res
+                    T v
+someInterAreaCon vid m n a b = t
+  where
+    Right t = runExcept $
+      do
+        (j :: T Rational) <- someSurjAreaCon vid " 1" " 2" " 3" n a
+        (i :: T Rational) <- someInjAreaCon vid " 1" " 2" " 3" m b
+        prod <- i .* j
+        let res = contractT $ fmap (*(-4)) prod
+        return $ fmap (\i -> if denominator i == 1
+                             then fromIntegral (numerator i)
+                             else error "") res
 
-someInterAreaCov :: (Num v, MonadError String m) =>
+someInterAreaCov :: Num v =>
                     Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
-                    m (T v)
-someInterAreaCov vid m n a b =
-  do
-    (j :: T Rational) <- someSurjAreaCov vid " 1" " 2" " 3" m a
-    (i :: T Rational) <- someInjAreaCov vid " 1" " 2" " 3" n b
-    prod <- i .* j
-    let res = contractT $ fmap (*4) prod
-    return $ fmap (\i -> if denominator i == 1
-                         then fromIntegral (numerator i)
-                         else error "") res
+                    T v
+someInterAreaCov vid m n a b = t
+  where
+    Right t = runExcept $
+      do
+        (j :: T Rational) <- someSurjAreaCov vid " 1" " 2" " 3" m a
+        (i :: T Rational) <- someInjAreaCov vid " 1" " 2" " 3" n b
+        prod <- i .* j
+        let res = contractT $ fmap (*4) prod
+        return $ fmap (\i -> if denominator i == 1
+                             then fromIntegral (numerator i)
+                             else error "") res

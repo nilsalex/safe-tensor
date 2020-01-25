@@ -22,7 +22,6 @@ source-repository head
 library
   exposed-modules:
       TH
-      Internal
       Tensor
       Safe
       Example

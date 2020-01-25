@@ -191,69 +191,82 @@ surjSym2Cov' svid svdim sa sb si =
 someEta :: (Num v, MonadError String m) =>
            Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
            m (T v)
-someEta vid vdim a b =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing a $ \sa ->
-  withSomeSing b $ \sb ->
-  withKnownNat svdim $
-  withKnownSymbol svid $
-  withKnownSymbol sa $
-  withKnownSymbol sb $
-  case sCompare sa sb of
-    SLT -> return $ T $ eta' svid svdim sa sb
-    _   -> throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+someEta vid vdim a b
+    | a > b = someEta vid vdim b a
+    | a == b = throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing vdim $ \svdim ->
+        withSomeSing a $ \sa ->
+        withSomeSing b $ \sb ->
+        withKnownNat svdim $
+        withKnownSymbol svid $
+        withKnownSymbol sa $
+        withKnownSymbol sb $
+        case sCompare sa sb of
+          SLT -> return $ T $ eta' svid svdim sa sb
 
 someEtaInv :: (Num v, MonadError String m) =>
            Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
            m (T v)
-someEtaInv vid vdim a b =
-  withSomeSing vid $ \svid ->
-  withSomeSing vdim $ \svdim ->
-  withSomeSing a $ \sa ->
-  withSomeSing b $ \sb ->
-  withKnownNat svdim $
-  withKnownSymbol svid $
-  withKnownSymbol sa $
-  withKnownSymbol sb $
-  case sCompare sa sb of
-    SLT -> return $ T $ etaInv' svid svdim sa sb
-    _   -> throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+someEtaInv vid vdim a b
+    | a > b = someEta vid vdim b a
+    | a == b = throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing vdim $ \svdim ->
+        withSomeSing a $ \sa ->
+        withSomeSing b $ \sb ->
+        withKnownNat svdim $
+        withKnownSymbol svid $
+        withKnownSymbol sa $
+        withKnownSymbol sb $
+        case sCompare sa sb of
+          SLT -> return $ T $ etaInv' svid svdim sa sb
 
 someInjSym2Con :: (Num v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someInjSym2Con vid dim a b i =
-  withSomeSing vid $ \svid ->
-  withSomeSing dim $ \sdim ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing i   $ \si ->
-  case sInjSym2ConILists svid sdim sa sb si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ injSym2Con' svid sdim sa sb si
+someInjSym2Con vid dim a b i
+    | a > b = someInjSym2Con vid dim b a i
+    | a == b = throwError $ "Invalid spacetime index for sym2 intertwiner: " ++ show a ++ " " ++ show b ++ "!"
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing dim $ \sdim ->
+        withSomeSing a   $ \sa ->
+        withSomeSing b   $ \sb ->
+        withSomeSing i   $ \si ->
+        case sInjSym2ConILists svid sdim sa sb si of
+          SJust sl ->
+            withSingI sl $
+            case sSane sl %~ STrue of
+              Proved Refl -> return $ T $ injSym2Con' svid sdim sa sb si
 
 someInjSym2Cov :: (Num v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someInjSym2Cov vid dim a b i =
-  withSomeSing vid $ \svid ->
-  withSomeSing dim $ \sdim ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing i   $ \si ->
-  case sInjSym2CovILists svid sdim sa sb si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ injSym2Cov' svid sdim sa sb si
+someInjSym2Cov vid dim a b i
+    | a > b = someInjSym2Cov vid dim b a i
+    | a == b = throwError $ "Invalid spacetime index for sym2 intertwiner: " ++ show a ++ " " ++ show b ++ "!"
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing dim $ \sdim ->
+        withSomeSing a   $ \sa ->
+        withSomeSing b   $ \sb ->
+        withSomeSing i   $ \si ->
+        case sInjSym2CovILists svid sdim sa sb si of
+          SJust sl ->
+            withSingI sl $
+            case sSane sl %~ STrue of
+              Proved Refl -> return $ T $ injSym2Cov' svid sdim sa sb si
 
 someSurjSym2Con :: (Fractional v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someSurjSym2Con vid dim a b i =
+someSurjSym2Con vid dim a b i
+    | a > b = someSurjSym2Con vid dim b a i
+    | a == b = throwError $ "Invalid spacetime index for sym2 intertwiner: " ++ show a ++ " " ++ show b ++ "!"
+    | otherwise =
   withSomeSing vid $ \svid ->
   withSomeSing dim $ \sdim ->
   withSomeSing a   $ \sa ->
@@ -268,40 +281,47 @@ someSurjSym2Con vid dim a b i =
 someSurjSym2Cov :: (Fractional v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
                   m (T v)
-someSurjSym2Cov vid dim a b i =
-  withSomeSing vid $ \svid ->
-  withSomeSing dim $ \sdim ->
-  withSomeSing a   $ \sa ->
-  withSomeSing b   $ \sb ->
-  withSomeSing i   $ \si ->
-  case sSurjSym2CovILists svid sdim sa sb si of
-    SJust sl ->
-      withSingI sl $
-      case sSane sl %~ STrue of
-        Proved Refl -> return $ T $ surjSym2Cov' svid sdim sa sb si
+someSurjSym2Cov vid dim a b i
+    | a > b = someSurjSym2Cov vid dim b a i
+    | a == b = throwError $ "Invalid spacetime index for sym2 intertwiner: " ++ show a ++ " " ++ show b ++ "!"
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing dim $ \sdim ->
+        withSomeSing a   $ \sa ->
+        withSomeSing b   $ \sb ->
+        withSomeSing i   $ \si ->
+        case sSurjSym2CovILists svid sdim sa sb si of
+          SJust sl ->
+            withSingI sl $
+            case sSane sl %~ STrue of
+              Proved Refl -> return $ T $ surjSym2Cov' svid sdim sa sb si
 
-someInterSym2Con :: (Num v, MonadError String m) =>
+someInterSym2Con :: Num v =>
                     Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
-                    m (T v)
-someInterSym2Con vid dim m n a b =
-  do
-    (j :: T Rational) <- someSurjSym2Con vid dim " " n a
-    (i :: T Rational) <- someInjSym2Con vid dim " " m b
-    prod <- i .* j
-    let res = contractT $ fmap (*(-2)) prod
-    return $ fmap (\i -> if denominator i == 1
-                         then fromIntegral (numerator i)
-                         else error "") res
+                    T v
+someInterSym2Con vid dim m n a b = t
+  where
+    Right t = runExcept $
+     do
+       (j :: T Rational) <- someSurjSym2Con vid dim " " n a
+       (i :: T Rational) <- someInjSym2Con vid dim " " m b
+       prod <- i .* j
+       let res = contractT $ fmap (*(-2)) prod
+       return $ fmap (\i -> if denominator i == 1
+                            then fromIntegral (numerator i)
+                            else error "") res
 
-someInterSym2Cov :: (Num v, MonadError String m) =>
+someInterSym2Cov :: Num v =>
                     Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
-                    m (T v)
-someInterSym2Cov vid dim m n a b =
-  do
-    (j :: T Rational) <- someSurjSym2Cov vid dim " " m a
-    (i :: T Rational) <- someInjSym2Cov vid dim " " n b
-    prod <- i .* j
-    let res = contractT $ fmap (*2) prod
-    return $ fmap (\i -> if denominator i == 1
-                         then fromIntegral (numerator i)
-                         else error "") res
+                    T v
+someInterSym2Cov vid dim m n a b = t
+  where
+    Right t = runExcept $
+      do
+        (j :: T Rational) <- someSurjSym2Cov vid dim " " m a
+        (i :: T Rational) <- someInjSym2Cov vid dim " " n b
+        prod <- i .* j
+        let res = contractT $ fmap (*2) prod
+        return $ fmap (\i -> if denominator i == 1
+                             then fromIntegral (numerator i)
+                             else error "") res
