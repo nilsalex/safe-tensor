@@ -31,6 +31,7 @@ library
       Epsilon
       Sym2
       Area
+      LorentzGenerator
   hs-source-dirs:
       src
   build-depends:
