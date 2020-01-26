@@ -31,11 +31,12 @@ library
       Epsilon
       Sym2
       Area
-      LorentzGenerator
+      Ansaetze
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , sparse-tensor == 0.2.1.2
     , singletons >= 2.6
     , containers
     , text

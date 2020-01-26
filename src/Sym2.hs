@@ -210,7 +210,7 @@ someEtaInv :: (Num v, MonadError String m) =>
            Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
            m (T v)
 someEtaInv vid vdim a b
-    | a > b = someEta vid vdim b a
+    | a > b = someEtaInv vid vdim b a
     | a == b = throwError $ "cannot construct eta with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
     | otherwise =
         withSomeSing vid $ \svid ->

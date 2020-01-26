@@ -5,6 +5,9 @@ module Scalar where
 
 import qualified Data.IntMap.Strict as IM
 import Control.Applicative (liftA2)
+import Data.Ratio (numerator,denominator)
+
+import qualified Math.Tensor as T (AnsVar(..), AnsVarR, SField(..))
 
 newtype SField a = SField { sVal :: a } deriving (Show, Read, Eq, Ord)
 type SFieldR = SField Rational
@@ -45,6 +48,13 @@ data Poly a = Const !a |
               Affine !a !(Lin a) |
               NotSupported
   deriving (Show, Ord, Eq)
+
+polyFromAnsVarR :: Num a => T.AnsVarR -> Poly a
+polyFromAnsVarR (T.AnsVar im)
+  | IM.null im = Const 0
+  | otherwise   = Affine 0 (Lin $ fmap (\(T.SField x) -> if   denominator x == 1
+                                                         then fromIntegral (numerator x)
+                                                         else error "Cannot convert from rational.") im)
 
 instance Functor Poly where
   fmap f (Const a)      = Const (f a)

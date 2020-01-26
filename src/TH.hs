@@ -120,6 +120,37 @@ $(singletons [d|
                    True  -> acc
                    False -> go (acc + n) (pred n)
 
+  ans4ILists :: Symbol -> Symbol -> ILists
+  ans4ILists vid a = [(VSpace (vid <> "Area") 21, Cov (a :| []))]
+
+  ans6ILists :: Symbol -> Symbol -> Symbol -> ILists
+  ans6ILists vid a i = [(VSpace (vid <> "Area") 21, Cov (a :| [])), (VSpace (vid <> "Sym2") 10, Con (i :| []))]
+
+  ans8ILists :: Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans8ILists vid a b =
+    case a `compare` b of
+      LT -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b]))]
+      EQ -> Nothing
+      GT -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (b :| [a]))]
+
+  ans10_1ILists :: Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans10_1ILists vid a b i =
+    case a `compare` b of
+      LT -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b])), (VSpace (vid <> "Sym2") (10 :: Nat), Con (i :| []))]
+      EQ -> Nothing
+      GT -> Nothing
+
+  ans10_2ILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans10_2ILists vid a b p q =
+    case a `compare` b of
+      LT ->
+        case p `compare` q of
+          LT -> Just [(VSpace vid 4, Con (p :| [q])), (VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b]))]
+          EQ -> Nothing
+          GT -> Nothing
+      EQ -> Nothing
+      GT -> Nothing
+
   injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   injSym2ConILists vid vdim a b i =
       let ils = [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]
