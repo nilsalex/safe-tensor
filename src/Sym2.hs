@@ -18,6 +18,7 @@ module Sym2 where
 import TH
 import Safe
 import Tensor
+import Delta
 
 import Data.Singletons
 import Data.Singletons.Prelude
@@ -325,3 +326,6 @@ someInterSym2Cov vid dim m n a b = t
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
                              else error "") res
+
+someDeltaSym2 :: Num v => Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> T v
+someDeltaSym2 id n i j = someDelta (id <> "Sym2") ((n*(n+1)) `div` 2) i j

@@ -18,6 +18,7 @@ module Area where
 import TH
 import Safe
 import Tensor
+import Delta
 
 import Data.Singletons
 import Data.Singletons.Prelude
@@ -271,3 +272,6 @@ someInterAreaCov vid m n a b = t
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
                              else error "") res
+
+someDeltaArea :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> T v
+someDeltaArea id a b = someDelta (id <> "Area") 21 a b

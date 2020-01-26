@@ -32,6 +32,8 @@ import Data.List.NonEmpty (NonEmpty(..),sort)
 
 import Control.Monad.Except
 
+type Label = Demote Symbol
+
 data T :: Type -> Type where
   T :: SingI l => Tensor l v -> T v
 
