@@ -147,7 +147,7 @@ transposeMultT v [] (cov:covs) o =
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
           covs' = sort $ cov :| covs
-          tl = (\xs ys -> TransCon xs ys) (fmap fst covs') (fmap snd covs')
+          tl = (\xs ys -> TransCov xs ys) (fmap fst covs') (fmap snd covs')
       in withSingI sl $
          withSomeSing v $ \sv ->
          withSomeSing tl $ \stl ->

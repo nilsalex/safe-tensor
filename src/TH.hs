@@ -145,7 +145,7 @@ $(singletons [d|
     case a `compare` b of
       LT ->
         case p `compare` q of
-          LT -> Just [(VSpace vid 4, Con (p :| [q])), (VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b]))]
+          LT -> Just [(VSpace vid (4 :: Nat), Con (p :| [q])), (VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b]))]
           EQ -> Nothing
           GT -> Nothing
       EQ -> Nothing
@@ -368,7 +368,7 @@ $(singletons [d|
               [] -> Just $ ConCov (x:|xs) (y:|ys)
               (y':ys') -> case contractI $ ConCov (x:|xs) (y':|ys') of
                             Nothing -> Just $ Cov (y:|[])
-                            Just i  -> Just $ prepICov x i
+                            Just i  -> Just $ prepICov y i
   contractI (Con x) = Just $ Con x
   contractI (Cov x) = Just $ Cov x
 

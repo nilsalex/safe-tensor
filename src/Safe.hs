@@ -423,14 +423,17 @@ toTListUntil sa (Tensor ms) =
 fromTList :: forall l l' v.(Sane l ~ True, Sane l' ~ True, SingI l, SingI l') =>
                            [([Int], Tensor l v)] -> Tensor l' v
 fromTList [] = ZeroTensor
-fromTList [([],t)] = case (sing :: Sing l) %~ (sing :: Sing l') of
-                       Proved Refl -> t
-fromTList xs =
-    let sl' = sing :: Sing l'
-        st' = sTail' sl'
-    in withSingI st' $
-      case sSane st' of
-        STrue -> Tensor $ fmap (fmap fromTList) xs'''
+fromTList xs@((i0,t0):ys)
+  | null i0 = if null ys
+              then case (sing :: Sing l) %~ (sing :: Sing l') of
+                     Proved Refl -> t0
+              else error $ "illegal assocs in fromTList : " ++ (show $ (fmap fst) xs)
+  | otherwise =
+      let sl' = sing :: Sing l'
+          st' = sTail' sl'
+      in withSingI st' $
+        case sSane st' of
+          STrue -> Tensor $ fmap (fmap fromTList) xs'''
   where
     xs' = fmap (\(i:is,v) -> (i,(is,v))) xs
     xs'' = groupBy (\(i,_) (i',_) -> i == i') xs'
