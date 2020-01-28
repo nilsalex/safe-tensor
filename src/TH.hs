@@ -151,6 +151,14 @@ $(singletons [d|
       EQ -> Nothing
       GT -> Nothing
 
+  ans12ILists :: Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans12ILists vid a b c =
+    case sort (a :| [b,c]) of
+      a' :| [b',c'] ->
+        case a' == b' || b' == c' of
+          True -> Nothing
+          False -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (a' :| [b',c']))]
+
   injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   injSym2ConILists vid vdim a b i =
       let ils = [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]

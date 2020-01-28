@@ -80,3 +80,21 @@ ans10_2Test = runExcept $ do
   t' <- (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t
   (t' .+) =<< (transposeT (VSpace "STArea" 21) (ICov "B") (ICov "C") =<<
                transposeT (VSpace "ST" 4) (ICon "q") (ICon "r") t')
+
+ans12Test :: (Num v, Eq v) => Either String (T (Poly v))
+ans12Test = runExcept $ do
+  let c = someInterAreaCon "ST" "m" "n" "D" "A"
+  a <- someAns12 "ST" "B" "C" "D"
+  eta <- someEtaInv "ST" 4 "p" "n"
+  p1 <- c .* a
+  p2 <- p1 .* eta
+  let contracted = contractT p2
+  trans <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") contracted
+  sym1 <- contracted .- trans
+  trans1 <- transposeMultT (VSpace "STArea" 21) [] [("A","A"),("B","C"),("C","B")] sym1
+  trans2 <- transposeMultT (VSpace "STArea" 21) [] [("A","B"),("B","A"),("C","C")] sym1
+  trans3 <- transposeMultT (VSpace "STArea" 21) [] [("A","B"),("B","C"),("C","A")] sym1
+  trans4 <- transposeMultT (VSpace "STArea" 21) [] [("A","C"),("B","A"),("C","B")] sym1
+  trans5 <- transposeMultT (VSpace "STArea" 21) [] [("A","C"),("B","B"),("C","A")] sym1
+  (trans5 .+) =<< (trans4 .+) =<< (trans3 .+) =<< (trans2 .+) =<< (trans1 .+ sym1)
+

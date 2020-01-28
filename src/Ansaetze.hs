@@ -155,3 +155,29 @@ someAns10_2 id a b p q =
              Proved Refl ->
                let t = withSingI sl $ T $ ans10_2 sid s01 s02 s03 s04
                in relabelT (VSpace id 4) [(" 03",p),(" 04",q)] =<< (relabelT (VSpace (id <> "Area") 21) [(" 01",a),(" 02",b)] t)
+
+ans12 :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) (c :: Symbol) (l :: ILists) v.
+         (
+          Ans12ILists id a b c ~ 'Just l,
+          Sane l ~ 'True,
+          Num v
+         ) => Sing id -> Sing a -> Sing b -> Sing c -> Tensor l (Poly v)
+ans12 sid sa sb sc = case sAns12ILists sid sa sb sc of
+                       SJust sl ->
+                         case sLengthILs sl of
+                           SS (SS (SS SZ)) -> withSingI sl $ fromList xs
+  where
+    (_,_,ans12) = LG.mkAnsatzTensorFastAbs 12 LG.symList12 LG.areaList12 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 3 0 0 0 0 0 T.AnsVarR)
+    xs = fmap (\((a `T.Append` (b `T.Append` (c `T.Append` T.Empty)),_,_,_,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` VNil)),(polyFromAnsVarR v :: Poly v))) $ T.toListT6 ans12
+
+someAns12 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (T (Poly v))
+someAns12 id a b c =
+  withSomeSing id $ \sid ->
+  withSomeSing a  $ \sa  ->
+  withSomeSing b  $ \sb  ->
+  withSomeSing c  $ \sc  ->
+  case sAns12ILists sid sa sb sc of
+         SJust sl ->
+           case sSane sl %~ STrue of
+             Proved Refl -> withSingI sl $ return $ T $ ans12 sid sa sb sc
+         SNothing -> throwError $ "Illegal indices for ans12: " ++ show a ++ " " ++ show b ++ " " ++ show c ++ "!"
