@@ -65,10 +65,7 @@ vecFromList (SS sn) (x:xs) = do
               sl2 = sing :: Sing l2
           in case sMergeILs sl1 sl2 of
                SNothing  -> throwError "Tensors have overlapping indices. Cannot multiply."
-               SJust sl' ->
-                 withSingI sl' $
-                 case sSane sl' %~ STrue of
-                   Proved Refl -> return $ T (t1 &* t2)
+               SJust sl' -> withSingI sl' $ return $ T (mult sl1 sl2 t1 t2)
 infixl 7 .*
 
 (#.) :: Num v => v -> T v -> T v
@@ -109,8 +106,7 @@ contractT o =
     T (t :: Tensor l v) ->
       let sl = sing :: Sing l
           sl' = sContractL sl
-      in withSingI sl' $
-         T $ contract t
+      in withSingI sl' $ T $ contract' sl t
 
 transposeT :: MonadError String m =>
               Demote (VSpace Symbol Nat) -> Demote (Ix Symbol) -> Demote (Ix Symbol) ->

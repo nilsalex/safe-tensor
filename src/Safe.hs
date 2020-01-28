@@ -17,8 +17,11 @@
 module Safe where
 
 import TH
+import Proofs
 
 import Data.Kind (Type)
+
+import Data.Constraint hiding (contract)
 
 import Data.Singletons
 import Data.Singletons.Prelude
@@ -31,7 +34,7 @@ import Data.List (foldl',groupBy,sortBy)
 
 data Tensor :: ILists -> Type -> Type where
     ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
-    Scalar :: forall (l :: ILists) v.  l ~ '[] => v -> Tensor l v
+    Scalar :: forall v.v -> Tensor '[] v
     Tensor :: forall (l :: ILists) (l' :: ILists) v.
               (Sane l ~ 'True, Tail' l ~ l') =>
               [(Int, Tensor l' v)] -> Tensor l v
@@ -101,102 +104,135 @@ infixl 6 &+
 
 infixl 6 &-
 
-(&*) :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
-               (Num v, Just l'' ~ MergeILs l l', Sane l'' ~ 'True,
-                SingI l, SingI l') =>
-               Tensor l v -> Tensor l' v -> Tensor l'' v
-(&*) (Scalar s) (Scalar t) = Scalar (s * t)
-(&*) (Scalar s) (Tensor ms) =
-  let sl' = sTail' (sing :: Sing l')
-  in case sSane sl' of
-      STrue -> Tensor $ fmap (fmap (\t -> withSingI sl' $ Scalar s &* t)) ms
-(&*) (Tensor ms) (Scalar s) =
-  let sl = sTail' (sing :: Sing l)
-  in case sSane sl of
-      STrue -> Tensor $ fmap (fmap (\t -> withSingI sl $ t &* Scalar s)) ms
-(&*) (Tensor ms) (Tensor ms') =
-  let sl = sing :: Sing l
-      sl' = sing :: Sing l'
-      sh = sHead' sl
+mult :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
+               (Num v, Just l'' ~ MergeILs l l') =>
+               Sing l -> Sing l' -> Tensor l v -> Tensor l' v -> Tensor l'' v
+mult _ _ (Scalar s) (Scalar t) = Scalar (s * t)
+mult sl sl' (Scalar s) (Tensor ms) =
+  case saneTail'Proof sl' of
+    Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl (sTail' sl') (Scalar s) t)) ms
+mult sl sl' (Tensor ms) (Scalar s) =
+  case saneTail'Proof sl of
+    Sub Dict -> Tensor $ fmap (fmap (\t -> mult (sTail' sl) sl' t (Scalar s))) ms
+mult sl sl' (Tensor ms) (Tensor ms') =
+  let sh = sHead' sl
       sh' = sHead' sl'
       st = sTail' sl
       st' = sTail' sl'
-      SJust sl'' = sMergeILs sl sl'
-  in case sSane sl'' of
-       STrue -> case sSane (sTail' sl'') of
-         STrue -> case sh of
+  in case saneMergeILsProof sl sl' of
+       Sub Dict ->
+         case sh of
            STuple2 sv si ->
              case sh' of
                STuple2 sv' si' ->
                  case sCompare sv sv' of
-                   SLT -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
-                            Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                   SGT -> case sMergeILs sl st' %~ SJust (sTail' sl'') of
-                            Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st' $ (Tensor ms :: Tensor l v) &* t)) ms'
+                   SLT -> case proofMergeLT sl sl' of
+                            Sub Dict ->
+                              case saneTail'Proof sl of
+                                Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sl' t (Tensor ms'))) ms
+                   SGT -> case proofMergeGT sl sl' of
+                            Sub Dict ->
+                              case saneTail'Proof sl' of
+                                Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl st' (Tensor ms) t)) ms'
                    SEQ -> case sIxCompare si si' of
-                            SLT -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
-                                     Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                            SEQ -> case sMergeILs st sl' %~ SJust (sTail' sl'') of
-                                     Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st $ t &* (Tensor ms' :: Tensor l' v))) ms
-                            SGT -> case sMergeILs sl st' %~ SJust (sTail' sl'') of
-                                     Proved Refl -> Tensor $ fmap (fmap (\t -> withSingI st' $ (Tensor ms :: Tensor l v) &* t)) ms'
-(&*) ZeroTensor _ = ZeroTensor
-(&*) _ ZeroTensor = ZeroTensor
+                            SLT -> case proofMergeIxLT sl sl' of
+                                     Sub Dict ->
+                                       case saneTail'Proof sl of
+                                         Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sl' t (Tensor ms'))) ms
+                            SGT -> case proofMergeIxGT sl sl' of
+                                     Sub Dict ->
+                                       case saneTail'Proof sl' of
+                                         Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl st' (Tensor ms) t)) ms'
+mult sl sl' ZeroTensor ZeroTensor =
+  case saneMergeILsProof sl sl' of
+    Sub Dict -> ZeroTensor
+mult sl sl' ZeroTensor (Scalar _) =
+  case saneMergeILsProof sl sl' of
+    Sub Dict -> ZeroTensor
+mult sl sl' ZeroTensor (Tensor _) =
+  case saneMergeILsProof sl sl' of
+    Sub Dict -> ZeroTensor
+mult sl sl' (Scalar _) ZeroTensor =
+  case saneMergeILsProof sl sl' of
+    Sub Dict -> ZeroTensor
+mult sl sl' (Tensor _) ZeroTensor =
+  case saneMergeILsProof sl sl' of
+    Sub Dict -> ZeroTensor
+
+(&*) :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
+               (Num v, Just l'' ~ MergeILs l l', SingI l, SingI l') =>
+               Tensor l v -> Tensor l' v -> Tensor l'' v
+(&*) = mult (sing :: Sing l) (sing :: Sing l')
 
 infixl 7 &*
+
+contract' :: forall (l :: ILists) (l' :: ILists) v.
+             (l' ~ ContractL l, Num v, Eq v)
+             => Sing l -> Tensor l v -> Tensor l' v
+contract' sl t = case sContractL sl %~ sl of
+                   Proved Refl -> t
+                   Disproved _ -> contract'' sl t
+
+contract'' :: forall (l :: ILists) (l' :: ILists) v.
+              (l' ~ ContractL l, Num v, Eq v)
+              => Sing l -> Tensor l v -> Tensor l' v
+contract'' sl ZeroTensor =
+  case saneContractProof sl of
+    Sub Dict -> ZeroTensor
+contract'' sl (Scalar v) = Scalar v
+contract'' sl t@(Tensor ms) =
+    case sTail' sl of
+       SNil ->
+         case singletonContractProof sl of
+           Sub Dict -> Tensor ms
+       st   ->
+         case saneContractProof sl of
+           Sub Dict ->
+             let st' = sTail' st
+                 sh  = sHead' sl
+                 sv  = sFst sh
+                 si  = sSnd sh
+                 sh' = sHead' st
+                 sv' = sFst sh'
+                 si' = sSnd sh'
+             in case sv %== sv' of
+                  SFalse ->
+                    case contractTailDiffVProof sl of
+                      Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                  STrue -> case si of
+                    SICon sa -> case si' of
+                      SICov sb -> case sa %== sb of
+                        STrue -> 
+                          let ms' = fmap (\(i, v) -> case v of
+                                                       Tensor vs ->
+                                                         case filter (\(i', _) -> i == i') vs of
+                                                              [] -> Nothing
+                                                              [(_, v')] -> Just v'
+                                                              _ -> error "duplicate key in tensor assoc list") ms
+                              ms'' = filter (\case
+                                                 Nothing -> False
+                                                 Just x' -> True) ms'
+                              ms''' = fmap (\(Just x) -> x) ms'' :: [Tensor (Tail' (Tail' l)) v]
+                          in  case saneTail'Proof sl of
+                                Sub Dict ->
+                                  case saneTail'Proof st of
+                                    Sub Dict ->
+                                      case contractTailSameVSameIProof sl of
+                                        Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms'''
+                        SFalse ->
+                          case contractTailSameVDiffIProof sl of
+                            Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                      SICon _ ->
+                        case contractTailSameVNoCovProof sl of
+                          Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                    SICov _ ->
+                      case contractTailSameVNoConProof sl of
+                        Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
 
 contract :: forall (l :: ILists) (l' :: ILists) v.
             (l' ~ ContractL l, SingI l, Num v, Eq v)
             => Tensor l v -> Tensor l' v
-contract ZeroTensor = let sl' = sContractL (sing :: Sing l)
-                      in case sSane sl' of
-                           STrue -> ZeroTensor
-contract (Scalar v) = Scalar v
-contract (Tensor ms) =
-    let sl = sing :: Sing l
-        sl' = sContractL sl
-        st = sTail' sl
-    in case st of
-         SNil -> case sl %~ sContractL sl of
-                   Proved Refl -> Tensor ms
-         _    -> case sSane sl' of
-                   STrue -> 
-                     let st' = sTail' st
-                         sh  = sHead' sl
-                         sv  = sFst sh
-                         si  = sSnd sh
-                         sh' = sHead' st
-                         sv' = sFst sh'
-                         si' = sSnd sh'
-                         t'  = withSingI st $
-                               case sTail' sl' %~ sContractL st of
-                                 Proved Refl -> removeZeros $ Tensor $ fmap (fmap contract) ms
-                     in case sv %~ sv' of
-                          Disproved _ -> t'
-                          Proved Refl -> case si of
-                            SICon sa -> case si' of
-                              SICov sb -> case sa %~ sb of
-
-                                Proved Refl -> 
-                                          let ms' = fmap (\(i, v) -> case v of
-                                                                       Tensor vs ->
-                                                                         case filter (\(i', _) -> i == i') vs of
-                                                                              [] -> Nothing
-                                                                              [(_, v')] -> Just v'
-                                                                              _ -> error "duplicate key in tensor assoc list") ms
-                                              ms'' = filter (\case
-                                                                 Nothing -> False
-                                                                 Just x' -> True) ms'
-                                              ms''' = fmap (\(Just x) -> x) ms'' :: [Tensor (Tail' (Tail' l)) v]
-                                          in case st' %~ sl' of
-                                                    Proved Refl -> foldl' (&+) ZeroTensor ms'''
-                                                    Disproved _ -> case sContractL st' %~ sl' of
-                                                                     Proved Refl -> case sSane st' of
-                                                                                      STrue -> withSingI st' $ contract $ foldl' (&+) ZeroTensor ms'''
-
-                                Disproved _ -> t'
-                              _        -> t'
-                            _        -> t'
+contract = contract' (sing :: Sing l)
 
 transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
               (CanTranspose vs a b l ~ 'True, SingI l) =>
@@ -381,12 +417,11 @@ fromList =
   let sl = sing :: Sing l
   in fromList' sl
 
-toTListWhile :: forall l v vs.
-                (SingI l, SingI vs, vs ~ Fst (Head l), Sane l ~ True) =>
+toTListWhile :: forall l v.
+                (SingI l, Sane l ~ True) =>
                 Tensor l v -> [([Int], Tensor (Tail l) v)]
 toTListWhile (Tensor ms) =
-  let svs = sing :: Sing vs
-      sl = sing :: Sing l
+  let sl = sing :: Sing l
       st = sTail' sl
   in case st %~ sTail sl of
        Proved Refl -> fmap (first pure) ms
