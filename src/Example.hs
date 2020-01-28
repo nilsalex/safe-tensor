@@ -98,3 +98,29 @@ ans12Test = runExcept $ do
   trans5 <- transposeMultT (VSpace "STArea" 21) [] [("A","C"),("B","B"),("C","A")] sym1
   (trans5 .+) =<< (trans4 .+) =<< (trans3 .+) =<< (trans2 .+) =<< (trans1 .+ sym1)
 
+ans14_1Test :: (Num v, Eq v) => Either String (T (Poly v))
+ans14_1Test = runExcept $ do
+  let c1 = someInterAreaCon "ST" "m" "n" "D" "B"
+  a1 <- someAns14_1 "ST" "A" "D" "C" "I"
+  let c2 = someInterAreaJet2 "ST" "m" "n" "D" "C" "J" "I"
+  a2 <- someAns14_1 "ST" "A" "B" "D" "J"
+  eta <- someEtaInv "ST" 4 "x" "n"
+  t1 <- fmap contractT $ a1 .* c1
+  t1' <- (t1 .+) =<< (transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") t1)
+  t2 <- fmap contractT $ (eta .*) =<< ((t1' .+) =<< (fmap contractT (a2 .* c2)))
+  (t2 .-) =<< (transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t2)
+
+ans14_2Test :: (Num v, Eq v) => Either String (T (Poly v))
+ans14_2Test = runExcept $ do
+  let c1 = someInterAreaCon "ST" "m" "n" "D" "A"
+  a1 <- someAns14_2 "ST" "D" "B" "C" "q" "r"
+  c2 <- someInterAreaJet1 "ST" "m" "n" "D" "B" "p" "q"
+  a2 <- someAns14_2 "ST" "A" "D" "C" "p" "r"
+  c3 <- someInterAreaJet1 "ST" "m" "n" "D" "C" "p" "r"
+  a3 <- someAns14_2 "ST" "A" "D" "B" "p" "q"
+  eta <- someEtaInv "ST" 4 "x" "n"
+  t1 <- fmap contractT $ a1 .* c1
+  t2 <- fmap contractT $ a2 .* c2
+  t3 <- fmap contractT $ a3 .* c3
+  t  <- fmap contractT $ (eta .*) =<< ((t3 .+) =<< (t1 .+ t2))
+  (t .-) =<< (transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t)

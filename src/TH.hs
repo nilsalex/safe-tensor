@@ -159,6 +159,32 @@ $(singletons [d|
           True -> Nothing
           False -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (a' :| [b',c']))]
 
+  ans14_1ILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans14_1ILists vid a b c i =
+    case a `compare` b of
+      LT ->
+        case b `compare` c of
+          LT -> Just [(VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b,c])), (VSpace (vid <> "Sym2") (10 :: Nat), Con (i :| []))]
+          EQ -> Nothing
+          GT -> Nothing
+      EQ -> Nothing
+      GT -> Nothing
+
+  ans14_2ILists :: Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Symbol -> Maybe ILists
+  ans14_2ILists vid a b c p q =
+    case a `compare` b of
+      LT ->
+        case b `compare` c of
+          LT ->
+            case p `compare` q of
+              LT -> Just [(VSpace vid 4, Con (p :| [q])), (VSpace (vid <> "Area") (21 :: Nat), Cov (a :| [b,c]))]
+              EQ -> Nothing
+              GT -> Nothing
+          EQ -> Nothing
+          GT -> Nothing
+      EQ -> Nothing
+      GT -> Nothing
+
   injSym2ConILists :: Symbol -> Nat -> Symbol -> Symbol -> Symbol -> Maybe ILists
   injSym2ConILists vid vdim a b i =
       let ils = [(VSpace vid vdim, Con (a :| [b])), (VSpace (vid <> "Sym2") (sym2Dim vdim), Cov (i :| []))]
