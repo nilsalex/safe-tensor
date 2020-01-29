@@ -275,3 +275,21 @@ someInterAreaCov vid m n a b = t
 
 someDeltaArea :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> T v
 someDeltaArea id a b = someDelta (id <> "Area") 21 a b
+
+flatAreaCon :: forall (id :: Symbol) (a :: Symbol) (l :: ILists) v.
+               (
+                AreaConSingletonILists id a ~ l,
+                SingI l,
+                Num v
+               ) => Sing id -> Sing a -> Tensor l v
+flatAreaCon sid sa =
+  fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, 1), (6 `VCons` VNil, -1),
+            (9 `VCons` VNil, -1), (11 `VCons` VNil, -1), (12 `VCons` VNil, 1),
+            (15 `VCons` VNil, 1), (18 `VCons` VNil, 1), (20 `VCons` VNil, 1)]
+
+someFlatAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
+someFlatAreaCon id a =
+  withSomeSing id $ \sid ->
+  withSomeSing a  $ \sa  ->
+  withSingI (sAreaConSingletonILists sid sa) $
+  T $ flatAreaCon sid sa

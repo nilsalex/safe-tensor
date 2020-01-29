@@ -91,6 +91,12 @@ $(singletons [d|
 
   type ILists = [(VSpace Symbol Nat, IList Symbol)]
 
+  areaConSingletonILists :: Symbol -> Symbol -> ILists
+  areaConSingletonILists vid a = [(VSpace (vid <> "Area") 21, Con (a :| []))]
+
+  areaCovSingletonILists :: Symbol -> Symbol -> ILists
+  areaCovSingletonILists vid a = [(VSpace (vid <> "Area") 21, Cov (a :| []))]
+
   deltaILists :: Symbol -> Nat -> Symbol -> Symbol -> ILists
   deltaILists vid vdim a b = [(VSpace vid vdim, ConCov (a :| []) (b :| []))]
 

@@ -12,6 +12,7 @@ import Delta
 
 import Control.Monad.Except
 import Data.Ratio
+import Data.List.NonEmpty (NonEmpty(..))
 
 --
 --  L_A^p * C^A_B_p^{qm}_n * v^B_q
@@ -113,3 +114,14 @@ someInterAreaJet2_3 id m n a b i p q = do
                          else error "") res
   where
     c :: T Rational = someInterAreaCon id m n a b
+
+diffeoEq1 :: (Num v, Eq v, MonadError String m) =>
+             T v -> m (T v)
+diffeoEq1 ansatz4 = do
+    res <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| []))] -> return res
+      _ -> throwError $ "diffeoEq1: wrong input\n" ++ show (rankT ansatz4)
+  where
+    n = someFlatAreaCon "ST" "B"
+    c = someInterAreaCon "ST" "m" "n" "A" "B"

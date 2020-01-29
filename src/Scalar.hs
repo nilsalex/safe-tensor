@@ -87,3 +87,8 @@ instance (Num a, Eq a) => Num (Poly a) where
   Const a * Affine b lin = Affine (a*b) $ fmap (a*) lin
   Affine a lin * Const b = Affine (a*b) $ fmap (*b) lin
   _       * _            = NotSupported
+
+getVars :: Poly a -> [Int]
+getVars (Const _) = []
+getVars NotSupported = []
+getVars (Affine _ (Lin lm)) = IM.keys lm
