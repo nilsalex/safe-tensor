@@ -42,6 +42,18 @@ deriving instance Show v => Show (T v)
 instance Functor T where
   fmap f (T t) = T $ fmap f t
 
+scalar :: Num v => v -> T v
+scalar v = T $ Scalar v
+
+zero :: (Num v, MonadError String m) => Demote ILists -> m (T v)
+zero il =
+  withSomeSing il $ \sil ->
+  case sSane sil %~ STrue of
+    Proved Refl ->
+      case sil of
+        (sing :: Sing l) -> withSingI sil $ return $ T (ZeroTensor :: Tensor l v)
+    Disproved _ -> throwError $ "Illegal index list for zero : " ++ show il
+
 vecToList :: Vec n a -> [a]
 vecToList VNil = []
 vecToList (x `VCons` xs) = x : vecToList xs

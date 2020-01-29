@@ -6,13 +6,16 @@ module DiffeoSymmetry where
 
 import TH
 import Tensor
+import Scalar
 import Area
 import Sym2
 import Delta
 
 import Control.Monad.Except
 import Data.Ratio
+import Data.List (sort,nub)
 import Data.List.NonEmpty (NonEmpty(..))
+
 
 --
 --  L_A^p * C^A_B_p^{qm}_n * v^B_q
@@ -121,7 +124,111 @@ diffeoEq1 ansatz4 = do
     res <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| []))] -> return res
-      _ -> throwError $ "diffeoEq1: wrong input\n" ++ show (rankT ansatz4)
+      _ -> throwError $ "diffeoEq1: inconsistent ansatz rank\n" ++ show (rankT ansatz4)
   where
     n = someFlatAreaCon "ST" "B"
     c = someInterAreaCon "ST" "m" "n" "A" "B"
+
+diffeoEq3 :: (Num v, Eq v, MonadError String m) =>
+             T v -> m (T v)
+diffeoEq3 ansatz6 = do
+    c   <- someInterAreaJet2_3 "ST" "m" "n" "A" "B" "I" "p" "q"
+    res <- fmap contractT $ (ansatz6 .*) =<< (c .* n)
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| []))] -> return res
+      _ -> throwError $ "diffeoEq3: inconsistent ansatz rank\n" ++ show (rankT ansatz6)
+  where
+    n = someFlatAreaCon "ST" "B"
+
+diffeoEq1A :: (Num v, Eq v, MonadError String m) =>
+              T v -> T v -> m (T v)
+diffeoEq1A ansatz4 ansatz8 = do
+    e1 <- fmap contractT $ (.* c1) =<< (relabelT (VSpace "STArea" 21) [("A","B")] ansatz4)
+    e2 <- (two .*) =<< fmap contractT ((ansatz8 .*) =<< (c2 .* n))
+    res <- e1 .+ e2
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
+       (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
+      _ -> throwError $ "diffeoEq1A: inconsistent ansatz ranks\n" ++
+                        show (rankT ansatz4) ++ "\n" ++
+                        show (rankT ansatz8)
+  where
+    n = someFlatAreaCon "ST" "C"
+    c1 = someInterAreaCon "ST" "m" "n" "B" "A"
+    c2 = someInterAreaCon "ST" "m" "n" "B" "C"
+    two = scalar 2
+
+diffeoEq1AI :: (Num v, Eq v, MonadError String m) =>
+               T v -> T v -> m (T v)
+diffeoEq1AI ansatz6 ansatz10_1 = do
+    ansatz10_1' <- relabelT (VSpace "STArea" 21) [("A","B"),("B","A")] ansatz10_1
+    ansatz6' <- relabelT (VSpace "STArea" 21) [("A","B")] =<<
+                relabelT (VSpace "STSym2" 10) [("I","J")] ansatz6
+    e1 <- fmap contractT $ (ansatz10_1' .*) =<< (c1 .* n)
+    e2 <- fmap contractT $ ansatz6' .* c2
+    res <- e1 .+ e2
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
+       (VSpace "STArea" 21, Cov ("A" :| [])),
+       (VSpace "STSym2" 10, Con ("I" :| []))] -> return res
+      _ -> throwError $ "diffeoEq1AI: inconsistent ansatz ranks\n" ++
+                        show (rankT ansatz6) ++ "\n" ++
+                        show (rankT ansatz10_1)
+  where
+    n = someFlatAreaCon "ST" "C"
+    c1 = someInterAreaCon "ST" "m" "n" "B" "C"
+    c2 = someInterAreaJet2 "ST" "m" "n" "B" "A" "J" "I"
+
+diffeoEq2Ap :: (Num v, Eq v, MonadError String m) =>
+               T v -> T v -> m (T v)
+diffeoEq2Ap ansatz6 ansatz10_2 = do
+    c1 <- someInterAreaJet1_2 "ST" "m" "n" "B" "C" "r" "q"
+    c2 <- someInterAreaJet2_2 "ST" "m" "n" "B" "A" "I" "p" "q"
+    ansatz6' <- relabelT (VSpace "STArea" 21) [("A","B")] ansatz6
+    ansatz10_2' <- relabelT (VSpace "ST" 4) [("q","r")] ansatz10_2
+    e1 <- (two .*) =<< fmap contractT ((ansatz10_2' .*) =<< (c1 .* n))
+    e2 <- fmap contractT $ ansatz6' .* c2
+    res <- e1 .+ e2
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| [])),
+       (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
+      _ -> throwError $ "diffeoEq2Ap: inconsistent ansatz ranks\n" ++
+                        show (rankT ansatz6) ++ "\n" ++
+                        show (rankT ansatz10_2)
+  where
+    n = someFlatAreaCon "ST" "C"
+    two = scalar 2
+
+diffeoEq3A :: (Num v, Eq v, MonadError String m) =>
+              T v -> T v -> m (T v)
+diffeoEq3A ansatz6 ansatz10_1 = do
+    c1 <- someInterAreaJet2_3 "ST" "m" "n" "B" "C" "I" "p" "q"
+    c2 <- someInterAreaJet2_3 "ST" "m" "n" "B" "A" "I" "p" "q"
+    ansatz6' <- relabelT (VSpace "STArea" 21) [("A","B")] ansatz6
+    e1 <- fmap contractT $ (ansatz10_1 .*) =<< (c1 .* n)
+    e2 <- fmap contractT $ ansatz6' .* c2
+    res <- e1 .+ e2
+    case rankT res of
+      [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| [])),
+       (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
+      _ -> throwError $ "diffeoEq2Ap: inconsistent ansatz ranks\n" ++
+                        show (rankT ansatz6) ++ "\n" ++
+                        show (rankT ansatz10_1)
+  where
+    n = someFlatAreaCon "ST" "C"
+
+sndOrderDiffeoEqns :: (Num v, Eq v, MonadError String m) =>
+                      [T v] -> m ([T v])
+sndOrderDiffeoEqns [ans4,ans6,ans8,ans10_1,ans10_2] =
+  sequence $ [
+              diffeoEq1 ans4,
+              diffeoEq3 ans6,
+              diffeoEq1A ans4 ans8,
+              diffeoEq1AI ans6 ans10_1,
+              diffeoEq2Ap ans6 ans10_2,
+              diffeoEq3A ans6 ans10_1
+             ]
+sndOrderDiffeoEqns as = throwError $ "wrong number of ansatz tensors : " ++ show (length as)
+
+tensorToEquations :: T (Poly Rational) -> [Poly Rational]
+tensorToEquations = nub . sort . fmap (normalize . snd) . toListT

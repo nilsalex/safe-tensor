@@ -84,11 +84,29 @@ instance (Num a, Eq a) => Num (Poly a) where
   fromInteger   = Const . fromInteger
 
   Const a * Const b = Const $ a * b
-  Const a * Affine b lin = Affine (a*b) $ fmap (a*) lin
-  Affine a lin * Const b = Affine (a*b) $ fmap (*b) lin
+  Const a * Affine b lin
+    | a == 0    = Const 0
+    | otherwise = Affine (a*b) $ fmap (a*) lin
+  Affine a lin * Const b
+    | b == 0    = Const 0
+    | otherwise = Affine (a*b) $ fmap (*b) lin
   _       * _            = NotSupported
 
 getVars :: Poly a -> [Int]
 getVars (Const _) = []
 getVars NotSupported = []
 getVars (Affine _ (Lin lm)) = IM.keys lm
+
+shiftVars :: Int -> Poly a -> Poly a
+shiftVars _ (Const a) = Const a
+shiftVars _ NotSupported = NotSupported
+shiftVars s (Affine a (Lin lin)) =
+  Affine a $ Lin $ IM.mapKeysMonotonic (+s) lin
+
+normalize :: Poly Rational -> Poly Rational
+normalize (Const _) = Const 1
+normalize NotSupported = NotSupported
+normalize (Affine a (Lin lin)) = Affine (a/v) $ Lin $ fmap (/v) lin
+  where
+    (_,v) = IM.findMin lin
+

@@ -57,6 +57,7 @@ executable run
   build-depends:
       base
     , type-tensor
+    , parallel
   ghc-options:
     -fwarn-unused-imports
     -fwarn-unused-binds
