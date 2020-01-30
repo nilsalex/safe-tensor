@@ -5,6 +5,7 @@ import Scalar
 import LinearAlgebra
 
 import qualified Numeric.LinearAlgebra.Data as HM
+import Numeric.LinearAlgebra (rank)
 
 import Data.Maybe (mapMaybe)
 import qualified Data.IntMap.Strict as IM
@@ -39,6 +40,22 @@ tensorsToSparseMat = equationsToSparseMat . concat . fmap tensorToEquations
 tensorsToMat :: Integral a => [T (Poly Rational)] -> [[a]]
 tensorsToMat = equationsToMat . concat . fmap tensorToEquations
 
+equationRank :: T (Poly Rational) -> Int
+equationRank t = rank (mat :: HM.Matrix HM.R)
+  where
+    iMat = case equationsToMat $ tensorToEquations t of
+             [] -> [[0]]
+             xs -> xs
+    mat = HM.fromLists $ fmap (fmap fromIntegral) iMat
+
+systemRank :: [T (Poly Rational)] -> Int
+systemRank sys = rank (mat :: HM.Matrix HM.R)
+  where
+    iMat = case tensorsToMat sys of
+             [] -> [[0]]
+             xs -> xs
+    mat = HM.fromLists $ fmap (fmap fromIntegral) iMat
+
 type Solution = IM.IntMap (Poly Rational)
 
 fromRref :: HM.Matrix HM.Z -> Solution
@@ -58,12 +75,19 @@ fromRow xs = case assocs of
 
 applySolution :: Solution -> Poly Rational -> Poly Rational
 applySolution s (Affine x (Lin lin))
-    | x == 0 = Affine x (Lin lin')
+    | x == 0 = if IM.null lin'
+               then Const 0
+               else Affine x (Lin lin')
     | otherwise = error "affine equations not yet supported"
   where
     s' = IM.intersectionWith (\row v -> polyMap (v*) row) s lin
-    lin' = IM.foldlWithKey' (\lin' i sub -> let Affine 0 (Lin lin'') = Affine 0 (Lin lin') + sub
-                                            in IM.delete i lin'') lin s'
+    lin' = IM.foldlWithKey'
+             (\lin' i sub ->
+                 case Affine 0 (Lin lin') + sub of
+                   Affine 0 (Lin lin'') -> IM.delete i lin''
+                   Const 0              -> IM.empty
+                   _                    -> error "affine equations not yet supported")
+             lin s'
 
 solveTensor :: Solution -> T (Poly Rational) -> T (Poly Rational)
 solveTensor sol = removeZerosT . fmap (applySolution sol)

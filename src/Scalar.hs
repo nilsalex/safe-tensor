@@ -46,6 +46,9 @@ data Poly a = Const !a |
               NotSupported
   deriving (Show, Ord, Eq)
 
+singletonPoly :: a -> Int -> a -> Poly a
+singletonPoly a i v = Affine a $ Lin $ IM.singleton i v
+
 polyFromAnsVarR :: Num a => T.AnsVarR -> Poly a
 polyFromAnsVarR (T.AnsVar im)
   | IM.null im = Const 0

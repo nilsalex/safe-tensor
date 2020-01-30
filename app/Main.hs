@@ -8,8 +8,8 @@ import Scalar
 import DiffeoSymmetry
 import Equations
 import Ansaetze
+import EOM
 
-import Data.List (nub,sort)
 import Control.Parallel.Strategies
 import Control.Monad.Except
 
@@ -29,11 +29,41 @@ main' = do
             ]
 
 main :: IO (Either String ())
-main = runExceptT $
- do
-  as :: [T (Poly Rational)] <- sndOrderAnsaetze
-  eqns <- sndOrderDiffeoEqns as
-  let as' = solveSystem eqns as
-  eqns' <- sndOrderDiffeoEqns as'
-  let as'' = redefineIndets as'
-  lift $ print $ nub $ sort $ concat $ fmap (getVars . snd) $ concat $ fmap toListT as''
+main =
+  runExceptT $
+      do
+        as@[a4,a0,a6,a8,a10_1,a10_2] :: [T (Poly Rational)] <- sndOrderAnsaetze
+
+        lift $ putStrLn $ "vars in ansaetze        : " ++ show (systemRank as)
+
+        eqns <- sndOrderDiffeoEqns as
+
+        lift $ putStrLn $ "rank of eqns           : " ++ show (systemRank eqns)
+
+        let as'@[a4',a0',a6',a8',a10_1',a10_2'] = solveSystem eqns as
+
+        lift $ putStrLn $ "vars in solved ansaetze : " ++ show (systemRank as')
+        lift $ putStrLn ""
+
+        eqns' <- sndOrderDiffeoEqns as'
+
+        lift $ putStrLn $ "eqns on solution space  :"
+        lift $ mapM_ print $ eqns'
+
+        lift $ putStrLn ""
+
+        lift $ putStrLn $ "independent vars in massive eom : " ++
+                          show (equationRank a8')
+
+        k <- kinetic a10_1' a10_2'
+        lift $ putStrLn $ "independent vars in kinetic eom : " ++
+                          show (equationRank k)
+
+        lift $ putStrLn ""
+
+        n1 <- noether1 a4' a8'
+        n2 <- noether2 a10_1' a10_2'
+        lift $ putStrLn $ "noether identity 1 : " ++
+                          show n1
+        lift $ putStrLn $ "noether identity 2 : " ++
+                          show n2

@@ -45,11 +45,12 @@ makeVarsConsecutive = go 0
 
 sndOrderAnsaetze :: (Num v, Eq v, MonadError String m) => m [T (Poly v)]
 sndOrderAnsaetze = do
+  let ans0 = scalar $ singletonPoly 0 1 1
   let ans6 = someAns6 "ST" "A" "I"
   ans8 <- someAns8 "ST" "A" "B"
   ans10_1 <- someAns10_1 "ST" "A" "B" "I"
   ans10_2 <- someAns10_2 "ST" "A" "B" "p" "q"
-  let as = makeVarsConsecutive [ans6,ans8,ans10_1,ans10_2]
+  let as = makeVarsConsecutive [ans0,ans6,ans8,ans10_1,ans10_2]
   z <- zero [(VSpace "STArea" 21, Cov ("A" :| []))]
   return $ z : as
 

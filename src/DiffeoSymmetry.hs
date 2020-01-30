@@ -116,13 +116,16 @@ someInterAreaJet2_3 id m n a b i p q = do
     c :: T Rational = someInterAreaCon id m n a b
 
 diffeoEq1 :: (Num v, Eq v, MonadError String m) =>
-             T v -> m (T v)
-diffeoEq1 ansatz4 = do
-    res <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
+             T v -> T v -> m (T v)
+diffeoEq1 ansatz0 ansatz4 = do
+    e1 <- (scalar (-1) .*) =<< (ansatz0 .* d)
+    e2 <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
+    res <- e1 .+ e2
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| []))] -> return res
       _ -> throwError $ "diffeoEq1: inconsistent ansatz rank\n" ++ show (rankT ansatz4)
   where
+    d = someDelta "ST" 4 "m" "n"
     n = someFlatAreaCon "ST" "B"
     c = someInterAreaCon "ST" "m" "n" "A" "B"
 
@@ -141,8 +144,9 @@ diffeoEq1A :: (Num v, Eq v, MonadError String m) =>
               T v -> T v -> m (T v)
 diffeoEq1A ansatz4 ansatz8 = do
     e1 <- fmap contractT $ (.* c1) =<< (relabelT (VSpace "STArea" 21) [("A","B")] ansatz4)
-    e2 <- (two .*) =<< fmap contractT ((ansatz8 .*) =<< (c2 .* n))
-    res <- e1 .+ e2
+    e2 <- (scalar 2 .*) =<< fmap contractT ((ansatz8 .*) =<< (c2 .* n))
+    e3 <- (scalar (-1) .*) =<< (ansatz4 .* d)
+    res <- (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
@@ -153,7 +157,7 @@ diffeoEq1A ansatz4 ansatz8 = do
     n = someFlatAreaCon "ST" "C"
     c1 = someInterAreaCon "ST" "m" "n" "B" "A"
     c2 = someInterAreaCon "ST" "m" "n" "B" "C"
-    two = scalar 2
+    d = someDelta "ST" 4 "m" "n"
 
 diffeoEq1AI :: (Num v, Eq v, MonadError String m) =>
                T v -> T v -> m (T v)
@@ -163,7 +167,8 @@ diffeoEq1AI ansatz6 ansatz10_1 = do
                 relabelT (VSpace "STSym2" 10) [("I","J")] ansatz6
     e1 <- fmap contractT $ (ansatz10_1' .*) =<< (c1 .* n)
     e2 <- fmap contractT $ ansatz6' .* c2
-    res <- e1 .+ e2
+    e3 <- (scalar (-1) .*) =<< (ansatz6 .* d)
+    res <- (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| [])),
@@ -173,6 +178,7 @@ diffeoEq1AI ansatz6 ansatz10_1 = do
                         show (rankT ansatz10_1)
   where
     n = someFlatAreaCon "ST" "C"
+    d = someDelta "ST" 4 "m" "n"
     c1 = someInterAreaCon "ST" "m" "n" "B" "C"
     c2 = someInterAreaJet2 "ST" "m" "n" "B" "A" "J" "I"
 
@@ -216,9 +222,9 @@ diffeoEq3A ansatz6 ansatz10_1 = do
 
 sndOrderDiffeoEqns :: (Num v, Eq v, MonadError String m) =>
                       [T v] -> m ([T v])
-sndOrderDiffeoEqns [ans4,ans6,ans8,ans10_1,ans10_2] =
+sndOrderDiffeoEqns [ans4,ans0,ans6,ans8,ans10_1,ans10_2] =
   sequence $ [
-              diffeoEq1 ans4,
+              diffeoEq1 ans0 ans4,
               diffeoEq3 ans6,
               diffeoEq1A ans4 ans8,
               diffeoEq1AI ans6 ans10_1,
