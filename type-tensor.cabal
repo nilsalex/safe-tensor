@@ -34,6 +34,8 @@ library
       Area
       Ansaetze
       DiffeoSymmetry
+      Equations
+      LinearAlgebra
   hs-source-dirs:
       src
   build-depends:
@@ -44,8 +46,7 @@ library
     , containers
     , text
     , mtl
-    , ghc-typelits-natnormalise
-    , ghc-typelits-knownnat
+    , hmatrix
   ghc-options:
       -fwarn-unused-imports
   default-language: Haskell2010
@@ -58,6 +59,7 @@ executable run
       base
     , type-tensor
     , parallel
+    , mtl
   ghc-options:
     -fwarn-unused-imports
     -fwarn-unused-binds

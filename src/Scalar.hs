@@ -39,10 +39,7 @@ class Algebra a b p | p -> a b where
 instance Num a => Algebra (SField a) (SField a) (SField a) where
   prod = (*)
 
-newtype Lin a = Lin { linMap :: IM.IntMap a } deriving (Show, Ord, Eq)
-
-instance Functor Lin where
-  fmap f = Lin . fmap f . linMap
+newtype Lin a = Lin (IM.IntMap a) deriving (Show, Ord, Eq)
 
 data Poly a = Const !a |
               Affine !a !(Lin a) |
@@ -52,14 +49,14 @@ data Poly a = Const !a |
 polyFromAnsVarR :: Num a => T.AnsVarR -> Poly a
 polyFromAnsVarR (T.AnsVar im)
   | IM.null im = Const 0
-  | otherwise   = Affine 0 (Lin $ fmap (\(T.SField x) -> if   denominator x == 1
+  | otherwise   = Affine 0 (Lin $ IM.map (\(T.SField x) -> if   denominator x == 1
                                                          then fromIntegral (numerator x)
                                                          else error "Cannot convert from rational.") im)
 
-instance Functor Poly where
-  fmap f (Const a)      = Const (f a)
-  fmap f (Affine a lin) = Affine (f a) $ fmap f lin
-  fmap f _              = NotSupported
+polyMap :: (a -> b) -> Poly a -> Poly b
+polyMap f (Const a) = Const (f a)
+polyMap f (Affine a (Lin lin)) = Affine (f a) $ Lin $ IM.map f lin
+polyMap _ _ = NotSupported
 
 instance (Num a, Eq a) => Num (Poly a) where
   Const a + Const b = Const $ a + b
@@ -73,7 +70,7 @@ instance (Num a, Eq a) => Num (Poly a) where
   NotSupported + _ = NotSupported 
   _ + NotSupported = NotSupported
 
-  negate = fmap negate
+  negate = polyMap negate
 
   abs (Const a) = Const $ abs a
   abs _         = NotSupported
@@ -84,12 +81,12 @@ instance (Num a, Eq a) => Num (Poly a) where
   fromInteger   = Const . fromInteger
 
   Const a * Const b = Const $ a * b
-  Const a * Affine b lin
+  Const a * Affine b (Lin lin)
     | a == 0    = Const 0
-    | otherwise = Affine (a*b) $ fmap (a*) lin
-  Affine a lin * Const b
+    | otherwise = Affine (a*b) $ Lin $ IM.map (a*) lin
+  Affine a (Lin lin) * Const b
     | b == 0    = Const 0
-    | otherwise = Affine (a*b) $ fmap (*b) lin
+    | otherwise = Affine (a*b) $ Lin $ IM.map (*b) lin
   _       * _            = NotSupported
 
 getVars :: Poly a -> [Int]
@@ -106,7 +103,7 @@ shiftVars s (Affine a (Lin lin)) =
 normalize :: Poly Rational -> Poly Rational
 normalize (Const _) = Const 1
 normalize NotSupported = NotSupported
-normalize (Affine a (Lin lin)) = Affine (a/v) $ Lin $ fmap (/v) lin
+normalize (Affine a (Lin lin)) = Affine (a/v) $ Lin $ IM.map (/v) lin
   where
     (_,v) = IM.findMin lin
 

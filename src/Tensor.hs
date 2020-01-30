@@ -67,6 +67,11 @@ vecFromList (SS sn) (x:xs) = do
   xs' <- vecFromList sn xs
   return $ x `VCons` xs'
 
+removeZerosT :: (Eq v, Num v) => T v -> T v
+removeZerosT o =
+  case o of
+    T t -> T $ removeZeros t
+
 (.*) :: (Num v, MonadError String m) => T v -> T v -> m (T v)
 (.*) o1 o2 =
   case o1 of

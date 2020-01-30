@@ -6,16 +6,13 @@ module DiffeoSymmetry where
 
 import TH
 import Tensor
-import Scalar
 import Area
 import Sym2
 import Delta
 
 import Control.Monad.Except
 import Data.Ratio
-import Data.List (sort,nub)
 import Data.List.NonEmpty (NonEmpty(..))
-
 
 --
 --  L_A^p * C^A_B_p^{qm}_n * v^B_q
@@ -229,6 +226,3 @@ sndOrderDiffeoEqns [ans4,ans6,ans8,ans10_1,ans10_2] =
               diffeoEq3A ans6 ans10_1
              ]
 sndOrderDiffeoEqns as = throwError $ "wrong number of ansatz tensors : " ++ show (length as)
-
-tensorToEquations :: T (Poly Rational) -> [Poly Rational]
-tensorToEquations = nub . sort . fmap (normalize . snd) . toListT
