@@ -34,7 +34,7 @@ import Data.List (foldl',groupBy,sortBy)
 
 data Tensor :: ILists -> Type -> Type where
     ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
-    Scalar :: forall v.v -> Tensor '[] v
+    Scalar :: forall v. v -> Tensor '[] v
     Tensor :: forall (l :: ILists) (l' :: ILists) v.
               (Sane l ~ 'True, Tail' l ~ l') =>
               [(Int, Tensor l' v)] -> Tensor l v
@@ -87,10 +87,10 @@ removeZeros (Tensor ms) =
         Tensor l v -> Tensor l' v -> Tensor l v
 (&+) ZeroTensor t = t
 (&+) t ZeroTensor = t
-(&+) (Scalar s) (Scalar s') = let s'' = s + s' in
-                              if s'' == 0
-                              then ZeroTensor
-                              else Scalar s''
+(&+) (Scalar s) (Scalar s') = 
+    if s'' == 0 then ZeroTensor else Scalar s''
+  where
+    s'' = s + s'
 (&+) (Tensor xs) (Tensor xs') = removeZeros $ Tensor xs''
     where
        xs'' = unionWith (&+) id id xs xs' 
@@ -107,7 +107,7 @@ infixl 6 &-
 mult :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
                (Num v, Just l'' ~ MergeILs l l') =>
                Sing l -> Sing l' -> Tensor l v -> Tensor l' v -> Tensor l'' v
-mult _ _ (Scalar s) (Scalar t) = Scalar (s * t)
+mult _ _ (Scalar s) (Scalar t) = Scalar (s*t)
 mult sl sl' (Scalar s) (Tensor ms) =
   case saneTail'Proof sl' of
     Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl (sTail' sl') (Scalar s) t)) ms

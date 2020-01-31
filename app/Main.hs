@@ -22,11 +22,19 @@ main' = do
              --ans6Test,
              --ans8Test,
              --ans10_1Test,
-             --ans10_2Test,
+             --ans10_2Test
              --ans12Test,
              --ans14_1Test,
              ans14_2Test
             ]
+
+main'' :: IO (Either String ())
+main'' =
+  runExceptT $
+      do
+        as :: [T (Poly Rational)] <- sndOrderAnsaetze
+        eqns <- sndOrderDiffeoEqns as
+        lift $ print (systemRank eqns)
 
 main :: IO (Either String ())
 main =
@@ -38,7 +46,7 @@ main =
 
         eqns <- sndOrderDiffeoEqns as
 
-        lift $ putStrLn $ "rank of eqns           : " ++ show (systemRank eqns)
+        lift $ putStrLn $ "rank of eqns            : " ++ show (systemRank eqns)
 
         let as'@[a4',a0',a6',a8',a10_1',a10_2'] = solveSystem eqns as
 

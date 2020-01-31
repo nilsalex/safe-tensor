@@ -4,40 +4,9 @@
 module Scalar where
 
 import qualified Data.IntMap.Strict as IM
-import Control.Applicative (liftA2)
 import Data.Ratio (numerator,denominator)
 
 import qualified Math.Tensor as T (AnsVar(..), AnsVarR, SField(..))
-
-newtype SField a = SField { sVal :: a } deriving (Show, Read, Eq, Ord)
-type SFieldR = SField Rational
-
-instance Functor SField where
-  fmap f = SField . f . sVal
-
-instance Applicative SField where
-  pure = SField
-  (<*>) (SField f) = fmap f
-
-instance Num a => Num (SField a) where
-  (+) = liftA2 (+)
-  (-) = liftA2 (-)
-  (*) = liftA2 (*)
-  negate = fmap negate
-  abs = fmap abs
-  signum = fmap signum
-  fromInteger = pure . fromInteger
-
-instance Fractional a => Fractional (SField a) where
-  (/) = liftA2 (/)
-  recip = fmap recip
-  fromRational = pure . fromRational
-
-class Algebra a b p | p -> a b where
-  prod :: a -> b -> p
-
-instance Num a => Algebra (SField a) (SField a) (SField a) where
-  prod = (*)
 
 newtype Lin a = Lin (IM.IntMap a) deriving (Show, Ord, Eq)
 
@@ -91,6 +60,7 @@ instance (Num a, Eq a) => Num (Poly a) where
     | b == 0    = Const 0
     | otherwise = Affine (a*b) $ Lin $ IM.map (*b) lin
   _       * _            = NotSupported
+
 
 getVars :: Poly a -> [Int]
 getVars (Const _) = []

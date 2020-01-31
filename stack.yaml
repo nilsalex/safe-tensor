@@ -2,3 +2,9 @@ resolver: nightly-2020-01-25
 
 packages:
 - .
+
+extra-deps:
+- git: https://github.com/nilsalex/sparse-tensor.git
+  commit: 0c4c48261e197e17be73bd72d58cb61eed170bc3
+  subdirs:
+    - package
