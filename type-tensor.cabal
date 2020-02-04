@@ -27,6 +27,7 @@ library
       Tensor
       Safe
       Example
+      Example2
       EOM
       Basic
       Delta
