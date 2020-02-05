@@ -74,13 +74,25 @@ fromRow xs = case assocs of
     assocs = filter ((/=0). snd) $ zip [1..] xs
 
 applySolution :: Solution -> Poly Rational -> Poly Rational
-applySolution s (Affine x (Lin lin))
-    | x == 0 = if IM.null lin'
-               then Const 0
-               else Affine x (Lin lin')
+applySolution s p@(Affine x (Lin lin))
+    | x == 0 = case p of
+                 Affine x (Lin linFin) -> if IM.null linFin
+                                          then Const x
+                                          else p
+                 _ -> p
     | otherwise = error "affine equations not yet supported"
   where
-    s' = IM.intersectionWith (\row v -> polyMap (v*) row) s lin
+    s' = IM.intersectionWith (\row v -> if v == 0
+                                        then error ""
+                                        else polyMap (v*) row) s lin
+    lin' = IM.difference lin s
+    p0 = if IM.null lin'
+         then Const 0
+         else Affine 0 (Lin lin')
+
+    p = IM.foldl' (+) p0 s'
+
+    {-
     lin' = IM.foldlWithKey'
              (\lin' i sub ->
                  case Affine 0 (Lin lin') + sub of
@@ -88,6 +100,7 @@ applySolution s (Affine x (Lin lin))
                    Const 0              -> IM.empty
                    _                    -> error "affine equations not yet supported")
              lin s'
+    -}
 
 solveTensor :: Solution -> T (Poly Rational) -> T (Poly Rational)
 solveTensor sol = removeZerosT . fmap (applySolution sol)

@@ -283,12 +283,14 @@ flatAreaCon :: forall (id :: Symbol) (a :: Symbol) (l :: ILists) v.
                 Num v
                ) => Sing id -> Sing a -> Tensor l v
 flatAreaCon sid sa =
-  fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, 1), (6 `VCons` VNil, -1),    --  0  1  2  3  4  5
-            (9 `VCons` VNil, -1), (11 `VCons` VNil, -1), (12 `VCons` VNil, 1),  --     6  7  8  9 10
-            (15 `VCons` VNil, 1), (18 `VCons` VNil, 1), (20 `VCons` VNil, 1)]   --       11 12 13 14
-                                                                                --          15 16 17
-                                                                                --             18 19
-                                                                                --                20
+  fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, -1),   --  0  1  2  3  4  5
+            (6 `VCons` VNil, -1), (9 `VCons` VNil, 1),  --     6  7  8  9 10   
+            (11 `VCons` VNil, -1), (12 `VCons` VNil, -1), --       11 12 13 14   
+            (15 `VCons` VNil, 1),                        --          15 16 17   
+            (18 `VCons` VNil, 1),                        --             18 19   
+            (20 `VCons` VNil, 1)]                        --                20   
+                                                                                
+                                                                                
 
 someFlatAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
 someFlatAreaCon id a =
