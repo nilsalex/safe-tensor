@@ -5,6 +5,6 @@ packages:
 
 extra-deps:
 - git: https://github.com/nilsalex/sparse-tensor.git
-  commit: 0c4c48261e197e17be73bd72d58cb61eed170bc3
+  commit: 6a02cd9907832627c9d76595a20753f41164a766
   subdirs:
     - package

@@ -1,17 +1,36 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
 import Example
+import Example2
 import Tensor
 import Scalar
 import DiffeoSymmetry
 import Equations
 import Ansaetze
 import EOM
+import TH
+
+import Data.List.NonEmpty (NonEmpty(..))
 
 import Control.Parallel.Strategies
 import Control.Monad.Except
+
+main :: IO (Either String ())
+main = runExceptT $
+  do
+    a <- zero []
+    aA <- zero [(VSpace "STArea" 21, Cov ("A" :| []))]
+    aAI <- ansatzAI
+    aAB <- ansatzAB
+    aABI <- ansatzABI
+    aApBq <- ansatzApBq
+    let as = [aA,a,aAI,aAB,aABI,aApBq]
+    let as' = fmap (solveTensor sol) as
+    eqns' <- sndOrderDiffeoEqns as'
+    lift $ mapM_ print eqns'
 
 main' :: IO ()
 main' = do
@@ -36,8 +55,8 @@ main'' =
         eqns <- sndOrderDiffeoEqns as
         lift $ print (systemRank eqns)
 
-main :: IO (Either String ())
-main =
+main''' :: IO (Either String ())
+main''' =
   runExceptT $
       do
         as@[a4,a0,a6,a8,a10_1,a10_2] :: [T (Poly Rational)] <- sndOrderAnsaetze

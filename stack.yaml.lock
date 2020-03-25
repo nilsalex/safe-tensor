@@ -14,12 +14,12 @@ packages:
     git: https://github.com/nilsalex/sparse-tensor.git
     pantry-tree:
       size: 1358
-      sha256: 61d9699f10cef2e76067989e652992517f4bed66c6e6093925f57c2864ee0ab8
-    commit: 0c4c48261e197e17be73bd72d58cb61eed170bc3
+      sha256: a70fa01036d8ab0af7d8d201aa3e4c46691e4dfb57c2b55c916f73eb6f338226
+    commit: 6a02cd9907832627c9d76595a20753f41164a766
   original:
     subdir: package
     git: https://github.com/nilsalex/sparse-tensor.git
-    commit: 0c4c48261e197e17be73bd72d58cb61eed170bc3
+    commit: 6a02cd9907832627c9d76595a20753f41164a766
 snapshots:
 - completed:
     size: 468735
