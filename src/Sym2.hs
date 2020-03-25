@@ -81,6 +81,30 @@ sym2AssocsFac sn = assocs
 
     vec a b = min a b `VCons` (max a b `VCons` VNil)
 
+gamma' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+           (
+            '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
+            (a < b) ~ 'True,
+            SingI n,
+            Num v
+           ) =>
+           Sing id -> Sing n -> Sing a -> Sing b ->
+           Tensor l v
+gamma' _ _ _ _ = gamma
+
+gamma :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+         (
+          '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
+          (a < b) ~ 'True,
+          SingI n,
+          Num v
+         ) => Tensor l v
+gamma = case (sing :: Sing n) of
+          sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
+                in Tensor (f x)
+  where
+    f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
+
 eta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
         (
          '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ l,
@@ -104,6 +128,30 @@ eta = case (sing :: Sing n) of
               in Tensor (f x)
   where
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
+
+gammaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+          (
+           '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
+           (a < b) ~ 'True,
+           SingI n,
+           Num v
+          ) =>
+          Sing id -> Sing n -> Sing a -> Sing b ->
+          Tensor l v
+gammaInv' _ _ _ _ = gammaInv
+
+gammaInv :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
+          (
+           '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ l,
+           (a < b) ~ 'True,
+           SingI n,
+           Num v
+          ) => Tensor l v
+gammaInv = case (sing :: Sing n) of
+            sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
+                  in Tensor (f x)
+  where
+    f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 etaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (l :: ILists) v.
         (
@@ -188,6 +236,42 @@ surjSym2Cov' svid svdim sa sb si =
               SS (SS (SS SZ)) -> fromList $ sym2AssocsFac svdim
   where
     sl = sing :: Sing l
+
+someGamma :: (Num v, MonadError String m) =>
+             Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
+             m (T v)
+someGamma vid vdim a b
+    | a > b = someGamma vid vdim b a
+    | a == b = throwError $ "cannot construct gamma with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing vdim $ \svdim ->
+        withSomeSing a $ \sa ->
+        withSomeSing b $ \sb ->
+        withKnownNat svdim $
+        withKnownSymbol svid $
+        withKnownSymbol sa $
+        withKnownSymbol sb $
+        case sCompare sa sb of
+          SLT -> return $ T $ gamma' svid svdim sa sb
+
+someGammaInv :: (Num v, MonadError String m) =>
+                Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
+                m (T v)
+someGammaInv vid vdim a b
+    | a > b = someGammaInv vid vdim b a
+    | a == b = throwError $ "cannot construct gamma with indices " ++ show vid ++ " " ++ show vdim ++ " " ++ show a ++ " " ++ show b
+    | otherwise =
+        withSomeSing vid $ \svid ->
+        withSomeSing vdim $ \svdim ->
+        withSomeSing a $ \sa ->
+        withSomeSing b $ \sb ->
+        withKnownNat svdim $
+        withKnownSymbol svid $
+        withKnownSymbol sa $
+        withKnownSymbol sb $
+        case sCompare sa sb of
+          SLT -> return $ T $ gammaInv' svid svdim sa sb
 
 someEta :: (Num v, MonadError String m) =>
            Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol ->
