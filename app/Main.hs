@@ -18,8 +18,8 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Control.Parallel.Strategies
 import Control.Monad.Except
 
-main :: IO (Either String ())
-main = runExceptT $
+main''' :: IO (Either String ())
+main''' = runExceptT $
   do
     a <- zero []
     aA <- zero [(VSpace "STArea" 21, Cov ("A" :| []))]
@@ -55,8 +55,8 @@ main'' =
         eqns <- sndOrderDiffeoEqns as
         lift $ print (systemRank eqns)
 
-main''' :: IO (Either String ())
-main''' =
+main :: IO (Either String ())
+main =
   runExceptT $
       do
         as@[a4,a0,a6,a8,a10_1,a10_2] :: [T (Poly Rational)] <- sndOrderAnsaetze
