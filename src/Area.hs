@@ -89,11 +89,11 @@ injAreaCon' sid sa sb sc sd si =
     assocs = catMaybes $
              (\a b c d ->
                   do
-                     s <- areaSign a b c d 
+                     s <- areaSign a b c d
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s :: v))
-             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3]
 
 injAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -113,11 +113,11 @@ injAreaCov' sid sa sb sc sd si =
     assocs = catMaybes $
              (\a b c d ->
                   do
-                     s <- areaSign a b c d 
+                     s <- areaSign a b c d
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s :: v))
-             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3]
 
 surjAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -138,12 +138,12 @@ surjAreaCon' sid sa sb sc sd si =
     assocs = catMaybes $
              (\a b c d ->
                   do
-                     s <- areaSign a b c d 
+                     s <- areaSign a b c d
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      f <- Map.lookup v fm
                      return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s/f :: v))
-             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3]
 
 surjAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) (d :: Symbol)
                      (i :: Symbol) (l :: ILists) v.
@@ -164,12 +164,12 @@ surjAreaCov' sid sa sb sc sd si =
     assocs = catMaybes $
              (\a b c d ->
                   do
-                     s <- areaSign a b c d 
+                     s <- areaSign a b c d
                      let v = sortArea a b c d
                      i <- Map.lookup v tm
                      f <- Map.lookup v fm
                      return (a `VCons` (b `VCons` (c `VCons` (d `VCons` (i `VCons` VNil)))), s/f :: v))
-             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3] 
+             <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3]
 
 _injAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
 _injAreaCon id i =
@@ -283,14 +283,14 @@ flatAreaCon :: forall (id :: Symbol) (a :: Symbol) (l :: ILists) v.
                 Num v
                ) => Sing id -> Sing a -> Tensor l v
 flatAreaCon sid sa =
-  fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, -1),   --  0  1  2  3  4  5
-            (6 `VCons` VNil, -1), (9 `VCons` VNil, 1),  --     6  7  8  9 10   
-            (11 `VCons` VNil, -1), (12 `VCons` VNil, -1), --       11 12 13 14   
-            (15 `VCons` VNil, 1),                        --          15 16 17   
-            (18 `VCons` VNil, 1),                        --             18 19   
-            (20 `VCons` VNil, 1)]                        --                20   
-                                                                                
-                                                                                
+  fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, 1),   --  0  1  2  3  4  5
+            (6 `VCons` VNil, -1), (9 `VCons` VNil, -1),  --     6  7  8  9 10
+            (11 `VCons` VNil, -1), (12 `VCons` VNil, 1), --       11 12 13 14
+            (15 `VCons` VNil, 1),                        --          15 16 17
+            (18 `VCons` VNil, 1),                        --             18 19
+            (20 `VCons` VNil, 1)]                        --                20
+
+
 
 someFlatAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
 someFlatAreaCon id a =

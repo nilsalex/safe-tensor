@@ -67,8 +67,8 @@ fromRref ref = IM.fromList assocs
 fromRow :: Integral a => [a] -> Maybe (Int, Poly Rational)
 fromRow xs = case assocs of
                []             -> Nothing
-               [(i,_)]        -> Just (i, Affine 0 (Lin IM.empty))
-               (i, v):assocs' -> let assocs'' = fmap (\(i,v') -> (i, - (fromIntegral v') / (fromIntegral v))) assocs
+               [(i,_)]        -> Just (i, Const 0)
+               (i, v):assocs' -> let assocs'' = fmap (\(i,v') -> (i, - (fromIntegral v') / (fromIntegral v))) assocs'
                                  in Just (i, Affine 0 (Lin (IM.fromList assocs'')))
   where
     assocs = filter ((/=0). snd) $ zip [1..] xs
