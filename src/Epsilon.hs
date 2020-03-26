@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -39,24 +38,6 @@ permSign (x:xs)
   where
     defects = filter (<x) xs
 
-epsilon :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
-           (
-            KnownNat n,
-            Num v,
-            EpsilonILists id n is ~ 'Just l,
-            SingI id,
-            SingI is,
-            SingI l
-           ) => Tensor l v
-epsilon =
-  case sing :: Sing id of
-    sid ->
-      case sing :: Sing n of
-        sn ->
-          case sing :: Sing is of
-            sis ->
-              epsilon' sid sn sis
-
 epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
               (
                KnownNat n,
@@ -76,24 +57,6 @@ epsilon' sid sn sis =
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
-
-epsilonInv :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
-              (
-               KnownNat n,
-               Num v,
-               EpsilonInvILists id n is ~ 'Just l,
-               SingI id,
-               SingI is,
-               SingI l
-              ) => Tensor l v
-epsilonInv =
-  case sing :: Sing id of
-    sid ->
-      case sing :: Sing n of
-        sn ->
-          case sing :: Sing is of
-            sis ->
-              epsilonInv' sid sn sis
 
 epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
               (
