@@ -36,6 +36,8 @@ library
       Area
       Ansaetze
       DiffeoSymmetry
+      PolynomialDiffeoSymmetry
+      ScalarDiffeoSymmetry
       Equations
       LinearAlgebra
   hs-source-dirs:
