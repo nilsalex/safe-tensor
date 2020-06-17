@@ -6,9 +6,6 @@
 packages:
 - completed:
     subdir: package
-    cabal-file:
-      size: 3313
-      sha256: 2290aae3a32a36824efb15b63dfddb39c6fbf1c71979c5a5d9da6d314d2e70e2
     name: sparse-tensor
     version: '0.3'
     git: https://github.com/nilsalex/sparse-tensor.git
@@ -22,7 +19,7 @@ packages:
     commit: e72e9a60b5f0a5c8f944c1c4836b8d8e5419deb3
 snapshots:
 - completed:
-    size: 491372
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/5.yaml
-    sha256: 1b549cfff328040c382a70a84a2087aac8dab6d778bf92f32a93a771a1980dfc
-  original: lts-15.5
+    size: 531237
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/1.yaml
+    sha256: 954b6b14b0c8130732cf4773f7ebb4efc9a44600d1a5265d142868bf93462bc6
+  original: lts-16.1

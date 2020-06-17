@@ -11,6 +11,7 @@ import Delta
 import Area
 import Sym2
 import Epsilon
+import Equations
 
 import Data.Singletons
 import Data.Singletons.Prelude
@@ -36,12 +37,12 @@ somePolyAns4 a p q = do
 
     i    <- someInjAreaCon "ST" "a" "b" "c" "d" a
   
-    a1_  <- epq .* eps
+    a1_  <- (epq .*) =<< (eac .* ebd)
     a1   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 2 (fromIntegral (numerator v))
                               else error "")) $ fmap contractT $ i .* a1_
 
-    a2_  <- (epq .*) =<< (eac .* ebd)
+    a2_  <- epq .* eps
     a2   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 3 (fromIntegral (numerator v))
                               else error "")) $ fmap contractT $ i .* a2_
@@ -60,13 +61,13 @@ somePolyAns4 a p q = do
     dqb = someDelta "ST" 4 q "b"
 
 polyDensDiffeoEqn :: (Num v, Eq v, MonadError String m) =>
-                     T v -> T v -> m (T v)
-polyDensDiffeoEqn ansatz0 ansatz4 = do
+                     v -> v -> T v -> T v -> m (T v)
+polyDensDiffeoEqn r w ansatz0 ansatz4 = do
     e1 <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
     dp <- d .* ansatz0
-    e2 <- scalar (-1) .* dp
-    e3 <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") dp
-    e4 <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "q") dp
+    e2 <- scalar (negate w) .* dp
+    e3 <- (scalar r .*) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") dp
+    e4 <- (scalar r .*) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "q") dp
     res <- (e1 .+) =<< ((e2 .+) =<< (e3 .+ e4))
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| []))] -> return res
@@ -95,3 +96,12 @@ polyScalarDiffeoEqn ansatz0 ansatz4 = do
     c = someInterAreaCon "ST" "m" "n" "A" "B"
     d = someDelta "ST" 4 "m" "n"
     n = someFlatAreaCon "ST" "B"
+
+polyDensDiffeoEqnMat :: Integral a => Rational -> Rational -> [[a]]
+polyDensDiffeoEqnMat r w = mat
+  where
+    Right mat = runExcept $ do
+      a0 <- somePolyAns0 "p" "q"
+      a4 <- somePolyAns4 "A" "p" "q"
+      e  <- polyDensDiffeoEqn (Const r) (Const w) a0 a4
+      return $ tensorsToMat [e]
