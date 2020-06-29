@@ -11,15 +11,15 @@ packages:
     git: https://github.com/nilsalex/sparse-tensor.git
     pantry-tree:
       size: 1358
-      sha256: 1d1850633785e42d8bd96a755147dfd783e46ef7c1fc873ddbe09f2310b10dd2
-    commit: e72e9a60b5f0a5c8f944c1c4836b8d8e5419deb3
+      sha256: e2aa90af010e4718e437a852e7da403a244632a9cdfa652a0638db768dc1676c
+    commit: a98decfe923ba896e258cd0d406664219e7b8e40
   original:
     subdir: package
     git: https://github.com/nilsalex/sparse-tensor.git
-    commit: e72e9a60b5f0a5c8f944c1c4836b8d8e5419deb3
+    commit: a98decfe923ba896e258cd0d406664219e7b8e40
 snapshots:
 - completed:
-    size: 531237
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/1.yaml
-    sha256: 954b6b14b0c8130732cf4773f7ebb4efc9a44600d1a5265d142868bf93462bc6
-  original: lts-16.1
+    size: 503821
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/6/29.yaml
+    sha256: e1bb5560cc1143c2eb3ece3ee90807d812d7fd94742fc9b9de016e717b531c32
+  original: nightly-2020-06-29

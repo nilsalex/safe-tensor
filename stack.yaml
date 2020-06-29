@@ -1,10 +1,10 @@
-resolver: lts-16.1
+resolver: nightly-2020-06-29
 
 packages:
 - .
 
 extra-deps:
 - git: https://github.com/nilsalex/sparse-tensor.git
-  commit: e72e9a60b5f0a5c8f944c1c4836b8d8e5419deb3
+  commit: a98decfe923ba896e258cd0d406664219e7b8e40
   subdirs:
     - package
