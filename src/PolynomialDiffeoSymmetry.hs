@@ -36,7 +36,7 @@ somePolyAns4 a p q = do
     ebd  <- someEta "ST" 4 "b" "d"
 
     i    <- someInjAreaCon "ST" "a" "b" "c" "d" a
-  
+
     a1_  <- (epq .*) =<< (eac .* ebd)
     a1   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 2 (fromIntegral (numerator v))

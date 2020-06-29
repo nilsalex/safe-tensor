@@ -85,7 +85,7 @@ test4 =
     _t1 = delta_pa &* delta_qb
     _a1 = asym :: Tensor '[ '(V4, Up2 "a" "b") ] Rational
     _a2 = asym :: Tensor '[ '(V4, Up2 "p" "q") ] Rational
- 
+
 test5 :: Either String ()
 test5 =
     do

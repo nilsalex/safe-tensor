@@ -28,7 +28,7 @@ import Data.List (sort,permutations)
 import qualified Data.List.NonEmpty as NE (NonEmpty(..),sort)
 
 import Control.Monad.Except
- 
+
 permSign :: Num v => Ord a => [a] -> v
 permSign [] = 1
 permSign [_] = 1

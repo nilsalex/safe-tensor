@@ -83,7 +83,7 @@ $(singletons [d|
                                   EQ -> GT
                                   GT -> GT
   ixCompare (ICov a) (ICov b) = compare a b
-  
+
   data IList a = ConCov (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
                  Con (NonEmpty a)
@@ -422,7 +422,7 @@ $(singletons [d|
                               LT -> False
                               EQ -> True
                               GT -> elemNE a (x' :| xs)
-  
+
   canTransposeCon :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
   canTransposeCon _ _ _ [] = False
   canTransposeCon v a b ((v',il):ls) =
@@ -445,7 +445,7 @@ $(singletons [d|
                                False -> case elemNE b cs of
                                          True -> False
                                          False -> canTransposeCon v a b ls
-  
+
   canTransposeCov :: (Ord a, Ord b) => VSpace a b -> a -> a -> [(VSpace a b, IList a)] -> Bool
   canTransposeCov _ _ _ [] = False
   canTransposeCov v a b ((v',il):ls) =
@@ -468,7 +468,7 @@ $(singletons [d|
                                False -> case elemNE b cs of
                                          True -> False
                                          False -> canTransposeCov v a b ls
-  
+
   canTranspose :: (Ord a, Ord b) => VSpace a b -> Ix a -> Ix a -> [(VSpace a b, IList a)] -> Bool
   canTranspose v (ICon a) (ICon b) l = case compare a b of
                                          LT -> canTransposeCon v a b l
@@ -491,7 +491,7 @@ $(singletons [d|
   data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
     deriving (Show, Eq)
-  
+
   saneTransList :: (Ord a, Eq a) => TransList a -> Bool
   saneTransList tl =
       case tl of
@@ -504,7 +504,7 @@ $(singletons [d|
   canTransposeMult vs tl ils = case transpositions vs tl ils of
                                  Just _  -> True
                                  Nothing -> False
-  
+
   transpositions :: (Ord a, Ord b) => VSpace a b -> TransList a -> [(VSpace a b, IList a)] -> Maybe [(N,N)]
   transpositions _ _ []              = Nothing
   transpositions vs tl ((vs',il):is) =
@@ -528,7 +528,7 @@ $(singletons [d|
                   case tl of
                     TransCon sources targets -> transpositions' sources targets (xsCon `zipCon` xsCov)
                     TransCov sources targets -> transpositions' sources targets (xsCon `zipCov` xsCov)
-  
+
   zipCon :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
   zipCon (x :| xs) (y :| ys) =
     case ICon x `ixCompare` ICov y of
@@ -538,7 +538,7 @@ $(singletons [d|
       GT -> case ys of
               []       -> Nothing :| fmap Just (x : xs)
               (y':ys') -> Nothing <| zipCon (x :| xs) (y' :| ys')
-  
+
   zipCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a)
   zipCov (x :| xs) (y :| ys) =
     case ICon x `ixCompare` ICov y of
@@ -548,7 +548,7 @@ $(singletons [d|
       GT -> case ys of
               []       -> Just y :| fmap (const Nothing) (x : xs)
               (y':ys') -> Just y <| zipCov (x :| xs) (y' :| ys')
-  
+
   transpositions' :: Eq a => NonEmpty a -> NonEmpty a -> NonEmpty (Maybe a) -> Maybe [(N,N)]
   transpositions' sources targets xs =
     do
@@ -557,11 +557,11 @@ $(singletons [d|
       zip' ss ts
     where
       xs' = go' Z xs
-  
+
       go' :: N -> NonEmpty a -> NonEmpty (N,a)
       go' n (x :| []) = (n,x) :| []
       go' n (x :| (x':xs')) = (n,x) <| go' (S n) (x' :| xs')
-  
+
       find :: Eq a => a -> NonEmpty (N, Maybe a) -> Maybe N
       find a ((_,Nothing) :| []) = Nothing
       find a ((_,Nothing) :| (x':xs')) = find a (x' :| xs')
@@ -572,7 +572,7 @@ $(singletons [d|
             case xs of
               [] -> Nothing
               x':xs' -> find a (x' :| xs')
-  
+
       zip' :: NonEmpty a -> NonEmpty b -> Maybe [(a,b)]
       zip' (a :| []) (b :| []) = Just [(a,b)]
       zip' (_ :| (_:_)) (_ :| []) = Nothing
@@ -586,7 +586,7 @@ $(singletons [d|
                        isAscendingNE xs'
     where
       xs' = sort $ fmap (\(a,b) -> (b,a)) xs
-  
+
   relabelNE :: Ord a => NonEmpty (a,a) -> NonEmpty a -> Maybe (NonEmpty (a,a))
   relabelNE = go
     where
@@ -608,7 +608,7 @@ $(singletons [d|
             case xs of
               []     -> Just $ (x,x) :| []
               x':xs' -> ((x,x) <|) <$> go ((source,target) :| ms) (x' :| xs')
-  
+
   relabelILs :: VSpace Symbol Nat -> RelabelList -> ILists -> Maybe ILists
   relabelILs _ _ [] = Nothing
   relabelILs vs rls ((vs',il):ils) =
@@ -623,7 +623,7 @@ $(singletons [d|
                       Just (Con is') -> Just $ Con $ fst <$> is'
                       Just (Cov is') -> Just $ Cov $ fst <$> is'
                       Just (ConCov is' js') -> Just $ ConCov (fst <$> is') (fst <$> js')
-  
+
   relabelIL' :: Ord a => NonEmpty (a,a) -> IList a -> Maybe (IList (a,a))
   relabelIL' rl (Con is) =
     do
@@ -645,7 +645,7 @@ $(singletons [d|
       case isAscendingI l' of
         True -> return l'
         False -> Nothing
-  
+
   relabelTranspositions :: Ord a => NonEmpty (a,a) -> IList a -> Maybe [(N,N)]
   relabelTranspositions rl is =
     case relabelIL' rl is of
@@ -653,7 +653,7 @@ $(singletons [d|
       Just (Con is') -> Just $ relabelTranspositions' is'
       Just (Cov is') -> Just $ relabelTranspositions' is'
       Just (ConCov is' js') -> Just $ relabelTranspositions' $ is' `zipConCov` js'
-  
+
   zipConCov :: Ord a => NonEmpty a -> NonEmpty a -> NonEmpty a
   zipConCov = go
     where
@@ -669,7 +669,7 @@ $(singletons [d|
           GT -> case js of
                   [] -> j <| (i:|is)
                   j':js' -> j <| go (i :| is) (j' :| js')
-  
+
   relabelTranspositions' :: Ord a => NonEmpty (a,a) -> [(N,N)]
   relabelTranspositions' is = go'' is'''
     where
@@ -677,15 +677,15 @@ $(singletons [d|
       is'' = sortBy (\a b -> snd a `compare` snd b) is'
       is''' = go' Z is''
       --is'''' = sort is'''
-  
+
       go :: N -> NonEmpty (a,b) -> NonEmpty (N,b)
       go n ((_,y) :| [])     = (n,y) :| []
       go n ((_,y) :| (i:is)) = (n,y) <| go (S n) (i :| is)
-  
+
       go' :: N -> NonEmpty (a,b) -> NonEmpty (a,N)
       go' n ((x,_) :| [])     = (x,n) :| []
       go' n ((x,_) :| (i:is)) = (x,n) <| go' (S n) (i :| is)
-  
+
       go'' :: NonEmpty (a,a) -> [(a,a)]
       go'' ((x1,x2) :| []) = [(x2,x1)]
       go'' ((x1,x2) :| (y:ys)) = (x2,x1) : go'' (y :| ys)

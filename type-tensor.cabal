@@ -52,7 +52,11 @@ library
     , mtl
     , hmatrix
   ghc-options:
+      -O2
       -fwarn-unused-imports
+      -fspecialise-aggressively
+      -fexpose-all-unfoldings
+      -fcross-module-specialise
   default-language: Haskell2010
 
 executable run
@@ -65,8 +69,12 @@ executable run
     , parallel
     , mtl
   ghc-options:
+    -O2
     -fwarn-unused-imports
     -fwarn-unused-binds
+    -fspecialise-aggressively
+    -fexpose-all-unfoldings
+    -fcross-module-specialise
     -threaded
     -rtsopts
     -with-rtsopts=-N
