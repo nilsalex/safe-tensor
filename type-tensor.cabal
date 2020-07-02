@@ -45,7 +45,7 @@ library
   build-depends:
       base >=4.7 && <5
     , sparse-tensor >= 0.3
-    , singletons >= 2.2
+    , singletons >= 2.5
     , constraints
     , containers
     , text
@@ -91,5 +91,4 @@ test-suite test-type-tensor
   main-is:           TestMain.hs
   other-modules:
   build-depends:     base >= 4.9 && < 5,
-                     mtl,
                      type-tensor
