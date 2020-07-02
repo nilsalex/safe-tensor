@@ -40,17 +40,17 @@ somePolyAns4 a p q = do
     a1_  <- (epq .*) =<< (eac .* ebd)
     a1   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 2 (fromIntegral (numerator v))
-                              else error "")) $ fmap contractT $ i .* a1_
+                              else error "somePolyAns4 not fraction-free!")) $ fmap contractT $ i .* a1_
 
     a2_  <- epq .* eps
     a2   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 3 (fromIntegral (numerator v))
-                              else error "")) $ fmap contractT $ i .* a2_
+                              else error "somePolyAns4 not fraction-free!")) $ fmap contractT $ i .* a2_
 
     a3_  <- (eac .*) =<< (dpd .* dqb)
     a3   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 4 (fromIntegral (numerator v))
-                              else error "")) $ fmap contractT $ i .* a3_
+                              else error "somePolyAns4 not fraction-free!")) $ fmap contractT $ i .* a3_
 
     (a1 .+) =<< (a2 .+ a3)
 

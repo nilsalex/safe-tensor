@@ -76,7 +76,7 @@ sym2AssocsFac sn = assocs
                            f <- Map.lookup v fm
                            return (a `VCons` (b `VCons` (i `VCons` VNil)), 1 / f :: v)) of
                         Just x -> x
-                        Nothing -> error "")
+                        Nothing -> error "sym2AssocsFac are not fraction-free, as they should be!")
              <$> [0..maxInd] <*> [0..maxInd]
 
     vec a b = min a b `VCons` (max a b `VCons` VNil)
@@ -394,7 +394,7 @@ someInterSym2Con vid dim m n a b = t
        let res = contractT $ fmap ((-2) *) product
        return $ fmap (\i -> if denominator i == 1
                             then fromIntegral (numerator i)
-                            else error "") res
+                            else error "someInterSym2Con is not fraction-free, as it should be!") res
 
 someInterSym2Cov :: Num v =>
                     Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
@@ -409,7 +409,7 @@ someInterSym2Cov vid dim m n a b = t
         let res = contractT $ fmap (2*) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
-                             else error "") res
+                             else error "someInterSym2Cov is not fraction-free, as it should be!") res
 
 someDeltaSym2 :: Num v => Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> T v
 someDeltaSym2 id n i j = someDelta (id <> "Sym2") ((n*(n+1)) `div` 2) i j

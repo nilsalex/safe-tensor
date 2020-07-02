@@ -54,6 +54,7 @@ library
   ghc-options:
       -O2
       -fwarn-unused-imports
+      -fwarn-incomplete-patterns
       -fspecialise-aggressively
       -fexpose-all-unfoldings
       -fcross-module-specialise
@@ -72,6 +73,7 @@ executable run
     -O2
     -fwarn-unused-imports
     -fwarn-unused-binds
+    -fwarn-incomplete-patterns
     -fspecialise-aggressively
     -fexpose-all-unfoldings
     -fcross-module-specialise

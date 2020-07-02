@@ -50,22 +50,24 @@ instance Functor (Tensor l) where
 unionWith :: (a -> b -> c) -> (a -> c) -> (b -> c) -> [(Int, a)] -> [(Int, b)] -> [(Int, c)]
 unionWith _ _ f [] ys = fmap (fmap f) ys
 unionWith _ f _ xs [] = fmap (fmap f) xs
-unionWith f g h xs@((ix,vx):xs') ys@((iy,vy):ys')
-    | ix == iy = (ix, f vx vy) : unionWith f g h xs' ys'
-    | ix <  iy = (ix, g vx) : unionWith f g h xs' ys
-    | ix >  iy = (iy, h vy) : unionWith f g h xs ys'
+unionWith f g h xs@((ix,vx):xs') ys@((iy,vy):ys') =
+  case ix `compare` iy of
+    LT -> (ix, g vx) : unionWith f g h xs' ys
+    EQ -> (ix, f vx vy) : unionWith f g h xs' ys'
+    GT -> (iy, h vy) : unionWith f g h xs ys'
 
 addLists :: (Num a, Eq a) => [(Int, a)] -> [(Int, a)] -> [(Int, a)]
 addLists [] ys = ys
 addLists xs [] = xs
-addLists xs@((ix,vx):xs') ys@((iy,vy):ys')
-    | ix == iy = let vz = vx + vy
-                     zs = addLists xs' ys' in
-                 if vz == 0
-                 then zs
-                 else (ix, vz) : zs
-    | ix < iy = (ix, vx) : addLists xs' ys
-    | ix > iy = (iy, vy) : addLists xs ys'
+addLists xs@((ix,vx):xs') ys@((iy,vy):ys') =
+  case ix `compare` iy of
+    LT -> (ix, vx) : addLists xs' ys
+    EQ -> let vz = vx + vy
+              zs = addLists xs' ys' in
+          if vz == 0
+          then zs
+          else (ix, vz) : zs
+    GT -> (iy, vy) : addLists xs ys'
 
 removeZeros :: (Num v, Eq v) => Tensor l v -> Tensor l v
 removeZeros ZeroTensor = ZeroTensor
@@ -94,6 +96,7 @@ removeZeros (Tensor ms) =
 (&+) (Tensor xs) (Tensor xs') = removeZeros $ Tensor xs''
     where
        xs'' = unionWith (&+) id id xs xs' 
+(&+) _ _ = error "Cannot add scalar and tensor! Should have been caught by the type system!"
 
 infixl 6 &+
 
@@ -134,15 +137,17 @@ mult sl sl' (Tensor ms) (Tensor ms') =
                             Sub Dict ->
                               case saneTail'Proof sl' of
                                 Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl st' (Tensor ms) t)) ms'
-                   SEQ -> case sIxCompare si si' of
-                            SLT -> case proofMergeIxLT sl sl' of
-                                     Sub Dict ->
-                                       case saneTail'Proof sl of
-                                         Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sl' t (Tensor ms'))) ms
-                            SGT -> case proofMergeIxGT sl sl' of
-                                     Sub Dict ->
-                                       case saneTail'Proof sl' of
-                                         Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl st' (Tensor ms) t)) ms'
+                   SEQ -> case proofMergeIxNotEQ sl sl' of
+                            Sub Dict ->
+                              case sIxCompare si si' of
+                                SLT -> case proofMergeIxLT sl sl' of
+                                         Sub Dict ->
+                                           case saneTail'Proof sl of
+                                             Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sl' t (Tensor ms'))) ms
+                                SGT -> case proofMergeIxGT sl sl' of
+                                         Sub Dict ->
+                                           case saneTail'Proof sl' of
+                                             Sub Dict -> Tensor $ fmap (fmap (\t -> mult sl st' (Tensor ms) t)) ms'
 mult sl sl' ZeroTensor ZeroTensor =
   case saneMergeILsProof sl sl' of
     Sub Dict -> ZeroTensor

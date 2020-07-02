@@ -84,7 +84,7 @@ someInterAreaJet2_2 id m n a b i q p = do
     fmap (fmap (\v -> let v' = 2*v in
                       if denominator v' == 1
                       then fromIntegral (numerator v')
-                      else error "")) $ i1' .+ i2
+                      else error "someInterAreaJet2_2 is not fraction-free, as it should be!")) $ i1' .+ i2
   where
     c :: T Rational = someInterAreaCon id m n a b
     dA = someDeltaArea id a b
@@ -111,7 +111,7 @@ someInterAreaJet2_3 id m n a b i p q = do
     res <- (t6 .+) =<< (t5 .+) =<< (t4 .+) =<< (t3 .+) =<< (t2 .+ t1)
     return $ fmap (\v -> if denominator v == 1
                          then fromIntegral (numerator v)
-                         else error "") res
+                         else error "someInterAreaJet2_3 is not fraction-free, as it should be!") res
   where
     c :: T Rational = someInterAreaCon id m n a b
 

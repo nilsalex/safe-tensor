@@ -22,7 +22,7 @@ equationFromRational (Affine x (Lin lin))
   where
     fac = IM.foldl' (\acc v -> lcm (fromIntegral (denominator v)) acc) 1 lin
     lin' = IM.map (\v -> fromIntegral (numerator (fromIntegral fac * v))) lin
-equationFromRational _ = error ""
+equationFromRational _ = error "equation can only be extracted from linear scalar!"
 
 equationsToSparseMat :: Integral a => [IM.IntMap a] -> [((Int,Int), a)]
 equationsToSparseMat xs = concat $ zipWith (\i m -> fmap (\(j,v) -> ((i,j),v)) (IM.assocs m)) [1..] xs
@@ -83,7 +83,7 @@ applySolution s p@(Affine x (Lin lin))
     | otherwise = error "affine equations not yet supported"
   where
     s' = IM.intersectionWith (\row v -> if v == 0
-                                        then error ""
+                                        then error "value 0 encountered in linear scalar"
                                         else polyMap (v*) row) s lin
     lin' = IM.difference lin s
     p0 = if IM.null lin'
@@ -101,6 +101,7 @@ applySolution s p@(Affine x (Lin lin))
                    _                    -> error "affine equations not yet supported")
              lin s'
     -}
+applySolution _ _ = error "only linear equations supported"
 
 solveTensor :: Solution -> T (Poly Rational) -> T (Poly Rational)
 solveTensor sol = removeZerosT . fmap (applySolution sol)

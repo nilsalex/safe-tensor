@@ -30,13 +30,12 @@ import qualified Data.List.NonEmpty as NE (NonEmpty(..),sort)
 import Control.Monad.Except
 
 permSign :: Num v => Ord a => [a] -> v
-permSign [] = 1
-permSign [_] = 1
 permSign (x:xs)
     | even (length defects) = permSign xs
     | odd (length defects)  = (-1) * permSign xs
   where
     defects = filter (<x) xs
+permSign _ = 1
 
 epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (l :: ILists) v.
               (

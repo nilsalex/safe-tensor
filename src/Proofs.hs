@@ -61,6 +61,19 @@ proofMergeLT _ _ = Sub axiom
              => Dict (MergeILs (Tail' l) l' ~ 'Just (Tail' l''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
+{-# INLINE proofMergeIxNotEQ #-}
+proofMergeIxNotEQ :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists).
+                     Sing l -> Sing l' ->
+                     (Sane l ~ 'True, Sane l' ~ 'True, MergeILs l l' ~ 'Just l'',
+                      Compare (Fst (Head' l)) (Fst (Head' l')) ~ 'EQ)
+                     :- ((IxCompare (Snd (Head' l)) (Snd (Head' l')) == 'EQ) ~ 'False)
+proofMergeIxNotEQ _ _ = Sub axiom
+  where
+    axiom :: (Sane l ~ 'True, Sane l' ~ 'True, MergeILs l l' ~ 'Just l'',
+             Compare (Fst (Head' l)) (Fst (Head' l')) ~ 'EQ)
+             => Dict ((IxCompare (Snd (Head' l)) (Snd (Head' l')) == 'EQ) ~ 'False)
+    axiom = unsafeCoerce (Dict :: Dict (a ~ a))
+
 {-# INLINE proofMergeIxLT #-}
 proofMergeIxLT :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists).
                   Sing l -> Sing l' ->

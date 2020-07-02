@@ -256,7 +256,7 @@ someInterAreaCon vid m n a b = t
         let res = contractT $ fmap (*(-4)) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
-                             else error "") res
+                             else error "someInterAreaCon is not fraction-free, as it should be!") res
 
 someInterAreaCov :: Num v =>
                     Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol ->
@@ -271,7 +271,7 @@ someInterAreaCov vid m n a b = t
         let res = contractT $ fmap (*4) product
         return $ fmap (\i -> if denominator i == 1
                              then fromIntegral (numerator i)
-                             else error "") res
+                             else error "someInterAreaCov is not fraction-free, as it should be!") res
 
 someDeltaArea :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> T v
 someDeltaArea id a b = someDelta (id <> "Area") 21 a b

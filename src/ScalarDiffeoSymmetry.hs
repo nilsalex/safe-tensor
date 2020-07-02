@@ -37,11 +37,11 @@ someScalarAns4 a = do
     a1_  <- eac .* ebd
     a1   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 2 (fromIntegral (numerator v))
-                              else error "")) $ fmap contractT $ i .* a1_
+                              else error "someScalarAns4 not fraction-free!")) $ fmap contractT $ i .* a1_
 
     a2   <- fmap (fmap (\v -> if denominator v == 1
                               then singletonPoly 0 3 (fromIntegral (numerator v))
-                              else error "")) $ fmap contractT $ i .* eps
+                              else error "someScalarAns4 not fraction-free!")) $ fmap contractT $ i .* eps
 
     a1 .+ a2
 

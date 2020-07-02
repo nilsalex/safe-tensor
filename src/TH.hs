@@ -49,8 +49,11 @@ $(singletons [d|
     (S n) + m = S $ n + m
 
     n - Z         = n
-    --_ - n         = error ""
+    Z - S n       = error "cannot subtract (S n) from Z!"
     (S n) - (S m) = n - m
+
+    negate Z = Z
+    negate _ = error "cannot negate (S n)!"
 
     Z * _ = Z
     (S n) * m = m + n * m
@@ -721,4 +724,5 @@ vecFromListUnsafe SZ [] = VNil
 vecFromListUnsafe (SS sn) (x:xs) =
     let xs' = vecFromListUnsafe sn xs
     in  x `VCons` xs'
+vecFromListUnsafe _ _ = error "cannot reconstruct vector from list: incompatible lengths"
 
