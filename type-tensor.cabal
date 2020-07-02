@@ -92,3 +92,10 @@ test-suite test-type-tensor
   other-modules:
   build-depends:     base >= 4.9 && < 5,
                      type-tensor
+  ghc-options:
+      -O2
+      -fwarn-unused-imports
+      -fwarn-incomplete-patterns
+      -fspecialise-aggressively
+      -fexpose-all-unfoldings
+      -fcross-module-specialise
