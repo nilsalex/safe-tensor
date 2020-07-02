@@ -45,7 +45,7 @@ library
   build-depends:
       base >=4.7 && <5
     , sparse-tensor >= 0.3
-    , singletons >= 2.6
+    , singletons >= 2.2
     , constraints
     , containers
     , text
