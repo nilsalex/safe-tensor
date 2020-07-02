@@ -1,18 +1,4 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Main where
-
-import Safe
-import Tensor
-import Basic
-import TH
-
-import Control.Monad
-import Control.Monad.Except
-import System.Exit
 
 main :: IO ()
 main = return ()
