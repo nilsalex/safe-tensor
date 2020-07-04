@@ -26,7 +26,23 @@ Stability   : experimental
 Dependently typed tensor algebra.
 -}
 -----------------------------------------------------------------------------
-module Tensor.Safe where
+module Tensor.Safe
+  ( -- * The 'Tensor' GADT
+    Tensor(..)
+  , -- * Conversion from and to lists
+   fromList
+  , fromList'
+  , toList
+  , -- * Tensor algebra
+    (&+), (&-), (&*), removeZeros
+  , -- * Contraction
+    contract
+  , -- * Transpositions
+    transpose
+  , transposeMult
+  , -- * Relabelling
+    relabel
+  ) where
 
 import Tensor.Safe.TH
 import Tensor.Safe.Proofs
@@ -44,12 +60,19 @@ import Data.Singletons.TypeLits
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
+-- |The 'Tensor' type is parameterized by its generalized rank @l@ and holds
+-- arbitrary values @v@.
 data Tensor :: ILists -> Type -> Type where
-    ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v
-    Scalar :: forall v. v -> Tensor '[] v
+    ZeroTensor :: forall (l :: ILists) v . Sane l ~ 'True => Tensor l v -- ^
+    -- A tensor of any sane rank type can be zero.
+    Scalar :: forall v. v -> Tensor '[] v -- ^
+    -- A tensor of empty rank is a scalar holding some value.
     Tensor :: forall (l :: ILists) (l' :: ILists) v.
               (Sane l ~ 'True, Tail' l ~ l') =>
-              [(Int, Tensor l' v)] -> Tensor l v
+              [(Int, Tensor l' v)] -> Tensor l v -- ^
+    -- A non-zero tensor of sane non-empty rank is represented as an assocs list of
+    -- component-value pairs. The keys must be unique and in ascending order.
+    -- The values are tensors of the next-lower rank.
 
 deriving instance Eq v => Eq (Tensor l v)
 deriving instance Show v => Show (Tensor l v)
@@ -59,6 +82,8 @@ instance Functor (Tensor l) where
   fmap f (Scalar s) = Scalar $ f s
   fmap f (Tensor ms) = Tensor $ fmap (fmap (fmap f)) ms
 
+-- |Union of assocs lists with a merging function if a component is present in both lists
+-- and two functions to treat components only present in either list.
 unionWith :: (a -> b -> c) -> (a -> c) -> (b -> c) -> [(Int, a)] -> [(Int, b)] -> [(Int, c)]
 unionWith _ _ f [] ys = fmap (fmap f) ys
 unionWith _ f _ xs [] = fmap (fmap f) xs
@@ -68,6 +93,7 @@ unionWith f g h xs@((ix,vx):xs') ys@((iy,vy):ys') =
     EQ -> (ix, f vx vy) : unionWith f g h xs' ys'
     GT -> (iy, h vy) : unionWith f g h xs ys'
 
+-- |Add two sorted assocs lists.
 addLists :: (Num a, Eq a) => [(Int, a)] -> [(Int, a)] -> [(Int, a)]
 addLists [] ys = ys
 addLists xs [] = xs
@@ -81,6 +107,8 @@ addLists xs@((ix,vx):xs') ys@((iy,vy):ys') =
           else (ix, vz) : zs
     GT -> (iy, vy) : addLists xs ys'
 
+-- |Given a 'Num' and 'Eq' instance, remove all zero values from the tensor,
+-- eventually replacing a zero @Scalar@ or an empty @Tensor@ with @ZeroTensor@.
 removeZeros :: (Num v, Eq v) => Tensor l v -> Tensor l v
 removeZeros ZeroTensor = ZeroTensor
 removeZeros (Scalar s) = if s == 0 then ZeroTensor else Scalar s
@@ -96,6 +124,8 @@ removeZeros (Tensor ms) =
           _          -> True) $
             fmap (fmap removeZeros) ms
 
+-- |Tensor addition. Ranks of summands and sum coincide.
+-- Zero values are removed from the result.
 (&+) :: forall (l :: ILists) (l' :: ILists) v.
         ((l ~ l'), Num v, Eq v) =>
         Tensor l v -> Tensor l' v -> Tensor l v
@@ -112,6 +142,8 @@ removeZeros (Tensor ms) =
 
 infixl 6 &+
 
+-- |Tensor subtraction. Ranks of operands and difference coincide.
+-- Zero values are removed from the result.
 (&-) :: forall (l :: ILists) (l' :: ILists) v.
         ((l ~ l'), Num v, Eq v) =>
         Tensor l v -> Tensor l' v -> Tensor l v
@@ -119,6 +151,7 @@ infixl 6 &+
 
 infixl 6 &-
 
+-- |Tensor multiplication, ranks of factors passed explicitly as singletons.
 mult :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
                (Num v, Just l'' ~ MergeILs l l') =>
                Sing l -> Sing l' -> Tensor l v -> Tensor l' v -> Tensor l'' v
@@ -176,6 +209,8 @@ mult sl sl' (Tensor _) ZeroTensor =
   case saneMergeILsProof sl sl' of
     Sub Dict -> ZeroTensor
 
+-- |Tensor multiplication. Ranks of factors must not overlap. The Product
+-- rank is the merged rank of the factors.
 (&*) :: forall (l :: ILists) (l' :: ILists) (l'' :: ILists) v.
                (Num v, Just l'' ~ MergeILs l l', SingI l, SingI l') =>
                Tensor l v -> Tensor l' v -> Tensor l'' v
@@ -246,11 +281,16 @@ contract'' sl t@(Tensor ms) =
                       case contractTailSameVNoConProof sl of
                         Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
 
+-- |Tensor contraction. Contracting a tensor is the identity function on non-contractible tensors.
+-- Otherwise, the result is the contracted tensor with the contracted labels removed from the rank.
 contract :: forall (l :: ILists) (l' :: ILists) v.
             (l' ~ ContractL l, SingI l, Num v, Eq v)
             => Tensor l v -> Tensor l' v
 contract = contract' (sing :: Sing l)
 
+-- |Tensor transposition. Given a vector space and two index labels, the result is a tensor with
+-- the corresponding entries swapped. Only possible if the indices are part of the rank. The
+-- rank remains untouched.
 transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (l :: ILists) v.
               (CanTranspose vs a b l ~ 'True, SingI l) =>
               Sing vs -> Sing a -> Sing b -> Tensor l v -> Tensor l v
@@ -283,6 +323,9 @@ transpose v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
+-- |Transposition of multiple labels. Given a vector space and a list of transpositions, the
+-- result is a tensor with the corresponding entries swapped. Only possible if the indices are
+-- part of the rank. The rank remains untouched.
 transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (l :: ILists) v.
                  (IsJust (Transpositions vs tl l) ~ 'True, SingI l) =>
                  Sing vs -> Sing tl -> Tensor l v -> Tensor l v
@@ -330,6 +373,9 @@ transposeMult sv stl t@(Tensor ms) =
       s' = toInt s
       t' = toInt t
 
+-- |Tensor relabelling. Given a vector space and a list of relabellings, the result is a tensor
+-- with the resulting rank after relabelling. Only possible if labels to be renamed are part of
+-- the rank and if uniqueness of labels after relabelling is preserved.
 relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelList) (l1 :: ILists) (l2 :: ILists) v.
                  (RelabelILs vs rl l1 ~ 'Just l2, Sane l2 ~ 'True, SingI l1, SingI l2) =>
                  Sing vs -> Sing rl -> Tensor l1 v -> Tensor l2 v
@@ -380,6 +426,7 @@ relabel sv srl t@(Tensor ms) =
       s' = toInt s
       t' = toInt t
 
+-- |Get assocs list from tensor. Keys are length-indexed vectors of indices.
 toList :: forall l v n.
           (SingI l, SingI n, LengthILs l ~ n) =>
           Tensor l v -> [(Vec n Int, v)]
@@ -427,6 +474,7 @@ fromList' sl xs =
       let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
       in fmap (\x -> (fst $ head x, fmap snd x)) ys'
 
+-- |Construct 'Tensor' from assocs list. Keys are length-indexed vectors of indices.
 fromList :: forall l v n.
             (SingI l, Sane l ~ True, LengthILs l ~ n) =>
             [(Vec n Int, v)] -> Tensor l v
@@ -434,6 +482,8 @@ fromList =
   let sl = sing :: Sing l
   in fromList' sl
 
+-- |Decompose tensor into assocs list with keys being lists of indices for the first vector space
+-- and values being the tensors with lower rank for the remaining vector spaces.
 toTListWhile :: forall l v.
                 (SingI l, Sane l ~ True) =>
                 Tensor l v -> [([Int], Tensor (Tail l) v)]
@@ -452,6 +502,8 @@ toTListWhile (Tensor ms) =
                  let ms' = fmap (second toTListWhile) ms
                  in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
 
+-- |Decompose tensor into assocs list with keys being lists of indices up to and including the
+-- desired label, and values being tensors of corresponding lower rank.
 toTListUntil :: forall (a :: Ix Symbol) l l' v.
                 (SingI l, SingI l', RemoveUntil a l ~ l', Sane l ~ True, Sane l' ~ True) =>
                 Sing a -> Tensor l v -> [([Int], Tensor l' v)]
@@ -472,6 +524,8 @@ toTListUntil sa (Tensor ms) =
                    let ms' = fmap (second (toTListUntil sa)) ms
                    in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
 
+-- |Construct tensor from assocs list. Keys are lists of indices, values are
+-- tensors of lower rank. Used internally for tensor algebra.
 fromTList :: forall l l' v.(Sane l ~ True, Sane l' ~ True, SingI l, SingI l') =>
                            [([Int], Tensor l v)] -> Tensor l' v
 fromTList [] = ZeroTensor

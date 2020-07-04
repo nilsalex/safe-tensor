@@ -26,7 +26,26 @@ Stability   : experimental
 Identities for functions on generalized tensor ranks.
 -}
 -----------------------------------------------------------------------------
-module Tensor.Safe.Proofs where
+module Tensor.Safe.Proofs
+  ( -- * Tails of sane ranks are sane
+    saneTail'Proof
+  , singITail'Proof
+  , -- * Properties of merged ranks
+    saneMergeILsProof
+  , proofMergeLT
+  , proofMergeGT
+  , proofMergeIxNotEQ
+  , proofMergeIxLT
+  , proofMergeIxGT
+  , -- * Properties of contractions
+    saneContractProof
+  , singletonContractProof
+  , contractTailDiffVProof
+  , contractTailSameVNoConProof
+  , contractTailSameVNoCovProof
+  , contractTailSameVDiffIProof
+  , contractTailSameVSameIProof
+  ) where
 
 import Tensor.Safe.TH
 
