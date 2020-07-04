@@ -272,7 +272,7 @@ $(singletons [d|
   lengthILs [] = Z
   lengthILs ((_,x):xs) = lengthIL x + lengthILs xs
 
-  sane :: ILists -> Bool
+  sane :: (Ord a, Ord b) => [(VSpace a b, IList a)] -> Bool
   sane [] = True
   sane [(_, is)] = isAscendingI is
   sane ((v, is):(v', is'):xs) =

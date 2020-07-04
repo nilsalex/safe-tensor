@@ -214,3 +214,22 @@ fromListT ils xs =
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs
 
+type GenRank = Demote ILists
+
+saneRank :: MonadError String m => GenRank -> m GenRank
+saneRank r
+    | sane r = pure r
+    | otherwise = throwError "Index lists must be strictly ascending."
+
+conRank :: (MonadError String m, Integral a) => Label -> a -> [Label] -> m GenRank
+conRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
+conRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Con (i :| is))]
+
+covRank :: (MonadError String m, Integral a) => Label -> a -> [Label] -> m GenRank
+covRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
+covRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Cov (i :| is))]
+
+conCovRank :: (MonadError String m, Integral a) => Label -> a -> [Label] -> [Label] -> m GenRank
+conCovRank _ _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
+conCovRank _ _ [] _ = throwError "Generalized rank must have non-vanishing index list!"
+conCovRank v d (i:is) (j:js) = saneRank $ [(VSpace v (fromIntegral d), ConCov (i :| is) (j :| js))]
