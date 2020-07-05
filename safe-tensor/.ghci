@@ -1,0 +1,1 @@
+:set -XDataKinds -XDefaultSignatures -XEmptyCase -XExistentialQuantification -XFlexibleContexts -XFlexibleInstances -XGADTs -XInstanceSigs -XKindSignatures -XNoStarIsType -XPolyKinds -XRankNTypes -XScopedTypeVariables -XTemplateHaskell -XTypeApplications -XTypeFamilies -XTypeOperators -XUndecidableInstances -XStandaloneDeriving -XOverloadedStrings 
