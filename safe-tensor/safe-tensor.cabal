@@ -4,11 +4,11 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9d3eb8f0d98db716645865b8160435e65e98576772ccd54b24b748b3c9d19a5b
+-- hash: fda0ef04f374236daade6385e1a01eb4d5a8c16e6514cac1a50679f6d6035881
 
 name:           safe-tensor
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/safe-tensor#readme>
+description:    Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
 homepage:       https://github.com/nilsalex/safe-tensor#readme
 bug-reports:    https://github.com/nilsalex/safe-tensor/issues
 author:         Nils Alex
