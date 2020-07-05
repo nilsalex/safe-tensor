@@ -22,7 +22,7 @@ description:         Please see the README on GitHub at <https://github.com/nils
 dependencies:
 - base >=4.7 && <5
 - singletons >=2.5 && <2.8
-- constraints >=0.12 && <0.13
+- constraints >=0.10 && <0.13
 - mtl >=2.2 && <2.3
 
 library:
