@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e99e3c2bd0b778e94c982427901e4c132098ea787463e05c849afe2c6df01405
+-- hash: 87a826ea9029f2367c00dbd388f4ae8d51a0ff8edb03c6466d8df1e4a1761c7e
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -28,16 +28,28 @@ source-repository head
 library
   exposed-modules:
       Math.Tensor
+      Math.Tensor.Basic
+      Math.Tensor.Basic.Area
+      Math.Tensor.Basic.Delta
+      Math.Tensor.Basic.Epsilon
+      Math.Tensor.Basic.Sym2
+      Math.Tensor.Basic.TH
+      Math.Tensor.LinearAlgebra
+      Math.Tensor.LinearAlgebra.Equations
+      Math.Tensor.LinearAlgebra.Matrix
+      Math.Tensor.LinearAlgebra.Scalar
       Math.Tensor.Safe
-  other-modules:
       Math.Tensor.Safe.Proofs
       Math.Tensor.Safe.TH
+  other-modules:
       Paths_safe_tensor
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
     , constraints >=0.10 && <0.13
+    , containers >=0.6 && <0.7
+    , hmatrix
     , mtl >=2.2 && <2.3
     , singletons >=2.5 && <2.8
   if impl(ghc >=8.10)

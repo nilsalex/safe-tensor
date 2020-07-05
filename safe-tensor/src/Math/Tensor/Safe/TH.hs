@@ -568,7 +568,6 @@ $(singletons [d|
       go'' :: NonEmpty (a,a) -> [(a,a)]
       go'' ((x1,x2) :| []) = [(x2,x1)]
       go'' ((x1,x2) :| (y:ys)) = (x2,x1) : go'' (y :| ys)
-  
   |])
 
 toInt :: N -> Int
