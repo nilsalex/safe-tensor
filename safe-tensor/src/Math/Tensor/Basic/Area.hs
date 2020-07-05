@@ -26,7 +26,23 @@ Definitions of area-symmetric tensors.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Basic.Area
-  (
+  ( trianMapArea
+  , facMapArea
+  , areaSign
+  , sortArea
+  , injAreaCon'
+  , injAreaCov'
+  , surjAreaCon'
+  , surjAreaCov'
+  , flatAreaCon
+  , someInjAreaCon
+  , someInjAreaCov
+  , someSurjAreaCon
+  , someSurjAreaCov
+  , someInterAreaCon
+  , someInterAreaCov
+  , someDeltaArea
+  , someFlatAreaCon
   ) where
 
 import Math.Tensor
