@@ -49,6 +49,10 @@ module Math.Tensor
   , transposeT
   , transposeMultT
   , relabelT
+  , -- * Constructing ranks
+    conRank
+  , covRank
+  , conCovRank
   ) where
 
 import Math.Tensor.Safe
@@ -175,7 +179,7 @@ contractT o =
 -- |Tensor transposition. Returns an error if given indices cannot be transposed.
 -- Wraps around 'transpose'.
 transposeT :: MonadError String m =>
-              Demote (VSpace Symbol N) -> Demote (Ix Symbol) -> Demote (Ix Symbol) ->
+              Demote (VSpace Symbol Nat) -> Demote (Ix Symbol) -> Demote (Ix Symbol) ->
               T v -> m (T v)
 transposeT v ia ib o = 
   case o of
@@ -192,7 +196,7 @@ transposeT v ia ib o =
 -- |Transposition of multiple indices. Returns an error if given indices cannot be transposed.
 -- Wraps around 'transposeMult'.
 transposeMultT :: MonadError String m =>
-                  Demote (VSpace Symbol N) -> Demote [(Symbol,Symbol)] -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
+                  Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
 transposeMultT _ [] [] _ = throwError $ "Empty lists for transpositions!"
 transposeMultT v (con:cons) [] o =
   case o of
@@ -223,7 +227,7 @@ transposeMultT _ _ _ _ = throwError $ "Simultaneous transposition of contravaria
 -- |Relabelling of tensor indices. Returns an error if given relabellings are not allowed.
 -- Wraps around 'relabel'.
 relabelT :: MonadError String m =>
-            Demote (VSpace Symbol N) -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
+            Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
 relabelT _ [] _ = throwError $ "Empty list for relabelling!"
 relabelT v (r:rs) o =
   case o of
@@ -271,21 +275,28 @@ fromListT r xs =
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs
 
+-- |Lifts sanity check of ranks into the error monad.
 saneRank :: (Ord s, Ord n, MonadError String m) => GRank s n -> m (GRank s n)
 saneRank r
     | sane r = pure r
     | otherwise = throwError "Index lists must be strictly ascending."
 
+-- |Creates contravariant rank from vector space labe, vector space dimension,
+-- and list of index labels. Returns an error for illegal ranks.
 conRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
            s -> a -> [s] -> m (GRank s n)
 conRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
 conRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Con (i :| is))]
 
+-- |Creates covariant rank from vector space labe, vector space dimension,
+-- and list of index labels. Returns an error for illegal ranks.
 covRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
            s -> a -> [s] -> m (GRank s n)
 covRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
 covRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Cov (i :| is))]
 
+-- |Creates mixed rank from vector space label, vector space dimension,
+-- and lists of index labels. Returns an error for illegal ranks.
 conCovRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
               s -> a -> [s] -> [s] -> m (GRank s n)
 conCovRank _ _ _ [] = throwError "Generalized rank must have non-vanishing index list!"

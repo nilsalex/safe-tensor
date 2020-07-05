@@ -116,7 +116,7 @@ $(singletons [d|
                  deriving (Show, Ord, Eq)
   
   type GRank s n = [(VSpace s n, IList s)]
-  type Rank = GRank Symbol N
+  type Rank = GRank Symbol Nat
   
   isAscending :: Ord a => [a] -> Bool
   isAscending [] = True

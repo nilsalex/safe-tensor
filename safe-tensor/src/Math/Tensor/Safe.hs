@@ -32,12 +32,12 @@ module Math.Tensor.Safe
     -- * Generic Rank of a Tensor
     -- |A vector space is the product of a label and a dimension.
   , VSpace(..)
-    -- |Type-level naturals used for representing vector space dimensions.
-  , N(..)
+--    -- |Type-level naturals used for representing vector space dimensions.
+--  , N(..)
     -- |The generic tensor rank is a list of vector spaces with label, dimension and
     -- associated index list.
   , GRank
-    -- |The rank of a tensor is a generic rank specialized to 'Symbol' and 'N'
+    -- |The rank of a tensor is a generic rank specialized to 'Symbol' and 'Nat'
   , Rank
   , -- * Conversion from and to lists
     fromList
@@ -301,7 +301,7 @@ contract = contract' (sing :: Sing r)
 -- |Tensor transposition. Given a vector space and two index labels, the result is a tensor with
 -- the corresponding entries swapped. Only possible if the indices are part of the rank. The
 -- rank remains untouched.
-transpose :: forall (vs :: VSpace Symbol N) (a :: Ix Symbol) (b :: Ix Symbol) (r :: Rank) v.
+transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (r :: Rank) v.
               (CanTranspose vs a b r ~ 'True, SingI r) =>
               Sing vs -> Sing a -> Sing b -> Tensor r v -> Tensor r v
 transpose _ _ _ ZeroTensor = ZeroTensor
@@ -336,7 +336,7 @@ transpose v a b t@(Tensor ms) =
 -- |Transposition of multiple labels. Given a vector space and a list of transpositions, the
 -- result is a tensor with the corresponding entries swapped. Only possible if the indices are
 -- part of the rank. The rank remains untouched.
-transposeMult :: forall (vs :: VSpace Symbol N) (tl :: TransList Symbol) (r :: Rank) v.
+transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (r :: Rank) v.
                  (IsJust (Transpositions vs tl r) ~ 'True, SingI r) =>
                  Sing vs -> Sing tl -> Tensor r v -> Tensor r v
 transposeMult _ _ ZeroTensor = ZeroTensor
@@ -386,7 +386,7 @@ transposeMult sv stl t@(Tensor ms) =
 -- |Tensor relabelling. Given a vector space and a list of relabellings, the result is a tensor
 -- with the resulting rank after relabelling. Only possible if labels to be renamed are part of
 -- the rank and if uniqueness of labels after relabelling is preserved.
-relabel :: forall (vs :: VSpace Symbol N) (rl :: RelabelList Symbol) (r1 :: Rank) (r2 :: Rank) v.
+relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelList Symbol) (r1 :: Rank) (r2 :: Rank) v.
                  (RelabelR vs rl r1 ~ 'Just r2, Sane r2 ~ 'True, SingI r1, SingI r2) =>
                  Sing vs -> Sing rl -> Tensor r1 v -> Tensor r2 v
 relabel _ _ ZeroTensor = ZeroTensor
