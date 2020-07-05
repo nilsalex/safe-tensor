@@ -1,0 +1,45 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: e99e3c2bd0b778e94c982427901e4c132098ea787463e05c849afe2c6df01405
+
+name:           safe-tensor
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
+homepage:       https://github.com/nilsalex/safe-tensor#readme
+bug-reports:    https://github.com/nilsalex/safe-tensor/issues
+author:         Nils Alex
+maintainer:     nils.alex@fau.de
+copyright:      2020 Nils Alex
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/nilsalex/safe-tensor
+
+library
+  exposed-modules:
+      Math.Tensor
+      Math.Tensor.Safe
+  other-modules:
+      Math.Tensor.Safe.Proofs
+      Math.Tensor.Safe.TH
+      Paths_safe_tensor
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , constraints >=0.10 && <0.13
+    , mtl >=2.2 && <2.3
+    , singletons >=2.5 && <2.8
+  if impl(ghc >=8.10)
+    default-extensions: StandaloneKindSignatures
+  default-language: Haskell2010
