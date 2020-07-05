@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c0835478d150730aa7f11034dd223fdbbec82ee0c945855a5758f0c014bd1fda
+-- hash: e863baf9dee356af6e54f651002273c1e53117e757a8499117d80e379fa9445d
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -27,9 +27,10 @@ source-repository head
 
 library
   exposed-modules:
-      Tensor.Safe
-      Tensor.Safe.Proofs
-      Tensor.Safe.TH
+      Math.Tensor
+      Math.Tensor.Safe
+      Math.Tensor.Safe.Proofs
+      Math.Tensor.Safe.TH
   other-modules:
       Paths_safe_tensor
   hs-source-dirs:
@@ -37,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , constraints
+    , mtl
     , singletons
   if impl(ghc >=8.10)
     default-extensions: StandaloneKindSignatures
