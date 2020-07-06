@@ -1,45 +1,29 @@
 name:                example
 version:             0.1.0.0
-github:              "githubuser/example"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+github:              "nilsalex/safe-tensor"
+license:             MIT
+author:              "Nils Alex"
+maintainer:          "nils.alex@fau.de"
+copyright:           "2020 Nils Alex"
 
 extra-source-files:
 - README.md
-- ChangeLog.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/example#readme>
+description:         Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+- base >=4.7 && <5
+- safe-tensor >=0.1 && <0.2
+- safe-tensor-sparse-tensor-compat >=0.1 && <0.2
+- mtl >=2.2 && <2.3
 
 library:
   source-dirs: src
 
 executables:
-  example-exe:
+  run:
     main:                Main.hs
     source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - example
-
-tests:
-  example-test:
-    main:                Spec.hs
-    source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts
