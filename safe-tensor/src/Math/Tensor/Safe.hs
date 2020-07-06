@@ -32,8 +32,11 @@ module Math.Tensor.Safe
     -- * Generic Rank of a Tensor
     -- |A vector space is the product of a label and a dimension.
   , VSpace(..)
---    -- |Type-level naturals used for representing vector space dimensions.
---  , N(..)
+    -- |Type-level naturals used internally.
+  , N(..)
+  , -- |Length-typed vector used internally.
+    Vec(..)
+  , vecFromListUnsafe
     -- |The generic tensor rank is a list of vector spaces with label, dimension and
     -- associated index list.
   , GRank
@@ -56,6 +59,7 @@ module Math.Tensor.Safe
 
 import Math.Tensor.Safe.TH
 import Math.Tensor.Safe.Proofs
+import Math.Tensor.Safe.Vector
 
 import Data.Kind (Type)
 

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 87a826ea9029f2367c00dbd388f4ae8d51a0ff8edb03c6466d8df1e4a1761c7e
+-- hash: d6dc49af01166021bb4f734572917733a1220d30434d4f8240de557c95edc98b
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -41,6 +41,7 @@ library
       Math.Tensor.Safe
       Math.Tensor.Safe.Proofs
       Math.Tensor.Safe.TH
+      Math.Tensor.Safe.Vector
   other-modules:
       Paths_safe_tensor
   hs-source-dirs:

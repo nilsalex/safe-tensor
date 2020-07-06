@@ -45,11 +45,15 @@ import Data.Singletons.TypeLits
 import Data.List.NonEmpty (NonEmpty((:|)),sort,sortBy,(<|))
 
 $(singletons [d|
---  -- |Natural numbers as GADT.
   data N where
       Z :: N
       S :: N -> N
-  
+
+  fromNat :: Nat -> N
+  fromNat n = case n == 0 of
+                True -> Z
+                False -> S $ fromNat (pred n)
+
   deriving instance Show N
   deriving instance Eq N
   instance Ord N where
@@ -57,7 +61,6 @@ $(singletons [d|
     (S n) <= Z     = False
     (S n) <= (S m) = n <= m
   
---  -- |'Num' instance for Naturals is only partial!
   instance Num N where
     Z + n = n
     (S n) + m = S $ n + m
@@ -79,25 +82,12 @@ $(singletons [d|
       | n == 0 = Z
       | otherwise = S $ fromInteger (n-1)
   
---  -- |Convert 'Data.Singletons.TypeLits.Nat' to 'N'.
-  fromNat :: Nat -> N
-  fromNat n = case n == 0 of
-                True -> Z
-                False -> S $ fromNat (pred n)
-  
---  -- |Vector space labelled by id 'vId' and dimension 'vDim'.
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
                     deriving (Show, Ord, Eq)
   
---  -- |Contravariant (upper) or covariant (lower) index label.
   data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq)
   
-    {-
-    -- |Comparison of index labels. Not implemented as 'Ord' instance
-    -- because it deviates from the usual 'Ord' instance for sum types.
-    -- The rules are: 
-    -}
   ixCompare :: Ord a => Ix a -> Ix a -> Ordering
   ixCompare (ICon a) (ICon b) = compare a b
   ixCompare (ICon a) (ICov b) = case compare a b of
@@ -569,33 +559,7 @@ $(singletons [d|
       go'' ((x1,x2) :| []) = [(x2,x1)]
       go'' ((x1,x2) :| (y:ys)) = (x2,x1) : go'' (y :| ys)
   |])
-
+  
 toInt :: N -> Int
 toInt Z = 0
 toInt (S n) = 1 + toInt n
-
-data Vec :: N -> Type -> Type where
-    VNil :: Vec Z a
-    VCons :: a -> Vec n a -> Vec (S n) a
-
-deriving instance Show a => Show (Vec n a)
-
-instance Eq a => Eq (Vec n a) where
-  VNil           == VNil           = True
-  (x `VCons` xs) == (y `VCons` ys) = x == y && xs == ys
-
-instance Ord a => Ord (Vec n a) where
-  VNil `compare` VNil = EQ
-  (x `VCons` xs) `compare` (y `VCons` ys) =
-    case x `compare` y of
-      LT -> LT
-      EQ -> xs `compare` ys
-      GT -> GT
-
-vecFromListUnsafe :: forall (n :: N) a.
-                     Sing n -> [a] -> Vec n a
-vecFromListUnsafe SZ [] = VNil
-vecFromListUnsafe (SS sn) (x:xs) =
-    let xs' = vecFromListUnsafe sn xs
-    in  x `VCons` xs'
-vecFromListUnsafe _ _ = error "cannot reconstruct vector from list: incompatible lengths"
