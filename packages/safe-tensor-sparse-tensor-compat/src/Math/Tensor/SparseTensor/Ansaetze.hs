@@ -15,6 +15,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 
+-----------------------------------------------------------------------------
+{-|
+Module      : Math.Tensor.SparseTensor.Ansaetze
+Description : Ansaetze from the sparse-tensor package.
+Copyright   : (c) Nils Alex, 2020
+License     : MIT
+Maintainer  : nils.alex@fau.de
+Stability   : experimental
+
+Ansaetze from the @sparse-tensor@ module 'Math.Tensor.LorentzGenerator',
+converted and exported for usage with @safe-tensor@.
+-}
+-----------------------------------------------------------------------------
 module Math.Tensor.SparseTensor.Ansaetze
   ( ans4
   , ans6
