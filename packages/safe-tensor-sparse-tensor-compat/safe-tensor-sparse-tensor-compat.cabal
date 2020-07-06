@@ -1,0 +1,44 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: e0d1636044e0aa1980f340f4d2b80bf650d666781e054803d6b30f32938d2bce
+
+name:           safe-tensor-sparse-tensor-compat
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor/packages/safe-tensor-sparse-tensor-compat#readme>
+homepage:       https://github.com/nilsalex/safe-tensor#readme
+bug-reports:    https://github.com/nilsalex/safe-tensor/issues
+author:         Nils Alex
+maintainer:     nils.alex@fau.de
+copyright:      2020 Nils Alex
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/nilsalex/safe-tensor
+
+library
+  exposed-modules:
+      Math.Tensor.SparseTensor.Ansaetze
+      Math.Tensor.SparseTensor.Ansaetze.TH
+  other-modules:
+      Paths_safe_tensor_sparse_tensor_compat
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , containers >=0.6 && <0.7
+    , mtl >=2.2 && <2.3
+    , safe-tensor >=0.1 && <0.2
+    , singletons >=2.5 && <2.8
+    , sparse-tensor >=0.3 && <0.4
+  if impl(ghc >=8.10)
+    default-extensions: StandaloneKindSignatures
+  default-language: Haskell2010
