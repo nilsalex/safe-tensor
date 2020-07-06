@@ -1,1 +1,0 @@
-# safe-tensor-compat
