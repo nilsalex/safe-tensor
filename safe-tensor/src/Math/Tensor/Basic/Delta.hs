@@ -21,11 +21,13 @@ License     : MIT
 Maintainer  : nils.alex@fau.de
 Stability   : experimental
 
-Definitions of Kronecker deltas.
+Definitions of Kronecker deltas \(\delta^{a}_{\hphantom ab}\)
+(identity automorphisms) for arbitrary vector spaces.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Basic.Delta
-  ( delta
+  ( -- * Kronecker delta
+    delta
   , delta'
   , someDelta
   ) where

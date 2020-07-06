@@ -7,12 +7,19 @@ License     : MIT
 Maintainer  : nils.alex@fau.de
 Stability   : experimental
 
-Definitions of basic tensors.
+Definitions of basic tensors, re-exported for convenience.
 -}
 -----------------------------------------------------------------------------
 
 module Math.Tensor.Basic
-  (
+  ( -- * Kronecker delta
+    module Math.Tensor.Basic.Delta
+  , -- * Epsilon tensor densities
+    module Math.Tensor.Basic.Epsilon
+  , -- * Symmetric tensors
+    module Math.Tensor.Basic.Sym2
+  , -- * Area-symmetric tensors
+    module Math.Tensor.Basic.Area
   ) where
 
 import Math.Tensor.Basic.Delta

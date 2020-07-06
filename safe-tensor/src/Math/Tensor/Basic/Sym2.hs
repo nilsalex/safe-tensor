@@ -26,7 +26,40 @@ Definitions of symmetric tensors.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Basic.Sym2
-  (
+  ( -- * Flat positive-definite metric
+    gamma
+  , gamma'
+  , someGamma
+  , gammaInv
+  , gammaInv'
+  , someGammaInv
+  , -- * Flat Lorentzian metric
+    eta
+  , eta'
+  , someEta
+  , etaInv
+  , etaInv'
+  , someEtaInv
+  ,  -- * Injections from \(S^2V\) into \(V\times V\)
+    injSym2Con'
+  , injSym2Cov'
+  , someInjSym2Con
+  , someInjSym2Cov
+  , -- * Surjections from \(V\times V\) onto \(S^2V\)
+    surjSym2Con'
+  , surjSym2Cov'
+  , someSurjSym2Con
+  , someSurjSym2Cov
+  , -- * Vertical coefficients for functions on \(S^2V\)
+    someInterSym2Con
+  , someInterSym2Cov
+  , -- * Kronecker delta on \(S^2V\)
+    someDeltaSym2
+  , -- * Internals
+    trianMapSym2
+  , facMapSym2
+  , sym2Assocs 
+  , sym2AssocsFac
   ) where
 
 import Math.Tensor

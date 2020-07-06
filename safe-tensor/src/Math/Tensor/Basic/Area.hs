@@ -26,23 +26,29 @@ Definitions of area-symmetric tensors.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Basic.Area
-  ( trianMapArea
+  ( -- * Area metric tensor induced from flat Lorentzian metric
+    flatAreaCon
+  , someFlatAreaCon
+  ,  -- * Injections from \(AS(V)\) into \(V\times V\times V\times V\)
+    injAreaCon'
+  , injAreaCov'
+  , someInjAreaCon
+  , someInjAreaCov
+  , -- * Surjections from \(V\times V\times V\times V\) onto \(AS(V)\)
+    surjAreaCon'
+  , surjAreaCov'
+  , someSurjAreaCon
+  , someSurjAreaCov
+  , -- * Vertical coefficients for functions on \(AS(V)\)
+    someInterAreaCon
+  , someInterAreaCov
+  , -- * Kronecker delta on \(AS(V)\)
+    someDeltaArea
+  , -- * Internals
+    trianMapArea
   , facMapArea
   , areaSign
   , sortArea
-  , injAreaCon'
-  , injAreaCov'
-  , surjAreaCon'
-  , surjAreaCov'
-  , flatAreaCon
-  , someInjAreaCon
-  , someInjAreaCov
-  , someSurjAreaCon
-  , someSurjAreaCov
-  , someInterAreaCon
-  , someInterAreaCov
-  , someDeltaArea
-  , someFlatAreaCon
   ) where
 
 import Math.Tensor

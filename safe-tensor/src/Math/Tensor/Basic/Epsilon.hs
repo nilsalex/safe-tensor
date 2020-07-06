@@ -16,21 +16,24 @@
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Epsilon
-Description : Definitions of epsilon tensors.
+Description : Definitions of epsilon tensor densities.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
 Stability   : experimental
 
-Definitions of epsilon tensors.
+Definitions of covariant and contravariant epsilon tensor densities
+like \(\epsilon_{abc}\).
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Basic.Epsilon
-  ( permSign
-  , epsilon'
+  ( -- * Epsilon tensor densities
+    epsilon'
   , someEpsilon
   , epsilonInv'
   , someEpsilonInv
+  , -- * Internals
+    permSign
   ) where
 
 import Math.Tensor
@@ -62,9 +65,13 @@ permSign (x:xs)
     defects = filter (<x) xs
 permSign _ = 1
 
--- |Epsilon tensor \(\epsilon_{i_1i_2i_3\dots i_n}\) for a given
--- @'VSpace' id n@ and list of covariant index labels @is@. Labels
--- and dimension are passed as singletons.
+-- |Totally antisymmetric covariant tensor density of weight -1
+-- such that
+--
+-- \[ \epsilon_{12\dots n} = 1. \]
+--
+-- Vector space label, vector space dimension and index labels
+-- are passed as singletons.
 epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (r :: Rank) v.
               (
                KnownNat n,
@@ -85,9 +92,13 @@ epsilon' sid sn sis =
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
--- |Epsilon tensor \(\epsilon^{i_1i_2i_3\dots i_n}\) for a given
--- @'VSpace' id n@ and list of contravariant index labels @is@. Labels
--- and dimension are passed as singletons.
+-- |Totally antisymmetric contravariant tensor density of weight +1
+-- such that
+--
+-- \[ \epsilon^{12\dots n} = 1. \]
+--
+-- Vector space label, vector space dimension and index labels
+-- are passed as singletons.
 epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (r :: Rank) v.
               (
                KnownNat n,
@@ -108,10 +119,13 @@ epsilonInv' sid sn sis =
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
     xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
 
--- |Epsilon tensor \(\epsilon_{i_1i_2i_3\dots i_n}\) for a given
--- @'VSpace' id n@ and list of covariant index labels @is@. Labels
--- and dimension are passed as values. Result is existentially
--- quantified.
+-- |Totally antisymmetric covariant tensor density of weight -1
+-- such that
+--
+-- \[ \epsilon_{12\dots n} = 1. \]
+--
+-- Vector space label, vector space dimension and index labels
+-- are passed as values. Result is existentially quantified.
 someEpsilon :: forall v m.(Num v, MonadError String m) =>
                Demote Symbol -> Demote Nat -> [Demote Symbol] ->
                m (T v)
@@ -128,10 +142,13 @@ someEpsilon vid vdim (i:is) =
          return $ T $ (* sign) <$> epsilon' svid svdim sis
        SNothing -> throwError $ "Illegal index list " ++ show (i:is) ++ "!"
 
--- |Epsilon tensor \(\epsilon^{i_1i_2i_3\dots i_n}\) for a given
--- @'VSpace' id n@ and list of contravariant index labels @is@. Labels
--- and dimension are passed as values. Result is existentially
--- quantified.
+-- |Totally antisymmetric contravariant tensor density of weight +1
+-- such that
+--
+-- \[ \epsilon^{12\dots n} = 1. \]
+--
+-- Vector space label, vector space dimension and index labels
+-- are passed as values. Result is existentially quantified.
 someEpsilonInv :: forall v m.(Num v, MonadError String m) =>
                   Demote Symbol -> Demote Nat -> [Demote Symbol] ->
                   m (T v)
