@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
@@ -460,4 +459,4 @@ someInterSym2Cov vid dim m n a b = t
                              else error "someInterSym2Cov is not fraction-free, as it should be!") res
 
 someDeltaSym2 :: Num v => Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> T v
-someDeltaSym2 id n i j = someDelta (id <> "Sym2") ((n*(n+1)) `div` 2) i j
+someDeltaSym2 id n = someDelta (id <> "Sym2") ((n*(n+1)) `div` 2)

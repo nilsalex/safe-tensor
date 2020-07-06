@@ -3,13 +3,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -198,13 +196,13 @@ transposeT v ia ib o =
 -- Wraps around 'transposeMult'.
 transposeMultT :: MonadError String m =>
                   Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
-transposeMultT _ [] [] _ = throwError $ "Empty lists for transpositions!"
+transposeMultT _ [] [] _ = throwError "Empty lists for transpositions!"
 transposeMultT v (con:cons) [] o =
   case o of
     T (t :: Tensor r v) ->
       let sr = sing :: Sing r
           cons' = sort $ con :| cons
-          tr = (\xs ys -> TransCon xs ys) (fmap fst cons') (fmap snd cons')
+          tr = TransCon (fmap fst cons') (fmap snd cons')
       in withSingI sr $
          withSomeSing v $ \sv ->
          withSomeSing tr $ \str ->
@@ -216,20 +214,20 @@ transposeMultT v [] (cov:covs) o =
     T (t :: Tensor r v) ->
       let sr = sing :: Sing r
           covs' = sort $ cov :| covs
-          tr = (\xs ys -> TransCov xs ys) (fmap fst covs') (fmap snd covs')
+          tr = TransCov (fmap fst covs') (fmap snd covs')
       in withSingI sr $
          withSomeSing v $ \sv ->
          withSomeSing tr $ \str ->
          case sIsJust (sTranspositions sv str sr) %~ STrue of
            Proved Refl -> return $ T $ transposeMult sv str t
            Disproved _ -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show tr ++ "!"
-transposeMultT _ _ _ _ = throwError $ "Simultaneous transposition of contravariant and covariant indices not yet supported!"
+transposeMultT _ _ _ _ = throwError "Simultaneous transposition of contravariant and covariant indices not yet supported!"
 
 -- |Relabelling of tensor indices. Returns an error if given relabellings are not allowed.
 -- Wraps around 'relabel'.
 relabelT :: MonadError String m =>
             Demote (VSpace Symbol Nat) -> Demote [(Symbol,Symbol)] -> T v -> m (T v)
-relabelT _ [] _ = throwError $ "Empty list for relabelling!"
+relabelT _ [] _ = throwError "Empty list for relabelling!"
 relabelT v (r:rs) o =
   case o of
     T (t :: Tensor r v) ->
@@ -292,14 +290,14 @@ saneRank r
 conRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
            s -> a -> [s] -> m (GRank s n)
 conRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
-conRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Con (i :| is))]
+conRank v d (i:is) = saneRank [(VSpace v (fromIntegral d), Con (i :| is))]
 
 -- |Creates covariant rank from vector space labe, vector space dimension,
 -- and list of index labels. Returns an error for illegal ranks.
 covRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
            s -> a -> [s] -> m (GRank s n)
 covRank _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
-covRank v d (i:is) = saneRank $ [(VSpace v (fromIntegral d), Cov (i :| is))]
+covRank v d (i:is) = saneRank [(VSpace v (fromIntegral d), Cov (i :| is))]
 
 -- |Creates mixed rank from vector space label, vector space dimension,
 -- and lists of index labels. Returns an error for illegal ranks.
@@ -307,4 +305,4 @@ conCovRank :: (MonadError String m, Integral a, Ord s, Ord n, Num n) =>
               s -> a -> [s] -> [s] -> m (GRank s n)
 conCovRank _ _ _ [] = throwError "Generalized rank must have non-vanishing index list!"
 conCovRank _ _ [] _ = throwError "Generalized rank must have non-vanishing index list!"
-conCovRank v d (i:is) (j:js) = saneRank $ [(VSpace v (fromIntegral d), ConCov (i :| is) (j :| js))]
+conCovRank v d (i:is) (j:js) = saneRank [(VSpace v (fromIntegral d), ConCov (i :| is) (j :| js))]

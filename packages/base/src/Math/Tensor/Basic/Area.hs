@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
@@ -310,7 +309,7 @@ someInterAreaCov vid m n a b = t
                              else error "someInterAreaCov is not fraction-free, as it should be!") res
 
 someDeltaArea :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> T v
-someDeltaArea id a b = someDelta (id <> "Area") 21 a b
+someDeltaArea id = someDelta (id <> "Area") 21
 
 flatAreaCon :: forall (id :: Symbol) (a :: Symbol) (r :: Rank) v.
                (

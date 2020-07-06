@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.LinearAlgebra.Equations
@@ -73,17 +75,17 @@ equationsToMat eqns = mapMaybe (\m -> if IM.null m
                                       then Nothing
                                       else Just $ fmap (\j -> IM.findWithDefault 0 j m) [1..maxVar]) eqns
   where
-    maxVar = maximum $ mapMaybe ((fmap fst) . IM.lookupMax) eqns
+    maxVar = maximum $ mapMaybe (fmap fst . IM.lookupMax) eqns
 
 -- |Extract sparse matrix representation for the linear system given
 -- by a list of existentially quantified tensors with polynomial values.
 tensorsToSparseMat :: Integral a => [T (Poly Rational)] -> [((Int,Int), a)]
-tensorsToSparseMat = equationsToSparseMat . concat . fmap tensorToEquations
+tensorsToSparseMat = equationsToSparseMat . concatMap tensorToEquations
 
 -- |Extract dense matrix representation for the linear system given
 -- by a list of existentially quantified tensors with polynomial values.
 tensorsToMat :: Integral a => [T (Poly Rational)] -> [[a]]
-tensorsToMat = equationsToMat . concat . fmap tensorToEquations
+tensorsToMat = equationsToMat . concatMap tensorToEquations
 
 -- |Rank of a linear system. Uses dense svd provided by hmatrix.
 matRank :: Integral a => [[a]] -> Int
@@ -115,7 +117,7 @@ fromRow :: Integral a => [a] -> Maybe (Int, Poly Rational)
 fromRow xs = case assocs of
                []             -> Nothing
                [(i,_)]        -> Just (i, Const 0)
-               (i, v):assocs' -> let assocs'' = fmap (\(i,v') -> (i, - (fromIntegral v') / (fromIntegral v))) assocs'
+               (i, v):assocs' -> let assocs'' = fmap (\(i,v') -> (i, - fromIntegral v' / fromIntegral v)) assocs'
                                  in Just (i, Affine 0 (Lin (IM.fromList assocs'')))
   where
     assocs = filter ((/=0). snd) $ zip [1..] xs
@@ -175,14 +177,14 @@ solveSystem system indets
 -- Redefines the labels of @n@ indeterminants as @[1..n]@, preserving
 -- the previous order.
 redefineIndets :: [T (Poly v)] -> [T (Poly v)]
-redefineIndets indets = fmap (fmap (\v -> case v of
-                                            Const c -> Const c
-                                            NotSupported -> NotSupported
-                                            Affine a (Lin lin) ->
-                                              Affine a (Lin (IM.mapKeys (varMap IM.!) lin)))) indets
+redefineIndets indets = fmap (fmap (\case
+                                       Const c -> Const c
+                                       NotSupported -> NotSupported
+                                       Affine a (Lin lin) ->
+                                         Affine a (Lin (IM.mapKeys (varMap IM.!) lin)))) indets
   where
-    comps = fmap snd $ concat $ fmap toListT indets
-    vars = nub $ concat $ mapMaybe (\v -> case v of
-                                            Affine _ (Lin lin) -> Just $ IM.keys lin
-                                            _                  -> Nothing) comps
+    comps = snd <$> concatMap toListT indets
+    vars = nub $ concat $ mapMaybe (\case
+                                       Affine _ (Lin lin) -> Just $ IM.keys lin
+                                       _                  -> Nothing) comps
     varMap = IM.fromList $ zip vars [1..]

@@ -109,7 +109,7 @@ findPivot mat e (i, j)
         m = rows mat
         n = cols mat
         col = mat ¿ [j]
-        nonZeros = filter (\(i', _) -> i' >= i) $ find (not . (< e) . abs) col
+        nonZeros = filter (\(i', _) -> i' >= i) $ find ((>= e) . abs) col
 
 -- | Find pivot element below position (i, j) with greatest absolute value in the ST monad.
 findPivotMaxFF :: Int -> Int -> Int -> Int -> STMatrix s Z -> ST s (Maybe (Int, Int))
@@ -139,7 +139,7 @@ findPivotMax m n i j mat
                                     x <- readMatrix mat i' j
                                     return (i', abs x))
                       [i..m-1]
-          let nonZeros = filter (not . (<eps) . abs . snd) col
+          let nonZeros = filter ((>= eps) . abs . snd) col
           let (pi, _) = maximumBy (\(_, x) (_, y) -> x `compare` y) nonZeros
           case nonZeros of
             [] -> if n == j+1
@@ -187,7 +187,7 @@ backwardFF' m n i j mat
                          in do
                              rowOper op1 mat
                              rowOper op2 mat
-                             g <- foldM (\acc c -> fmap (fromIntegral . gcd acc . fromIntegral) $ readMatrix mat r c) 0 [pr .. n-1]
+                             g <- foldM (\acc c -> fromIntegral . gcd acc . fromIntegral <$> readMatrix mat r c) 0 [pr .. n-1]
                              if g == 0
                                then return()
                                else mapM_ (\c -> modifyMatrix mat r c (`quot` g)) [pr .. n-1]
@@ -213,7 +213,7 @@ gaussianFF' m n i j mat = do
                          in do
                              rowOper op1 mat
                              rowOper op2 mat
-                             g <- foldM (\acc c -> fmap (fromIntegral . gcd acc . fromIntegral) $ readMatrix mat r c) 0 [p .. n-1]
+                             g <- foldM (\acc c -> fromIntegral . gcd acc . fromIntegral <$> readMatrix mat r c) 0 [p .. n-1]
                              if g == 0
                                then return()
                                else mapM_ (\c -> modifyMatrix mat r c (`quot` g)) [p .. n-1]
@@ -258,29 +258,28 @@ rrefST m n mat = do
 isref :: (Element a, Num a, Ord a, Container Vector a) => Matrix a -> Bool
 isref mat = case pivot of
               []      -> True
-              (r,p):_ -> if r > 0
-                         then False
-                         else let leftMat  = mat ?? (Drop 1, Take (p+1))
+              (r,p):_ -> (r <= 0)
+                           &&
+                             (let leftMat  = mat ?? (Drop 1, Take (p+1))
                                   rightMat = mat ?? (Drop 1, Drop (p+1))
                                   leftZero = null $ find (/=0) leftMat
                                   rightRef = isref rightMat
-                              in leftZero && rightRef
+                              in leftZero && rightRef)
     where
         pivot = find (/=0) mat
 
 isrref' :: (Element a, Num a, Ord a, Container Vector a) => Int -> Matrix a -> Bool
 isrref' r mat = case pivot of
               []       -> True
-              (r',p):_ -> if r' > 0
-                          then False
-                          else let leftMat  = subMat ?? (Drop 1, Take (p+1))
+              (r',p):_ -> (r' <= 0)
+                           && (let leftMat  = subMat ?? (Drop 1, Take (p+1))
                                    col      = mat ¿ [p]
                                    colSingleton = case find (/=0) col of
                                                     [_] -> True
                                                     _   -> False
                                    leftZero = null $ find (/=0) leftMat
                                    nextRref = isrref' (r+1) mat
-                               in leftZero && colSingleton && nextRref
+                               in leftZero && colSingleton && nextRref)
     where
         subMat = mat ?? (Drop r, All)
         pivot  = find (/=0) subMat

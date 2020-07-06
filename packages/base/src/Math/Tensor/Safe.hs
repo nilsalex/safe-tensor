@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE PolyKinds #-}
@@ -173,7 +172,7 @@ mult :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
 mult _ _ (Scalar s) (Scalar t) = Scalar (s*t)
 mult sr sr' (Scalar s) (Tensor ms) =
   case saneTail'Proof sr' of
-    Sub Dict -> Tensor $ fmap (fmap (\t -> mult sr (sTail' sr') (Scalar s) t)) ms
+    Sub Dict -> Tensor $ fmap (fmap (mult sr (sTail' sr') (Scalar s))) ms
 mult sr sr' (Tensor ms) (Scalar s) =
   case saneTail'Proof sr of
     Sub Dict -> Tensor $ fmap (fmap (\t -> mult (sTail' sr) sr' t (Scalar s))) ms
@@ -196,7 +195,7 @@ mult sr sr' (Tensor ms) (Tensor ms') =
                    SGT -> case proofMergeGT sr sr' of
                             Sub Dict ->
                               case saneTail'Proof sr' of
-                                Sub Dict -> Tensor $ fmap (fmap (\t -> mult sr st' (Tensor ms) t)) ms'
+                                Sub Dict -> Tensor $ fmap (fmap (mult sr st' (Tensor ms))) ms'
                    SEQ -> case proofMergeIxNotEQ sr sr' of
                             Sub Dict ->
                               case sIxCompare si si' of
@@ -207,7 +206,7 @@ mult sr sr' (Tensor ms) (Tensor ms') =
                                 SGT -> case proofMergeIxGT sr sr' of
                                          Sub Dict ->
                                            case saneTail'Proof sr' of
-                                             Sub Dict -> Tensor $ fmap (fmap (\t -> mult sr st' (Tensor ms) t)) ms'
+                                             Sub Dict -> Tensor $ fmap (fmap (mult sr st' (Tensor ms))) ms'
 mult sr sr' ZeroTensor ZeroTensor =
   case saneMergeRProof sr sr' of
     Sub Dict -> ZeroTensor
@@ -515,7 +514,7 @@ toTListWhile (Tensor ms) =
                  withSingI st $
                  withSingI (sFst (sHead st)) $
                  let ms' = fmap (second toTListWhile) ms
-                 in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
+                 in  concatMap (\(i, xs) -> fmap (first (i :)) xs) ms'
 
 -- |Decompose tensor into assocs list with keys being lists of indices up to and including the
 -- desired label, and values being tensors of corresponding lower rank.
@@ -537,7 +536,7 @@ toTListUntil sa (Tensor ms) =
                case sRemoveUntil sa st %~ (sing :: Sing r') of
                  Proved Refl ->
                    let ms' = fmap (second (toTListUntil sa)) ms
-                   in  concatMap (\(i, xs) -> fmap (first ((:) i)) xs) ms'
+                   in  concatMap (\(i, xs) -> fmap (first (i :)) xs) ms'
 
 -- |Construct tensor from assocs list. Keys are lists of indices, values are
 -- tensors of lower rank. Used internally for tensor algebra.
@@ -548,7 +547,7 @@ fromTList xs@((i0,t0):ys)
   | null i0 = if null ys
               then case (sing :: Sing r) %~ (sing :: Sing r') of
                      Proved Refl -> t0
-              else error $ "illegal assocs in fromTList : " ++ (show $ (fmap fst) xs)
+              else error $ "illegal assocs in fromTList : " ++ show (fmap fst xs)
   | otherwise =
       let sr' = sing :: Sing r'
           st' = sTail' sr'
