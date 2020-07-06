@@ -116,9 +116,9 @@ ans14_1Test = runExcept $ do
   a2 <- someAns14_1 "ST" "A" "B" "D" "J"
   eta <- someEtaInv "ST" 4 "x" "n"
   t1 <- fmap contractT $ a1 .* c1
-  t1' <- (t1 .+) =<< (transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") t1)
-  t2 <- fmap contractT $ (eta .*) =<< ((t1' .+) =<< (fmap contractT (a2 .* c2)))
-  (t2 .-) =<< (transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t2)
+  t1' <- (t1 .+) =<< transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") t1
+  t2 <- fmap contractT $ (eta .*) =<< ((t1' .+) . contractT =<< (a2 .* c2))
+  (t2 .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t2
 
 ans14_2Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans14_2Test = runExcept $ do
@@ -133,4 +133,4 @@ ans14_2Test = runExcept $ do
   t2 <- fmap contractT $ a2 .* c2
   t3 <- fmap contractT $ a3 .* c3
   t  <- fmap contractT $ (eta .*) =<< ((t3 .+) =<< (t1 .+ t2))
-  (t .-) =<< (transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t)
+  (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t

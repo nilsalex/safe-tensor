@@ -141,8 +141,8 @@ diffeoEq3 ansatz6 = do
 diffeoEq1A :: (Num v, Eq v, MonadError String m) =>
               T v -> T v -> m (T v)
 diffeoEq1A ansatz4 ansatz8 = do
-    e1 <- fmap contractT $ (.* c1) =<< (relabelT (VSpace "STArea" 21) [("A","B")] ansatz4)
-    e2 <- (scalar 2 .*) =<< fmap contractT ((ansatz8 .*) =<< (c2 .* n))
+    e1 <- fmap contractT $ (.* c1) =<< relabelT (VSpace "STArea" 21) [("A","B")] ansatz4
+    e2 <- (scalar 2 .*) . contractT =<< ((ansatz8 .*) =<< (c2 .* n))
     e3 <- (scalar (-1) .*) =<< (ansatz4 .* d)
     res <- (e3 .+) =<< (e1 .+ e2)
     case rankT res of
@@ -187,7 +187,7 @@ diffeoEq2Ap ansatz6 ansatz10_2 = do
     c2 <- someInterAreaJet2_2 "ST" "m" "n" "B" "A" "I" "p" "q"
     ansatz6' <- relabelT (VSpace "STArea" 21) [("A","B")] ansatz6
     ansatz10_2' <- relabelT (VSpace "ST" 4) [("q","r")] ansatz10_2
-    e1 <- (two .*) =<< fmap contractT ((ansatz10_2' .*) =<< (c1 .* n))
+    e1 <- (two .*) . contractT =<< ((ansatz10_2' .*) =<< (c1 .* n))
     e2 <- fmap contractT $ ansatz6' .* c2
     res <- e1 .+ e2
     case rankT res of
@@ -219,14 +219,13 @@ diffeoEq3A ansatz6 ansatz10_1 = do
     n = someFlatAreaCon "ST" "C"
 
 sndOrderDiffeoEqns :: (Num v, Eq v, MonadError String m) =>
-                      [T v] -> m ([T v])
+                      [T v] -> m [T v]
 sndOrderDiffeoEqns [ans4,ans0,ans6,ans8,ans10_1,ans10_2] =
-  sequence $ [
-              diffeoEq1 ans0 ans4,
-              diffeoEq3 ans6,
-              diffeoEq1A ans4 ans8,
-              diffeoEq1AI ans6 ans10_1,
-              diffeoEq2Ap ans6 ans10_2,
-              diffeoEq3A ans6 ans10_1
-             ]
+  sequence  [ diffeoEq1 ans0 ans4
+            , diffeoEq3 ans6
+            , diffeoEq1A ans4 ans8
+            , diffeoEq1AI ans6 ans10_1
+            , diffeoEq2Ap ans6 ans10_2
+            , diffeoEq3A ans6 ans10_1
+            ]
 sndOrderDiffeoEqns as = throwError $ "wrong number of ansatz tensors : " ++ show (length as)
