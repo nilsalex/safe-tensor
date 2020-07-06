@@ -29,7 +29,9 @@ converted and exported for usage with @safe-tensor@.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.SparseTensor.Ansaetze
-  ( ans4
+  ( sndOrderAnsaetze
+  , makeVarsConsecutive
+  , ans4
   , ans6
   , ans8
   , ans10_1

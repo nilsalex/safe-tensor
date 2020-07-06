@@ -31,6 +31,7 @@ with an error message.
 module Math.Tensor
   ( -- * Existentially quantified around 'Tensor'
     T(..)
+  , Label(..)
     -- * Fundamental operations
   , rankT
   , scalar
@@ -274,6 +275,11 @@ fromListT r xs =
                    mapM (\(vec, val) -> do
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs
+
+-- |The unrefined type of labels.
+--
+-- @ Demote Symbol ~ Text @
+type Label = Demote Symbol
 
 -- |Lifts sanity check of ranks into the error monad.
 saneRank :: (Ord s, Ord n, MonadError String m) => GRank s n -> m (GRank s n)
