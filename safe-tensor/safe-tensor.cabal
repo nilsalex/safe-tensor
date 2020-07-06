@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d6dc49af01166021bb4f734572917733a1220d30434d4f8240de557c95edc98b
+-- hash: 4243f499a087333eb0ab56caa8fd4b1680e3eabe8f82f7523642871967cf3d70
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -34,6 +34,7 @@ library
       Math.Tensor.Basic.Epsilon
       Math.Tensor.Basic.Sym2
       Math.Tensor.Basic.TH
+      Math.Tensor.Example
       Math.Tensor.LinearAlgebra
       Math.Tensor.LinearAlgebra.Equations
       Math.Tensor.LinearAlgebra.Matrix
