@@ -17,14 +17,22 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 {-# LANGUAGE CPP #-}
 #if MIN_VERSION_base(4,14,0)
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    #-}
+#else
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Wno-incomplete-patterns
+    #-}
 #endif
 
-{-# OPTIONS_GHC -Wall -Werror #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -60,8 +68,8 @@ $(singletons [d|
                 True -> Z
                 False -> S $ fromNat (pred n)
 
-  deriving stock instance Show N
-  deriving stock instance Eq N
+  deriving instance Show N
+  deriving instance Eq N
   instance Ord N where
     Z <= _         = True
     (S _) <= Z     = False
@@ -90,9 +98,9 @@ $(singletons [d|
   
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
-                    deriving stock (Show, Ord, Eq)
+                    deriving (Show, Ord, Eq)
   
-  data Ix a    = ICon a | ICov a deriving stock (Show, Ord, Eq)
+  data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq)
   
   ixCompare :: Ord a => Ix a -> Ix a -> Ordering
   ixCompare (ICon a) (ICon b) = compare a b
@@ -109,7 +117,7 @@ $(singletons [d|
   data IList a = ConCov (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
                  Con (NonEmpty a)
-                 deriving stock (Show, Ord, Eq)
+                 deriving (Show, Ord, Eq)
   
   type GRank s n = [(VSpace s n, IList s)]
   type Rank = GRank Symbol Nat
@@ -365,7 +373,7 @@ $(singletons [d|
   
   data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
-    deriving stock (Show, Eq)
+    deriving (Show, Eq)
   
   saneTransList :: Ord a => TransList a -> Bool
   saneTransList tl =

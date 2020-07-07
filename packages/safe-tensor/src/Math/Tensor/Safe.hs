@@ -12,9 +12,12 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
 
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Wno-incomplete-patterns
+    #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -112,8 +115,8 @@ data Tensor :: Rank -> Type -> Type where
     -- component-value pairs. The keys must be unique and in ascending order.
     -- The values are tensors of the next-lower rank.
 
-deriving stock instance Eq v => Eq (Tensor r v)
-deriving stock instance Show v => Show (Tensor r v)
+deriving instance Eq v => Eq (Tensor r v)
+deriving instance Show v => Show (Tensor r v)
 
 instance Functor (Tensor r) where
   fmap _ ZeroTensor = ZeroTensor

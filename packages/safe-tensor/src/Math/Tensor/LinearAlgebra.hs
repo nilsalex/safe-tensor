@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall -Werror #-}
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.LinearAlgebra
@@ -23,14 +25,14 @@ module Math.Tensor.LinearAlgebra
   , normalize
   , -- * Tensor equations
     -- ** Extracting tensor equations and matrix representations
-    Equation(..)
+    Equation
   , tensorToEquations
   , tensorsToSparseMat
   , tensorsToMat
   , -- ** Rank of a linear tensor equation system
     systemRank
   , -- ** Solutions
-    Solution(..)
+    Solution
   , solveTensor
   , solveSystem
   , redefineIndets
@@ -44,5 +46,4 @@ module Math.Tensor.LinearAlgebra
   ) where
 
 import Math.Tensor.LinearAlgebra.Scalar
-import Math.Tensor.LinearAlgebra.Matrix
 import Math.Tensor.LinearAlgebra.Equations

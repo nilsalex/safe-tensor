@@ -1,6 +1,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+{-# OPTIONS_GHC
+    -Wall
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+    -Werror
+    #-}
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.LinearAlgebra.Matrix
@@ -39,12 +50,41 @@ module Math.Tensor.LinearAlgebra.Matrix
   ) where
 
 import Numeric.LinearAlgebra
+  ( Matrix
+  , Vector
+  , Container
+  , Extractor (All, Take, Drop)
+  , Z
+  , toLists
+  , rows
+  , cols
+  , find
+  , (¿)
+  , (??)
+  , (><)
+  , (===)
+  , rank
+  , fromZ
+  )
 import Numeric.LinearAlgebra.Devel
+  ( STMatrix
+  , RowOper (AXPY, SCAL, SWAP)
+  , ColRange (FromCol)
+  , RowRange (Row)
+  , freezeMatrix
+  , thawMatrix
+  , modifyMatrix
+  , readMatrix
+  , rowOper
+  )
 
 import Data.List (maximumBy)
 
-import Control.Monad
+import Control.Monad (foldM)
 import Control.Monad.ST
+  ( ST
+  , runST
+  )
 
 -- | Returns the pivot columns of an upper triangular matrix.
 --
@@ -86,10 +126,10 @@ findPivotFF mat (i, j)
     | n == j = Nothing
     | m == i = Nothing
     | otherwise = case nonZeros of
-                    []          -> if n == j+1
-                                   then Nothing
-                                   else findPivotFF mat (i, j+1)
-                    (pi, pj):_  -> Just (pi, pj+j)
+                    []           -> if n == j+1
+                                    then Nothing
+                                    else findPivotFF mat (i, j+1)
+                    (pi_, pj):_  -> Just (pi_, pj+j)
     where
         m = rows mat
         n = cols mat
@@ -101,10 +141,10 @@ findPivot mat e (i, j)
     | n == j = Nothing
     | m == i = Nothing
     | otherwise = case nonZeros of
-                    []          -> if n == j+1
-                                   then Nothing
-                                   else findPivot mat e (i, j+1)
-                    (pi, pj):_  -> Just (pi, pj+j)
+                    []           -> if n == j+1
+                                    then Nothing
+                                    else findPivot mat e (i, j+1)
+                    (pi_, pj):_  -> Just (pi_, pj+j)
     where
         m = rows mat
         n = cols mat
@@ -124,10 +164,10 @@ findPivotMaxFF m n i j mat
                       [i..m-1]
           let nonZeros = filter ((/= 0) . snd) col
           case nonZeros of
-            []        -> if n == j+1
-                         then return Nothing
-                         else findPivotMaxFF m n i (j+1) mat
-            (pi,_):_  -> return $ Just (pi, j)
+            []         -> if n == j+1
+                          then return Nothing
+                          else findPivotMaxFF m n i (j+1) mat
+            (pi_,_):_  -> return $ Just (pi_, j)
 
 findPivotMax :: Int -> Int -> Int -> Int -> STMatrix s Double -> ST s (Maybe (Int, Int))
 findPivotMax m n i j mat
@@ -140,12 +180,12 @@ findPivotMax m n i j mat
                                     return (i', abs x))
                       [i..m-1]
           let nonZeros = filter ((>= eps) . abs . snd) col
-          let (pi, _) = maximumBy (\(_, x) (_, y) -> x `compare` y) nonZeros
+          let (pi_, _) = maximumBy (\(_, x) (_, y) -> x `compare` y) nonZeros
           case nonZeros of
             [] -> if n == j+1
                   then return Nothing
                   else findPivotMax m n i (j+1) mat
-            _  -> return $ Just (pi, j)
+            _  -> return $ Just (pi_, j)
 
 findRowPivot :: Int -> Int -> Int -> Int -> STMatrix s Z -> ST s (Maybe Int)
 findRowPivot m n i j mat
@@ -166,7 +206,6 @@ backwardFF' :: Int -> Int -> Int -> Int -> STMatrix s Z -> ST s ()
 backwardFF' m n i j mat
       | i == 0 = return ()
       | otherwise = do
-    mat' <- freezeMatrix mat
     iPivot' <- findRowPivot m n i j mat
     case iPivot' of
         Nothing -> backwardFF' m n (i-1) j mat
@@ -187,7 +226,7 @@ backwardFF' m n i j mat
                          in do
                              rowOper op1 mat
                              rowOper op2 mat
-                             g <- foldM (\acc c -> fromIntegral . gcd acc . fromIntegral <$> readMatrix mat r c) 0 [pr .. n-1]
+                             g <- foldM (\acc c -> gcd acc <$> readMatrix mat r c) 0 [pr .. n-1]
                              if g == 0
                                then return()
                                else mapM_ (\c -> modifyMatrix mat r c (`quot` g)) [pr .. n-1]
@@ -213,7 +252,7 @@ gaussianFF' m n i j mat = do
                          in do
                              rowOper op1 mat
                              rowOper op2 mat
-                             g <- foldM (\acc c -> fromIntegral . gcd acc . fromIntegral <$> readMatrix mat r c) 0 [p .. n-1]
+                             g <- foldM (\acc c -> gcd acc <$> readMatrix mat r c) 0 [p .. n-1]
                              if g == 0
                                then return()
                                else mapM_ (\c -> modifyMatrix mat r c (`quot` g)) [p .. n-1]
@@ -255,7 +294,7 @@ rrefST m n mat = do
     where
         r' = min m n
 
-isref :: (Element a, Num a, Ord a, Container Vector a) => Matrix a -> Bool
+isref :: (Num a, Ord a, Container Vector a) => Matrix a -> Bool
 isref mat = case pivot of
               []      -> True
               (r,p):_ -> (r <= 0)
@@ -268,7 +307,7 @@ isref mat = case pivot of
     where
         pivot = find (/=0) mat
 
-isrref' :: (Element a, Num a, Ord a, Container Vector a) => Int -> Matrix a -> Bool
+isrref' :: (Num a, Ord a, Container Vector a) => Int -> Matrix a -> Bool
 isrref' r mat = case pivot of
               []       -> True
               (r',p):_ -> (r' <= 0)
@@ -284,7 +323,7 @@ isrref' r mat = case pivot of
         subMat = mat ?? (Drop r, All)
         pivot  = find (/=0) subMat
 
-isrref :: (Element a, Num a, Ord a, Container Vector a) => Matrix a -> Bool
+isrref :: (Num a, Ord a, Container Vector a) => Matrix a -> Bool
 isrref = isrref' 0
 
 rref :: Matrix Z -> Matrix Z

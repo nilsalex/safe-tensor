@@ -1,4 +1,17 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+    #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -13,7 +26,7 @@ Linear tensor equations.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.LinearAlgebra.Equations
-  ( Equation(..)
+  ( Equation
   , tensorToEquations
   , equationFromRational
   , equationsToSparseMat
@@ -21,7 +34,7 @@ module Math.Tensor.LinearAlgebra.Equations
   , tensorsToSparseMat
   , tensorsToMat
   , systemRank
-  , Solution(..)
+  , Solution
   , fromRref
   , fromRow
   , applySolution
@@ -31,16 +44,49 @@ module Math.Tensor.LinearAlgebra.Equations
   ) where
 
 import Math.Tensor
+  ( T
+  , removeZerosT
+  , toListT
+  )
 import Math.Tensor.LinearAlgebra.Scalar
+  ( Poly (Const, Affine, NotSupported)
+  , Lin (Lin)
+  , polyMap
+  , normalize
+  )
 import Math.Tensor.LinearAlgebra.Matrix
+  ( rref
+  , isrref
+  , verify
+  )
 
 import qualified Numeric.LinearAlgebra.Data as HM
+  ( Matrix
+  , R
+  , Z
+  , fromLists
+  , toLists
+  )
 import Numeric.LinearAlgebra (rank)
 
 import Data.Maybe (mapMaybe)
 import qualified Data.IntMap.Strict as IM
-import Data.List (nub,sort)
-import Data.Ratio
+  ( IntMap
+  , foldl'
+  , map
+  , assocs
+  , null
+  , findWithDefault
+  , lookupMax
+  , keys
+  , fromList
+  , (!)
+  , difference
+  , intersectionWith
+  , mapKeys
+  )
+import Data.List (nub, sort)
+import Data.Ratio (numerator, denominator)
 
 -- |A linear equation is a mapping from variable
 -- indices to coefficients
@@ -54,18 +100,19 @@ tensorToEquations = nub . sort . fmap (equationFromRational . normalize . snd) .
 -- |Extract linear equation with integral coefficients from polynomial
 -- tensor component with rational coefficients.
 -- Made made integral by multiplying with the @lcm@ of all denominators.
-equationFromRational :: Integral a => Poly Rational -> Equation a
+equationFromRational :: forall a.Integral a => Poly Rational -> Equation a
 equationFromRational (Affine x (Lin lin))
     | x == 0 = lin'
     | otherwise = error "affine equation not supported for the moment!"
   where
+    fac :: a
     fac = IM.foldl' (\acc v -> lcm (fromIntegral (denominator v)) acc) 1 lin
-    lin' = IM.map (\v -> fromIntegral (numerator (fromIntegral fac * v))) lin
+    lin' = IM.map (\v -> fromIntegral (numerator v) * (fac `div` fromIntegral (denominator v))) lin
 equationFromRational _ = error "equation can only be extracted from linear scalar!"
 
 -- |Convert list of equations to sparse matrix representation of the
 -- linear system.
-equationsToSparseMat :: Integral a => [Equation a] -> [((Int,Int), a)]
+equationsToSparseMat :: [Equation a] -> [((Int,Int), a)]
 equationsToSparseMat xs = concat $ zipWith (\i m -> fmap (\(j,v) -> ((i,j),v)) (IM.assocs m)) [1..] xs
 
 -- |Convert list of equations to dense matrix representation of the
@@ -88,16 +135,16 @@ tensorsToMat :: Integral a => [T (Poly Rational)] -> [[a]]
 tensorsToMat = equationsToMat . concatMap tensorToEquations
 
 -- |Rank of a linear system. Uses dense svd provided by hmatrix.
-matRank :: Integral a => [[a]] -> Int
+matRank :: forall a.Integral a => [[a]] -> Int
 matRank []  = 0
 matRank mat = rank (hmat :: HM.Matrix HM.R)
   where
-    hmat = HM.fromLists $ fmap (fmap fromIntegral) mat
+    hmat = HM.fromLists $ fmap (fmap (fromIntegral @a @HM.R)) mat
 
 -- |Rank of the linear system given by a list of existentially
 -- quantified tensors with polynomial values.
 systemRank :: [T (Poly Rational)] -> Int
-systemRank = matRank . tensorsToMat
+systemRank = matRank . tensorsToMat @Int
 
 -- |The solution to a linear system is represented as a list of
 -- substitution rules, stored as @'IM.IntMap' ('Poly' 'Rational')@.
@@ -113,22 +160,22 @@ fromRref ref = IM.fromList assocs
 
 -- |Read single substitution rule from single
 -- row of reduced row echelon form.
-fromRow :: Integral a => [a] -> Maybe (Int, Poly Rational)
+fromRow :: forall a.Integral a => [a] -> Maybe (Int, Poly Rational)
 fromRow xs = case assocs of
                []             -> Nothing
                [(i,_)]        -> Just (i, Const 0)
-               (i, v):assocs' -> let assocs'' = fmap (\(i,v') -> (i, - fromIntegral v' / fromIntegral v)) assocs'
+               (i, v):assocs' -> let assocs'' = fmap (\(i',v') -> (i', - fromIntegral @a @Rational v' / fromIntegral @a @Rational v)) assocs'
                                  in Just (i, Affine 0 (Lin (IM.fromList assocs'')))
   where
-    assocs = filter ((/=0). snd) $ zip [1..] xs
+    assocs = filter ((/=0). snd) $ zip [(1::Int)..] xs
 
 -- |Apply substitution rules to tensor component.
 applySolution :: Solution -> Poly Rational -> Poly Rational
-applySolution s p@(Affine x (Lin lin))
+applySolution s (Affine x (Lin lin))
     | x == 0 = case p of
-                 Affine x (Lin linFin) -> if IM.null linFin
-                                          then Const x
-                                          else p
+                 Affine xFin (Lin linFin) -> if IM.null linFin
+                                             then Const xFin
+                                             else p
                  _ -> p
     | otherwise = error "affine equations not yet supported"
   where
@@ -167,7 +214,7 @@ solveSystem system indets
     | wrongSolution = error "Wrong solution found. May be an Int64 overflow."
     | otherwise     = indets'
   where
-    mat = HM.fromLists $ tensorsToMat system
+    mat = HM.fromLists $ tensorsToMat @HM.Z system
     ref = rref mat
     wrongSolution = not (isrref ref && verify mat ref)
     sol = fromRref ref
@@ -187,4 +234,4 @@ redefineIndets indets = fmap (fmap (\case
     vars = nub $ concat $ mapMaybe (\case
                                        Affine _ (Lin lin) -> Just $ IM.keys lin
                                        _                  -> Nothing) comps
-    varMap = IM.fromList $ zip vars [1..]
+    varMap = IM.fromList $ zip vars [(1::Int)..]

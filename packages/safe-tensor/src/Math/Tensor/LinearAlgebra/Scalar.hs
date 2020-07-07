@@ -1,4 +1,13 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -23,7 +32,16 @@ module Math.Tensor.LinearAlgebra.Scalar
   ) where
 
 import qualified Data.IntMap.Strict as IM
-import Data.Ratio (numerator,denominator)
+  ( IntMap
+  , singleton
+  , null
+  , keys
+  , map
+  , filter
+  , mapKeysMonotonic
+  , unionWith
+  , findMin
+  )
 
 -- |Linear combination represented as mapping from
 -- variable number to prefactor.

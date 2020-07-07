@@ -10,9 +10,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
 
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Werror #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -93,7 +92,7 @@ import Control.Monad.Except (MonadError, throwError)
 data T :: Type -> Type where
   T :: forall (r :: Rank) v. SingI r => Tensor r v -> T v
 
-deriving stock instance Show v => Show (T v)
+deriving instance Show v => Show (T v)
 
 instance Functor T where
   fmap f (T t) = T $ fmap f t

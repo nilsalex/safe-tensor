@@ -3,7 +3,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -33,7 +32,7 @@ data Vec :: N -> Type -> Type where
     VNil :: Vec 'Z a
     VCons :: a -> Vec n a -> Vec ('S n) a
 
-deriving stock instance Show a => Show (Vec n a)
+deriving instance Show a => Show (Vec n a)
 
 instance Eq a => Eq (Vec n a) where
   VNil           == VNil           = True
