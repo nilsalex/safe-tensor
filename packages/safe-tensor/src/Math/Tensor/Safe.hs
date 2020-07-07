@@ -99,7 +99,7 @@ import Data.List (foldl',groupBy,sortBy)
 data Tensor :: Rank -> Type -> Type where
     ZeroTensor :: forall (r :: Rank) v . Sane r ~ 'True => Tensor r v -- ^
     -- A tensor of any sane rank type can be zero.
-    Scalar :: forall v. v -> Tensor '[] v -- ^
+    Scalar :: forall v. !v -> Tensor '[] v -- ^
     -- A tensor of empty rank is a scalar holding some value.
     Tensor :: forall (r :: Rank) (r' :: Rank) v.
               (Sane r ~ 'True, Tail' r ~ r') =>

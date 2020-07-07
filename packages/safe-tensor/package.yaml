@@ -25,11 +25,11 @@ dependencies:
 library:
   source-dirs: src
   ghc-options:
-  - -O2
-
-  - -fspecialise
-  - -fcross-module-specialise
-  - -fspecialise-aggressively
-  - -fexpose-all-unfoldings
+    #  - -O2
+    #
+    #  - -fspecialise
+    #  - -fcross-module-specialise
+    #  - -fspecialise-aggressively
+    #  - -fexpose-all-unfoldings
 
   - -Wall

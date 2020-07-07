@@ -20,12 +20,12 @@ dependencies:
 library:
   source-dirs: src
   ghc-options:
-  - -O2
-
-  - -fspecialise
-  - -fcross-module-specialise
-  - -fspecialise-aggressively
-  - -fexpose-all-unfoldings
+    #  - -O2
+    #
+    #  - -fspecialise
+    #  - -fcross-module-specialise
+    #  - -fspecialise-aggressively
+    #  - -fexpose-all-unfoldings
 
   - -Wall
 
@@ -36,10 +36,10 @@ executables:
     dependencies:
     - example
     ghc-options:
-    - -fspecialise
-    - -fcross-module-specialise
-    - -fspecialise-aggressively
-    - -fexpose-all-unfoldings
+      #    - -fspecialise
+      #    - -fcross-module-specialise
+      #    - -fspecialise-aggressively
+      #    - -fexpose-all-unfoldings
 
     - -threaded
     - -rtsopts
