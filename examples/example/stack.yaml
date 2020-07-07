@@ -2,7 +2,7 @@ resolver: nightly-2020-07-04
 
 packages:
 - .
-- ../../packages/base
+- ../../packages/safe-tensor
 - ../../packages/safe-tensor-sparse-tensor-compat
 
 extra-deps:

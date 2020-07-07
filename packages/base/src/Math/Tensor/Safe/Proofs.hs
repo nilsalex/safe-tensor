@@ -11,6 +11,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-# OPTIONS_GHC -Wall -Werror #-}
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe.Proofs
@@ -47,10 +49,17 @@ module Math.Tensor.Safe.Proofs
 import Math.Tensor.Safe.TH
 
 import Data.Constraint
+  ( Dict (Dict)
+  , (:-) (Sub)
+  )
 import Unsafe.Coerce (unsafeCoerce)
 
-import Data.Singletons
 import Data.Singletons.Prelude
+  ( Sing, SingI
+  , PEq ((==))
+  , Symbol
+  , Fst, Snd, Compare
+  )
 
 -- |The 'Tail'' of a sane rank type is sane.
 {-# INLINE saneTail'Proof #-}
@@ -87,7 +96,7 @@ proofMergeLT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                 Sing r -> Sing r' ->
                 (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
                  Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'LT)
-                :- (MergeR (Tail' r) r' ~ Just (Tail' r''))
+                :- (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
 proofMergeLT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
@@ -121,12 +130,12 @@ proofMergeIxLT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                   (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
                    Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
                    IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'LT)
-                  :- (MergeR (Tail' r) r' ~ Just (Tail' r''))
+                  :- (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
 proofMergeIxLT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
               Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ LT)
+              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'LT)
              => Dict (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
@@ -138,7 +147,7 @@ proofMergeGT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                 Sing r -> Sing r' ->
                 (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
                  Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'GT)
-                :- (MergeR r (Tail' r') ~ Just (Tail' r''))
+                :- (MergeR r (Tail' r') ~ 'Just (Tail' r''))
 proofMergeGT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
@@ -156,12 +165,12 @@ proofMergeIxGT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                   (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
                    Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
                    IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'GT)
-                  :- (MergeR r (Tail' r') ~ Just (Tail' r''))
+                  :- (MergeR r (Tail' r') ~ 'Just (Tail' r''))
 proofMergeIxGT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
               Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ GT)
+              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'GT)
              => Dict (MergeR r (Tail' r') ~ 'Just (Tail' r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 

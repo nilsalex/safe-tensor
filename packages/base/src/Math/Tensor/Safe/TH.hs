@@ -17,11 +17,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 {-# LANGUAGE CPP #-}
 #if MIN_VERSION_base(4,14,0)
 {-# LANGUAGE StandaloneKindSignatures #-}
 #endif
+
+{-# OPTIONS_GHC -Wall -Werror #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -37,8 +40,6 @@ in "Math.Tensor.Safe".
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Safe.TH where
-
-import Data.Kind (Type)
 
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.Enum
@@ -59,11 +60,11 @@ $(singletons [d|
                 True -> Z
                 False -> S $ fromNat (pred n)
 
-  deriving instance Show N
-  deriving instance Eq N
+  deriving stock instance Show N
+  deriving stock instance Eq N
   instance Ord N where
     Z <= _         = True
-    (S n) <= Z     = False
+    (S _) <= Z     = False
     (S n) <= (S m) = n <= m
   
   instance Num N where
@@ -71,7 +72,7 @@ $(singletons [d|
     (S n) + m = S $ n + m
   
     n - Z         = n
-    Z - S n       = error "cannot subtract (S n) from Z!"
+    Z - S _       = error "cannot subtract (S n) from Z!"
     (S n) - (S m) = n - m
   
     negate Z = Z
@@ -89,9 +90,9 @@ $(singletons [d|
   
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
-                    deriving (Show, Ord, Eq)
+                    deriving stock (Show, Ord, Eq)
   
-  data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq)
+  data Ix a    = ICon a | ICov a deriving stock (Show, Ord, Eq)
   
   ixCompare :: Ord a => Ix a -> Ix a -> Ordering
   ixCompare (ICon a) (ICon b) = compare a b
@@ -108,14 +109,14 @@ $(singletons [d|
   data IList a = ConCov (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
                  Con (NonEmpty a)
-                 deriving (Show, Ord, Eq)
+                 deriving stock (Show, Ord, Eq)
   
   type GRank s n = [(VSpace s n, IList s)]
   type Rank = GRank Symbol Nat
   
   isAscending :: Ord a => [a] -> Bool
-  isAscending [] = True
-  isAscending [x] = True
+  isAscending []  = True
+  isAscending [_] = True
   isAscending (x:y:xs) = x < y && isAscending (y:xs)
   
   isAscendingNE :: Ord a => NonEmpty a -> Bool
@@ -187,11 +188,11 @@ $(singletons [d|
                    EQ -> Just $ ConCov (a' :| as) (b :| (b':bs))
                    GT -> Just $ ConCov (a :| (a':as)) (b' :| bs)
   
-               Con (a :| []) -> Nothing
-               Con (a :| (a':as)) -> Just $ Con (a' :| as)
+               Con (_ :| []) -> Nothing
+               Con (_ :| (a':as)) -> Just $ Con (a' :| as)
   
-               Cov (a :| []) -> Nothing
-               Cov (a :| (a':as)) -> Just $ Cov (a' :| as)
+               Cov (_ :| []) -> Nothing
+               Cov (_ :| (a':as)) -> Just $ Cov (a' :| as)
              in case l' of
                   Just l'' -> (v, l''):ls
                   Nothing  -> ls
@@ -364,9 +365,9 @@ $(singletons [d|
   
   data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
-    deriving (Show, Eq)
+    deriving stock (Show, Eq)
   
-  saneTransList :: (Ord a, Eq a) => TransList a -> Bool
+  saneTransList :: Ord a => TransList a -> Bool
   saneTransList tl =
       case tl of
         TransCon sources targets -> isAscendingNE sources &&
@@ -433,25 +434,25 @@ $(singletons [d|
       xs' = go' Z xs
   
       go' :: N -> NonEmpty a -> NonEmpty (N,a)
-      go' n (x :| []) = (n,x) :| []
-      go' n (x :| (x':xs')) = (n,x) <| go' (S n) (x' :| xs')
+      go' n (y :| []) = (n,y) :| []
+      go' n (y :| (y':ys')) = (n,y) <| go' (S n) (y' :| ys')
   
       find :: Eq a => a -> NonEmpty (N, Maybe a) -> Maybe N
-      find a ((_,Nothing) :| []) = Nothing
-      find a ((_,Nothing) :| (x':xs')) = find a (x' :| xs')
-      find a ((n,Just x) :| xs)  =
-        case a == x of
+      find _ ((_,Nothing) :| []) = Nothing
+      find a ((_,Nothing) :| (y':ys')) = find a (y' :| ys')
+      find a ((n,Just y) :| ys)  =
+        case a == y of
           True -> Just n
           False  -> 
-            case xs of
+            case ys of
               [] -> Nothing
-              x':xs' -> find a (x' :| xs')
+              y':ys' -> find a (y' :| ys')
   
       zip' :: NonEmpty a -> NonEmpty b -> Maybe [(a,b)]
       zip' (a :| []) (b :| []) = Just [(a,b)]
       zip' (_ :| (_:_)) (_ :| []) = Nothing
       zip' (_ :| []) (_ :| (_:_)) = Nothing
-      zip' (x:|(x':xs')) (y:|(y':ys')) = ((x,y):) <$> zip' (x':|xs') (y':|ys')
+      zip' (y:|(y':ys')) (z:|(z':zs')) = ((y,z):) <$> zip' (y':|ys') (z':|zs')
   
   type RelabelList s = NonEmpty (s,s)
   
@@ -554,11 +555,11 @@ $(singletons [d|
   
       go :: N -> NonEmpty (a,b) -> NonEmpty (N,b)
       go n ((_,y) :| [])     = (n,y) :| []
-      go n ((_,y) :| (i:is)) = (n,y) <| go (S n) (i :| is)
+      go n ((_,y) :| (j:js)) = (n,y) <| go (S n) (j :| js)
   
       go' :: N -> NonEmpty (a,b) -> NonEmpty (a,N)
       go' n ((x,_) :| [])     = (x,n) :| []
-      go' n ((x,_) :| (i:is)) = (x,n) <| go' (S n) (i :| is)
+      go' n ((x,_) :| (j:js)) = (x,n) <| go' (S n) (j :| js)
   
       go'' :: NonEmpty (a,a) -> [(a,a)]
       go'' ((x1,x2) :| []) = [(x2,x1)]

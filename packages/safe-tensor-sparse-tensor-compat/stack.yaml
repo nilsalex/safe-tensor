@@ -2,7 +2,7 @@ resolver: nightly-2020-07-04
 
 packages:
 - .
-- ../base
+- ../safe-tensor
 
 extra-deps:
 - git: https://github.com/nilsalex/sparse-tensor.git

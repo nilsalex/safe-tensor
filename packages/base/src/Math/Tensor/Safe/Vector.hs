@@ -3,6 +3,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+
+{-# OPTIONS_GHC -Wall -Werror #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -24,13 +27,13 @@ module Math.Tensor.Safe.Vector
 import Math.Tensor.Safe.TH
 
 import Data.Kind (Type)
-import Data.Singletons
+import Data.Singletons (Sing)
 
 data Vec :: N -> Type -> Type where
-    VNil :: Vec Z a
-    VCons :: a -> Vec n a -> Vec (S n) a
+    VNil :: Vec 'Z a
+    VCons :: a -> Vec n a -> Vec ('S n) a
 
-deriving instance Show a => Show (Vec n a)
+deriving stock instance Show a => Show (Vec n a)
 
 instance Eq a => Eq (Vec n a) where
   VNil           == VNil           = True
