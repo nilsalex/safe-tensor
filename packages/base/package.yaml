@@ -24,3 +24,8 @@ dependencies:
 
 library:
   source-dirs: src
+  ghc-options:
+  - -fspecialise
+  - -fcross-module-specialise
+  - -fspecialise-aggressively
+  - -fexpose-all-unfoldings

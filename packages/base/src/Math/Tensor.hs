@@ -10,6 +10,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+
+{-# OPTIONS_GHC -Wall #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -29,7 +32,7 @@ with an error message.
 module Math.Tensor
   ( -- * Existentially quantified around 'Tensor'
     T(..)
-  , Label(..)
+  , Label
     -- * Fundamental operations
   , rankT
   , scalar
@@ -60,40 +63,53 @@ import Math.Tensor.Safe.TH
 import Data.Kind (Type)
 
 import Data.Singletons
+  ( Sing, SingI (sing), Demote
+  , withSomeSing, withSingI
+  , fromSing
+  )
+
 import Data.Singletons.Prelude
+  (SBool(STrue, SFalse))
 import Data.Singletons.Prelude.Maybe
+  (SMaybe(SNothing, SJust), sIsJust)
 import Data.Singletons.Decide
+  ( Decision(Proved, Disproved)
+  , (:~:)(Refl), (%~)
+  )
 import Data.Singletons.TypeLits
+  ( Nat
+  , Symbol
+  )
 
 import Data.Bifunctor (first)
 
-import Data.List.NonEmpty (NonEmpty(..),sort)
+import Data.List.NonEmpty (NonEmpty((:|)),sort)
 
-import Control.Monad.Except
+import Control.Monad.Except (MonadError, throwError)
 
 -- |'T' wraps around 'Tensor' and exposes only the value type @v@.
 data T :: Type -> Type where
   T :: forall (r :: Rank) v. SingI r => Tensor r v -> T v
 
-deriving instance Show v => Show (T v)
+deriving stock instance Show v => Show (T v)
 
 instance Functor T where
   fmap f (T t) = T $ fmap f t
 
 -- |Produces a 'Scalar' of given value. Result is pure
 -- because there is only one possible rank: @'[]@
-scalar :: Num v => v -> T v
+scalar :: v -> T v
 scalar v = T $ Scalar v
 
 -- |Produces a 'ZeroTensor' of given rank @r@. Throws an
 -- error if @'Sane' r ~ ''False'@.
-zero :: (Num v, MonadError String m) => Demote Rank -> m (T v)
+zero :: MonadError String m => Demote Rank -> m (T v)
 zero dr =
   withSomeSing dr $ \sr ->
   case sSane sr %~ STrue of
     Proved Refl ->
       case sr of
-        (sing :: Sing r) -> withSingI sr $ return $ T (ZeroTensor :: Tensor r v)
+        (_ :: Sing r) -> withSingI sr $ return $ T (ZeroTensor :: Tensor r v)
     Disproved _ -> throwError $ "Illegal index list for zero : " ++ show dr
 
 vecToList :: Vec n a -> [a]
@@ -103,7 +119,7 @@ vecToList (x `VCons` xs) = x : vecToList xs
 vecFromList :: forall (n :: N) a m.
                MonadError String m => Sing n -> [a] -> m (Vec n a)
 vecFromList SZ [] = return VNil
-vecFromList (SS sn) [] = throwError "List provided for vector reconstruction is too short."
+vecFromList (SS _) [] = throwError "List provided for vector reconstruction is too short."
 vecFromList SZ (_:_)   = throwError "List provided for vector reconstruction is too long."
 vecFromList (SS sn) (x:xs) = do
   xs' <- vecFromList sn xs
@@ -148,6 +164,7 @@ infixl 7 #.
           in case sr1 %~ sr2 of
                Proved Refl -> case sSane sr1 %~ STrue of
                                 Proved Refl -> return $ T (t1 &+ t2)
+                                Disproved _ -> throwError "Rank of summands is not sane."
                Disproved _ -> throwError "Generalized tensor ranks do not match. Cannot add."
 infixl 6 .+
 
@@ -163,6 +180,7 @@ infixl 6 .+
           in case sr1 %~ sr2 of
                Proved Refl -> case sSane sr1 %~ STrue of
                                 Proved Refl -> return $ T (t1 &- t2)
+                                Disproved _ -> throwError "Rank of operands is not sane."
                Disproved _ -> throwError "Generalized tensor ranks do not match. Cannot add."
 
 -- |Tensor contraction. Pure function, because a tensor of any rank can be contracted.
@@ -248,7 +266,7 @@ relabelT v (r:rs) o =
 rankT :: T v -> Demote Rank
 rankT o =
   case o of
-    T (t :: Tensor r v) ->
+    T (_ :: Tensor r v) ->
       let sr = sing :: Sing r
       in fromSing sr
 
@@ -273,6 +291,7 @@ fromListT r xs =
                    mapM (\(vec, val) -> do
                                          vec' <- vecFromList sn vec
                                          return (vec', val)) xs
+    Disproved _ -> throwError $ "Insane tensor rank : " <> show r
 
 -- |The unrefined type of labels.
 --
