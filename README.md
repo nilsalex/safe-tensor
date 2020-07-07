@@ -1,1 +1,1 @@
-packages/base/README.md
+packages/safe-tensor/README.md
