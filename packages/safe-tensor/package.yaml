@@ -43,4 +43,5 @@ library:
   - -Wpartial-fields
   - -Wmissed-specialisations
   - -Wall-missed-specialisations
+
   - -Wno-incomplete-patterns

@@ -18,6 +18,11 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# LANGUAGE CPP #-}
+#if MIN_VERSION_base(4,14,0)
+{-# LANGUAGE StandaloneKindSignatures #-}
+#endif
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.SparseTensor.Ansaetze.TH
@@ -34,16 +39,12 @@ module Math.Tensor.SparseTensor.Ansaetze.TH where
 
 import Math.Tensor.Safe.TH
 
-import Data.Kind (Type)
-
 import Data.Singletons.Prelude
-import Data.Singletons.Prelude.Enum
 import Data.Singletons.Prelude.List.NonEmpty hiding (sLength)
-import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List.NonEmpty (NonEmpty((:|)),sort,sortBy,(<|))
+import Data.List.NonEmpty (NonEmpty((:|)),sort)
 
 $(singletons [d|
 

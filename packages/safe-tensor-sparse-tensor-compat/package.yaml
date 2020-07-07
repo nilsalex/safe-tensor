@@ -21,7 +21,25 @@ dependencies:
 
 library:
   source-dirs: src
-  when:
-  - condition: impl(ghc >=8.10)
-    default-extensions: StandaloneKindSignatures
 
+  ghc-options:
+  - -O2
+
+  - -fspecialise
+  - -fcross-module-specialise
+  - -fspecialise-aggressively
+  - -fexpose-all-unfoldings
+
+  - -Werror
+
+  - -Wall
+  - -Wmonomorphism-restriction
+  - -Wmissing-local-signatures
+  - -Wmissing-exported-signatures
+  - -Wmissing-home-modules
+  - -Widentities
+  - -Wpartial-fields
+  - -Wmissed-specialisations
+  - -Wall-missed-specialisations
+
+  - -Wno-incomplete-patterns
