@@ -12,6 +12,19 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    -Wno-missing-import-lists
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+    -Wno-redundant-constraints
+    -Wno-incomplete-patterns
+    #-}
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Epsilon
@@ -41,14 +54,33 @@ import Math.Tensor.Safe.TH
 import Math.Tensor.Basic.TH
 
 import Data.Singletons
+  ( Sing
+  , SingI (sing)
+  , Demote
+  , withSomeSing
+  , withSingI
+  , fromSing
+  )
 import Data.Singletons.Prelude
+  ( SBool (STrue)
+  , SMaybe (SNothing, SJust)
+  )
 import Data.Singletons.Decide
+  ( (:~:) (Refl)
+  , Decision (Proved)
+  , (%~)
+  )
 import Data.Singletons.TypeLits
+  ( Symbol
+  , Nat
+  , KnownNat
+  , withKnownNat
+  )
 
 import Data.List (sort,permutations)
-import qualified Data.List.NonEmpty as NE (NonEmpty(..),sort)
+import qualified Data.List.NonEmpty as NE (NonEmpty((:|)),sort)
 
-import Control.Monad.Except
+import Control.Monad.Except (MonadError, throwError)
 
 -- |Sign of a permutation:
 --
@@ -79,7 +111,7 @@ epsilon' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (r :: Ra
                SingI r
               ) =>
               Sing id -> Sing n -> Sing is -> Tensor r v
-epsilon' sid sn sis =
+epsilon' _ sn _ =
     case sLengthR sr %~ sn' of
       Proved Refl ->
         case sSane sr %~ STrue of
@@ -89,7 +121,7 @@ epsilon' sid sn sis =
     sn' = sFromNat sn
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
-    xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
+    xs = fmap (\p -> (vecFromListUnsafe sn' p, permSign p :: v)) perms
 
 -- |Totally antisymmetric contravariant tensor density of weight +1
 -- such that
@@ -106,7 +138,7 @@ epsilonInv' :: forall (id :: Symbol) (n :: Nat) (is :: NE.NonEmpty Symbol) (r ::
                SingI r
               ) =>
               Sing id -> Sing n -> Sing is -> Tensor r v
-epsilonInv' sid sn sis =
+epsilonInv' _ sn _ =
     case sLengthR sr %~ sn' of
       Proved Refl ->
         case sSane sr %~ STrue of
@@ -116,7 +148,7 @@ epsilonInv' sid sn sis =
     sn' = sFromNat sn
     n = fromSing sn
     perms = sort $ permutations $ take (fromIntegral n) [(0 :: Int)..]
-    xs = fmap (\p -> (vecFromListUnsafe sn' p, fromIntegral (permSign p) :: v)) perms
+    xs = fmap (\p -> (vecFromListUnsafe sn' p, permSign p :: v)) perms
 
 -- |Totally antisymmetric covariant tensor density of weight -1
 -- such that

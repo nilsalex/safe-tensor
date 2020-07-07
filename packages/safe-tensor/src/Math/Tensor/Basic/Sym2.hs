@@ -12,6 +12,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+    -Wno-missing-import-lists
+    -Wno-incomplete-patterns
+    -Wno-incomplete-uni-patterns
+    -Wno-redundant-constraints
+    #-}
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Sym2
@@ -68,33 +82,66 @@ import Math.Tensor.Basic.TH
 import Math.Tensor.Basic.Delta
 
 import Data.Singletons
+  ( Sing
+  , SingI (sing)
+  , Demote
+  , withSomeSing
+  , withSingI
+  )
 import Data.Singletons.Prelude
+  ( SBool (STrue)
+  , POrd ((<))
+  , SOrdering (SLT)
+  , SMaybe (SJust)
+  , sCompare
+  )
 import Data.Singletons.Decide
+  ( (:~:) (Refl)
+  , Decision (Proved)
+  , (%~)
+  )
 import Data.Singletons.TypeLits
+  ( Symbol
+  , Nat
+  , withKnownNat
+  , natVal
+  , withKnownSymbol
+  )
 
-import Data.Ratio
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.Ratio (Ratio, numerator, denominator)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.Map.Strict as Map
+  ( Map
+  , fromList
+  , lookup
+  )
 
 import Control.Monad.Except
+  ( MonadError
+  , throwError
+  , runExcept
+  )
 
-trianMapSym2 :: Integral a => a -> Map.Map (Vec (S (S Z)) Int) Int
+trianMapSym2 :: forall a.Integral a => a -> Map.Map (Vec ('S ('S 'Z)) Int) Int
 trianMapSym2 n = Map.fromList $ zip indices2 indices1
   where
+    maxInd :: Int
     maxInd   = fromIntegral n - 1
+    indices1 :: [Int]
     indices1 = [0..]
     indices2 = [a `VCons` (b `VCons` VNil) | a <- [0..maxInd], b <- [a..maxInd] ]
 
-facMapSym2 :: (Integral a, Num b) => a -> Map.Map (Vec (S (S Z)) Int) b
+facMapSym2 :: forall a b.(Integral a, Num b) => a -> Map.Map (Vec ('S ('S 'Z)) Int) b
 facMapSym2 n = Map.fromList $ [(a `VCons` (b `VCons` VNil), fac a b) |
                                   a <- [0..maxInd], b <- [a..maxInd] ]
   where
     maxInd = fromIntegral n - 1
+    fac :: Int -> Int -> b
     fac a b
       | a == b    = 1
       | otherwise = 2
 
-sym2Assocs :: forall (n :: Nat) v.Num v => Sing n -> [(Vec (S (S (S Z))) Int, v)]
+sym2Assocs :: forall (n :: Nat) v.Num v => Sing n -> [(Vec ('S ('S ('S 'Z))) Int, v)]
 sym2Assocs sn = assocs
   where
     n  = withKnownNat sn (natVal sn)
@@ -107,9 +154,10 @@ sym2Assocs sn = assocs
                                              " not present in triangle map " ++ show tm)
              <$> [0..maxInd] <*> [0..maxInd]
 
+    vec :: Int -> Int -> Vec ('S ('S 'Z)) Int
     vec a b = min a b `VCons` (max a b `VCons` VNil)
 
-sym2AssocsFac :: forall (n :: Nat) v.Fractional v => Sing n -> [(Vec (S (S (S Z))) Int, v)]
+sym2AssocsFac :: forall (n :: Nat) v.Fractional v => Sing n -> [(Vec ('S ('S ('S 'Z))) Int, v)]
 sym2AssocsFac sn = assocs
   where
     n  = withKnownNat sn (natVal sn)
@@ -126,11 +174,12 @@ sym2AssocsFac sn = assocs
                         Nothing -> error "sym2AssocsFac are not fraction-free, as they should be!")
              <$> [0..maxInd] <*> [0..maxInd]
 
+    vec :: Int -> Int -> Vec ('S ('S 'Z)) Int
     vec a b = min a b `VCons` (max a b `VCons` VNil)
 
 gamma' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
            (
-            '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ r,
+            '[ '( 'VSpace id n, 'Cov (a ':| '[b])) ] ~ r,
             (a < b) ~ 'True,
             SingI n,
             Num v
@@ -141,7 +190,7 @@ gamma' _ _ _ _ = gamma
 
 gamma :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
          (
-          '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ r,
+          '[ '( 'VSpace id n, 'Cov (a ':| '[b])) ] ~ r,
           (a < b) ~ 'True,
           SingI n,
           Num v
@@ -150,11 +199,12 @@ gamma = case (sing :: Sing n) of
           sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                 in Tensor (f x)
   where
+    f :: Int -> [(Int, Tensor (Tail' r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 eta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
         (
-         '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ r,
+         '[ '( 'VSpace id n, 'Cov (a ':| '[b])) ] ~ r,
          (a < b) ~ 'True,
          SingI n,
          Num v
@@ -165,7 +215,7 @@ eta' _ _ _ _ = eta
 
 eta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
        (
-        '[ '( 'VSpace id n, 'Cov (a :| '[b])) ] ~ r,
+        '[ '( 'VSpace id n, 'Cov (a ':| '[b])) ] ~ r,
         (a < b) ~ 'True,
         SingI n,
         Num v
@@ -174,11 +224,12 @@ eta = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
+    f :: Int -> [(Int, Tensor (Tail' r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 gammaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
           (
-           '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ r,
+           '[ '( 'VSpace id n, 'Con (a ':| '[b])) ] ~ r,
            (a < b) ~ 'True,
            SingI n,
            Num v
@@ -189,7 +240,7 @@ gammaInv' _ _ _ _ = gammaInv
 
 gammaInv :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
           (
-           '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ r,
+           '[ '( 'VSpace id n, 'Con (a ':| '[b])) ] ~ r,
            (a < b) ~ 'True,
            SingI n,
            Num v
@@ -198,11 +249,12 @@ gammaInv = case (sing :: Sing n) of
             sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                   in Tensor (f x)
   where
+    f :: Int -> [(Int, Tensor (Tail' r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 etaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
         (
-         '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ r,
+         '[ '( 'VSpace id n, 'Con (a ':| '[b])) ] ~ r,
          (a < b) ~ 'True,
          SingI n,
          Num v
@@ -213,7 +265,7 @@ etaInv' _ _ _ _ = etaInv
 
 etaInv :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
        (
-        '[ '( 'VSpace id n, 'Con (a :| '[b])) ] ~ r,
+        '[ '( 'VSpace id n, 'Con (a ':| '[b])) ] ~ r,
         (a < b) ~ 'True,
         SingI n,
         Num v
@@ -222,6 +274,7 @@ etaInv = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
+    f :: Int -> [(Int, Tensor (Tail' r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 injSym2Con' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
@@ -231,7 +284,7 @@ injSym2Con' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
                 SingI r,
                 Num v
                ) => Sing id -> Sing n -> Sing a -> Sing b -> Sing i -> Tensor r v
-injSym2Con' svid svdim sa sb si =
+injSym2Con' _ svdim _ _ _ =
         case sSane sr %~ STrue of
           Proved Refl ->
             case sLengthR sr of
@@ -246,7 +299,7 @@ injSym2Cov' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
                 SingI r,
                 Num v
                ) => Sing id -> Sing n -> Sing a -> Sing b -> Sing i -> Tensor r v
-injSym2Cov' svid svdim sa sb si =
+injSym2Cov' _ svdim _ _ _ =
         case sSane sr %~ STrue of
           Proved Refl ->
             case sLengthR sr of
@@ -261,7 +314,7 @@ surjSym2Con' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
                 SingI r,
                 Fractional v
                ) => Sing id -> Sing n -> Sing a -> Sing b -> Sing i -> Tensor r v
-surjSym2Con' svid svdim sa sb si =
+surjSym2Con' _ svdim _ _ _ =
         case sSane sr %~ STrue of
           Proved Refl ->
             case sLengthR sr of
@@ -276,7 +329,7 @@ surjSym2Cov' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)
                 SingI r,
                 Fractional v
                ) => Sing id -> Sing n -> Sing a -> Sing b -> Sing i -> Tensor r v
-surjSym2Cov' svid svdim sa sb si =
+surjSym2Cov' _ svdim _ _ _ =
         case sSane sr %~ STrue of
           Proved Refl ->
             case sLengthR sr of
@@ -435,12 +488,12 @@ someInterSym2Con vid dim m n a b = t
   where
     Right t = runExcept $
      do
-       j <- someSurjSym2Con vid dim " " n a
-       i <- someInjSym2Con vid dim " " m b
-       product <- i .* j
-       let res = contractT $ fmap ((-2) *) product
-       return $ fmap (\i -> if denominator i == 1
-                            then fromIntegral (numerator i)
+       (j :: T (Ratio Int)) <- someSurjSym2Con vid dim " " n a
+       (i :: T (Ratio Int)) <- someInjSym2Con vid dim " " m b
+       prod <- i .* j
+       let res = contractT $ fmap ((-2) *) prod
+       return $ fmap (\v -> if denominator v == 1
+                            then fromIntegral (numerator v)
                             else error "someInterSym2Con is not fraction-free, as it should be!") res
 
 someInterSym2Cov :: Num v =>
@@ -450,13 +503,13 @@ someInterSym2Cov vid dim m n a b = t
   where
     Right t = runExcept $
       do
-        j <- someSurjSym2Cov vid dim " " m a
-        i <- someInjSym2Cov vid dim " " n b
-        product <- i .* j
-        let res = contractT $ fmap (2*) product
-        return $ fmap (\i -> if denominator i == 1
-                             then fromIntegral (numerator i)
+        (j :: T (Ratio Int)) <- someSurjSym2Cov vid dim " " m a
+        (i :: T (Ratio Int)) <- someInjSym2Cov vid dim " " n b
+        prod <- i .* j
+        let res = contractT $ fmap (2*) prod
+        return $ fmap (\v -> if denominator v == 1
+                             then fromIntegral (numerator v)
                              else error "someInterSym2Cov is not fraction-free, as it should be!") res
 
 someDeltaSym2 :: Num v => Demote Symbol -> Demote Nat -> Demote Symbol -> Demote Symbol -> T v
-someDeltaSym2 id n = someDelta (id <> "Sym2") ((n*(n+1)) `div` 2)
+someDeltaSym2 vid n = someDelta (vid <> "Sym2") ((n*(n+1)) `div` 2)

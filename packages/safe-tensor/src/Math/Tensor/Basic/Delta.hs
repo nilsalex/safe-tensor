@@ -11,6 +11,19 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-# OPTIONS_GHC
+    -Wall
+    -Werror
+    -Weverything
+    -Wno-prepositive-qualified-module
+    -Wno-missing-deriving-strategies
+    -Wno-implicit-prelude
+    -Wno-missing-import-lists
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+    -Wno-incomplete-patterns
+    #-}
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Delta
@@ -37,11 +50,30 @@ import Math.Tensor.Safe.TH
 import Math.Tensor.Basic.TH
 
 import Data.Singletons
+  ( Sing
+  , SingI (sing)
+  , Demote
+  , withSomeSing
+  )
 import Data.Singletons.Prelude
+  ( SList (SNil)
+  , SBool (STrue)
+  )
 import Data.Singletons.Decide
+  ( (:~:) (Refl)
+  , Decision (Proved)
+  , (%~)
+  )
 import Data.Singletons.TypeLits
+  ( Symbol
+  , Nat
+  , KnownNat
+  , withKnownNat
+  , natVal
+  , withKnownSymbol
+  )
 
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty ((:|)))
 
 -- |The Kronecker delta \(\delta^a_{\hphantom ab} \) for a given
 -- @'VSpace' id n@ with contravariant
@@ -51,7 +83,7 @@ delta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Ran
           (
            KnownNat n,
            Num v,
-           '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[])) ] ~ r,
+           '[ '( 'VSpace id n, 'ConCov (a ':| '[]) (b ':| '[])) ] ~ r,
            Tail' (Tail' r) ~ '[],
            Sane (Tail' r) ~ 'True
           ) =>
@@ -64,7 +96,7 @@ delta' _ _ _ _ = delta
 -- index label @a@ and covariant index label @b@.
 delta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
          (
-          '[ '( 'VSpace id n, 'ConCov (a :| '[]) (b :| '[]))] ~ r,
+          '[ '( 'VSpace id n, 'ConCov (a ':| '[]) (b ':| '[]))] ~ r,
           Tail' (Tail' r) ~ '[],
           Sane (Tail' r) ~ 'True,
           SingI n,
@@ -74,6 +106,7 @@ delta = case (sing :: Sing n) of
           sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                 in Tensor (f x)
   where
+    f :: Int -> [(Int, Tensor (Tail' r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 -- |The Kronecker delta \(\delta^a_{\hphantom ab} \) for a given
