@@ -3,9 +3,6 @@
 module Main where
 
 import AnsaetzeTest
-import Math.Tensor
-
-import Control.Monad.Except
 
 main :: IO ()
 main = mapM_ print tests

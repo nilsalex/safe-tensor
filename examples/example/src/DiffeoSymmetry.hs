@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 module DiffeoSymmetry where
 
@@ -21,13 +22,13 @@ someInterAreaJet1 :: (Num v, MonadError String m) =>
                      Label -> Label ->
                      Label -> Label ->
                      m (T v)
-someInterAreaJet1 id m n a b p q = do
-    i1 <- c .* someDelta id 4 q p
-    i2 <- (someDeltaArea id a b .* ) =<< (someDelta id 4 m p .* someDelta id 4 q n)
+someInterAreaJet1 vid m n a b p q = do
+    i1 <- c .* someDelta vid 4 q p
+    i2 <- (someDeltaArea vid a b .* ) =<< (someDelta vid 4 m p .* someDelta vid 4 q n)
     res :: T Int <- i1 .+ i2
     return $ fmap fromIntegral res
   where
-    c = someInterAreaCon id m n a b
+    c = someInterAreaCon vid m n a b
 
 --
 --  L_A^I * C^A_B_I^{Jm}_n * v^B_J
@@ -38,14 +39,14 @@ someInterAreaJet2 :: Num v =>
                      Label -> Label ->
                      Label -> Label ->
                      T v
-someInterAreaJet2 id m n a b i j = int
+someInterAreaJet2 vid m n a b i j = int
   where
-    c = someInterAreaCon id m n a b
-    k = someInterSym2Cov id 4 m n i j
+    c = someInterAreaCon vid m n a b
+    k = someInterSym2Cov vid 4 m n i j
     Right int = runExcept $
       do
-        i1 <- c .* someDeltaSym2 id 4 j i
-        i2 <- k .* someDeltaArea id a b
+        i1 <- c .* someDeltaSym2 vid 4 j i
+        i2 <- k .* someDeltaArea vid a b
         res :: T Int <- i1 .+ i2
         return $ fmap fromIntegral res
 
@@ -58,12 +59,12 @@ someInterAreaJet1_2 :: (Num v, MonadError String m) =>
                        Label -> Label ->
                        Label -> Label ->
                        m (T v)
-someInterAreaJet1_2 id m n a b r p = do
-    i <- c .* someDelta id 4 p r
-    i' <- (i .+) =<< transposeT (VSpace id 4) (ICon m) (ICon p) i
+someInterAreaJet1_2 vid m n a b r p = do
+    i <- c .* someDelta @Int vid 4 p r
+    i' <- (i .+) =<< transposeT (VSpace vid 4) (ICon m) (ICon p) i
     return $ fmap fromIntegral i'
   where
-    c = someInterAreaCon id m n a b
+    c = someInterAreaCon vid m n a b
 
 --
 --  L_A^I * C^A_B_I^{qpm}_n * v^B_q
@@ -75,18 +76,18 @@ someInterAreaJet2_2 :: (Num v, MonadError String m) =>
                        Label ->
                        Label -> Label ->
                        m (T v)
-someInterAreaJet2_2 id m n a b i q p = do
-    i1 <- (c .*) =<< someSurjSym2Cov id 4 p q i
-    i2 <- (dA .*) =<< ((dST .*) =<< someSurjSym2Cov id 4 p m i)
-    i1' <- (i1 .+) =<< transposeT (VSpace id 4) (ICon m) (ICon p) i1
+someInterAreaJet2_2 vid m n a b i q p = do
+    i1 <- (c .*) =<< someSurjSym2Cov vid 4 p q i
+    i2 <- (dA .*) =<< ((dST .*) =<< someSurjSym2Cov vid 4 p m i)
+    i1' <- (i1 .+) =<< transposeT (VSpace vid 4) (ICon m) (ICon p) i1
     fmap (fmap (\v -> let v' = 2*v in
                       if denominator v' == 1
                       then fromIntegral (numerator v')
                       else error "someInterAreaJet2_2 is not fraction-free, as it should be!")) $ i1' .+ i2
   where
-    c :: T Rational = someInterAreaCon id m n a b
-    dA = someDeltaArea id a b
-    dST = someDelta id 4 q n
+    c :: T Rational = someInterAreaCon vid m n a b
+    dA = someDeltaArea vid a b
+    dST = someDelta vid 4 q n
 
 --
 --  L_A^I * C^A_B_I^{pqm}_n * v^B
@@ -98,20 +99,20 @@ someInterAreaJet2_3 :: (Num v, MonadError String m) =>
                        Label ->
                        Label -> Label ->
                        m (T v)
-someInterAreaJet2_3 id m n a b i p q = do
-    j <- someSurjSym2Cov id 4 p q i
+someInterAreaJet2_3 vid m n a b i p q = do
+    j <- someSurjSym2Cov vid 4 p q i
     t1 <- c .* j
-    t2 <- transposeMultT (VSpace id 4) [(m,m),(p,q),(q,p)] [] t1
-    t3 <- transposeMultT (VSpace id 4) [(m,p),(p,m),(q,q)] [] t1
-    t4 <- transposeMultT (VSpace id 4) [(m,p),(p,q),(q,m)] [] t1
-    t5 <- transposeMultT (VSpace id 4) [(m,q),(p,m),(q,p)] [] t1
-    t6 <- transposeMultT (VSpace id 4) [(m,q),(p,p),(q,m)] [] t1
+    t2 <- transposeMultT (VSpace vid 4) [(m,m),(p,q),(q,p)] [] t1
+    t3 <- transposeMultT (VSpace vid 4) [(m,p),(p,m),(q,q)] [] t1
+    t4 <- transposeMultT (VSpace vid 4) [(m,p),(p,q),(q,m)] [] t1
+    t5 <- transposeMultT (VSpace vid 4) [(m,q),(p,m),(q,p)] [] t1
+    t6 <- transposeMultT (VSpace vid 4) [(m,q),(p,p),(q,m)] [] t1
     res <- (t6 .+) =<< (t5 .+) =<< (t4 .+) =<< (t3 .+) =<< (t2 .+ t1)
     return $ fmap (\v -> if denominator v == 1
                          then fromIntegral (numerator v)
                          else error "someInterAreaJet2_3 is not fraction-free, as it should be!") res
   where
-    c :: T Rational = someInterAreaCon id m n a b
+    c :: T Rational = someInterAreaCon vid m n a b
 
 diffeoEq1 :: (Num v, Eq v, MonadError String m) =>
              T v -> T v -> m (T v)

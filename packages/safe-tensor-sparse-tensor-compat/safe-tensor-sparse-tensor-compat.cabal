@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: df8066a9784c91c15e9b9f20cb40749c31c8ab50e68620b0719501bfc6b9bf14
+-- hash: a0efbc3c233ad7298ef72df75710d823c6b95482c5f3f1670d82134d389c53e3
 
 name:           safe-tensor-sparse-tensor-compat
 version:        0.1.0.0
@@ -32,7 +32,7 @@ library
       Paths_safe_tensor_sparse_tensor_compat
   hs-source-dirs:
       src
-  ghc-options: -O2 -fspecialise -fcross-module-specialise -fspecialise-aggressively -fexpose-all-unfoldings -Werror -Wall -Wmonomorphism-restriction -Wmissing-local-signatures -Wmissing-exported-signatures -Wmissing-home-modules -Widentities -Wpartial-fields -Wmissed-specialisations -Wall-missed-specialisations -Wno-incomplete-patterns
+  ghc-options: -O2 -fspecialise -fcross-module-specialise -fspecialise-aggressively -fexpose-all-unfoldings -Wall
   build-depends:
       base >=4.7 && <5
     , containers >=0.6 && <0.7
