@@ -10,7 +10,7 @@ cache:
 
 matrix:
   include:
-  - env: GHCVER=8.10.1 SOLVER=nightly-2020-06-19
+  - env: GHCVER=8.10.1 SOLVER=nightly-2020-07-07
     addons:
       apt:
         sources:
