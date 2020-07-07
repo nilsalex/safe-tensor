@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eb2fd23a8888aa118f13fb1e744c05efca7009a69a3c4798e19dce34771bbdb2
+-- hash: d8db1e3bc409f22390d910f02253e624ef929b8fb88ef85dd8dce87340fc3b65
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -21,6 +21,7 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+    CHANGELOG.md
 
 source-repository head
   type: git

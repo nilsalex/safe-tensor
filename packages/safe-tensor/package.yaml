@@ -8,6 +8,7 @@ copyright:           "2020 Nils Alex"
 
 extra-source-files:
 - README.md
+- CHANGELOG.md
 
 synopsis:            Dependently typed tensor algebra
 category:            Math
