@@ -24,7 +24,3 @@ dependencies:
 
 library:
   source-dirs: src
-  when:
-  - condition: impl(ghc >=8.10)
-    default-extensions: StandaloneKindSignatures
-

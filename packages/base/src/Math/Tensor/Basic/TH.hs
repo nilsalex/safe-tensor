@@ -18,6 +18,11 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# LANGUAGE CPP #-}
+#if MIN_VERSION_base(4,14,0)
+{-# LANGUAGE StandaloneKindSignatures #-}
+#endif
+
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.TH
