@@ -11,8 +11,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-{-# OPTIONS_GHC -Wall -Werror #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor

@@ -21,18 +21,7 @@
 {-# LANGUAGE CPP #-}
 #if MIN_VERSION_base(4,14,0)
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    #-}
-#else
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    -Wno-incomplete-patterns
-    #-}
 #endif
-
 
 -----------------------------------------------------------------------------
 {-|

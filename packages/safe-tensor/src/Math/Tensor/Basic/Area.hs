@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -57,20 +58,47 @@ import Math.Tensor.Basic.TH
 import Math.Tensor.Basic.Delta
 
 import Data.Singletons
+  ( Sing
+  , SingI (sing)
+  , Demote
+  , withSomeSing
+  , withSingI
+  )
 import Data.Singletons.Prelude
+  ( SBool (STrue)
+  , PSemigroup ((<>))
+  , SMaybe (SJust)
+  , (%<>)
+  )
 import Data.Singletons.Decide
+  ( (:~:) (Refl)
+  , Decision (Proved)
+  , (%~)
+  )
 import Data.Singletons.TypeLits
+  ( Symbol
+  , withKnownSymbol
+  )
 
 import Data.Maybe (catMaybes)
-import Data.Ratio
+import Data.Ratio (Ratio, numerator, denominator)
 import qualified Data.Map.Strict as Map
-import Data.List.NonEmpty (NonEmpty(..))
+  ( Map
+  , lookup
+  , fromList
+  )
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Control.Monad.Except
+  ( MonadError
+  , runExcept
+  )
 
-trianMapArea :: Map.Map (Vec (S (S (S (S Z)))) Int) Int
+trianMapArea :: Map.Map (Vec ('S ('S ('S ('S 'Z)))) Int) Int
 trianMapArea = Map.fromList $ zip indices4 indices1
   where
+    indices1 :: [Int]
     indices1 = [0..]
+    indices4 :: [Vec ('S ('S ('S ('S 'Z)))) Int]
     indices4 = [a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil))) |
                   a <- [0..2],
                   b <- [a+1..3],
@@ -78,7 +106,7 @@ trianMapArea = Map.fromList $ zip indices4 indices1
                   d <- [c+1..3],
                   not (a == c && b > d) ]
 
-facMapArea :: Num b => Map.Map (Vec (S (S (S (S Z)))) Int) b
+facMapArea :: forall b.Num b => Map.Map (Vec ('S ('S ('S ('S 'Z)))) Int) b
 facMapArea = Map.fromList $ [(a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil))), fac a b c d) |
                                 a <- [0..2],
                                 b <- [a+1..3],
@@ -86,6 +114,7 @@ facMapArea = Map.fromList $ [(a `VCons` (b `VCons` (c `VCons` (d `VCons` VNil)))
                                 d <- [c+1..3],
                                 not (a == c && b > d)]
   where
+    fac :: Int -> Int -> Int -> Int -> b
     fac a b c d
       | a == c && b == d = 4
       | otherwise        = 8
@@ -98,7 +127,7 @@ areaSign a b c d
   | c > d  = ((-1) *) <$> areaSign a b d c
   | otherwise = Just 1
 
-sortArea :: Ord a => a -> a -> a -> a -> Vec (S (S (S (S Z)))) a
+sortArea :: Ord a => a -> a -> a -> a -> Vec ('S ('S ('S ('S 'Z)))) a
 sortArea a b c d
   | a > b = sortArea b a c d
   | c > d = sortArea a b d c
@@ -113,7 +142,7 @@ injAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) 
                 SingI r,
                 Num v
                ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor r v
-injAreaCon' sid sa sb sc sd si =
+injAreaCon' _ _ _ _ _ _ =
     case sLengthR sr of
       SS (SS (SS (SS (SS SZ)))) ->
         case sSane sr %~ STrue of
@@ -137,7 +166,7 @@ injAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol) 
                 SingI r,
                 Num v
                ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor r v
-injAreaCov' sid sa sb sc sd si =
+injAreaCov' _ _ _ _ _ _ =
     case sLengthR sr of
       SS (SS (SS (SS (SS SZ)))) ->
         case sSane sr %~ STrue of
@@ -161,7 +190,7 @@ surjAreaCon' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol)
                 SingI r,
                 Fractional v
                ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor r v
-surjAreaCon' sid sa sb sc sd si =
+surjAreaCon' _ _ _ _ _ _ =
     case sLengthR sr of
       SS (SS (SS (SS (SS SZ)))) ->
         case sSane sr %~ STrue of
@@ -169,7 +198,7 @@ surjAreaCon' sid sa sb sc sd si =
   where
     sr = sing :: Sing r
     tm = trianMapArea
-    fm = facMapArea
+    fm = facMapArea @v
     assocs = catMaybes $
              (\a b c d ->
                   do
@@ -187,7 +216,7 @@ surjAreaCov' :: forall (id :: Symbol) (a :: Symbol) (b :: Symbol) ( c :: Symbol)
                 SingI r,
                 Fractional v
                ) => Sing id -> Sing a -> Sing b -> Sing c -> Sing d -> Sing i -> Tensor r v
-surjAreaCov' sid sa sb sc sd si =
+surjAreaCov' _ _ _ _ _ _ =
     case sLengthR sr of
       SS (SS (SS (SS (SS SZ)))) ->
         case sSane sr %~ STrue of
@@ -195,7 +224,7 @@ surjAreaCov' sid sa sb sc sd si =
   where
     sr = sing :: Sing r
     tm = trianMapArea
-    fm = facMapArea
+    fm = facMapArea @v
     assocs = catMaybes $
              (\a b c d ->
                   do
@@ -207,8 +236,8 @@ surjAreaCov' sid sa sb sc sd si =
              <$> [0..3] <*> [0..3] <*> [0..3] <*> [0..3]
 
 _injAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
-_injAreaCon id i =
-  withSomeSing id    $ \sid ->
+_injAreaCon vid i =
+  withSomeSing vid   $ \sid ->
   withSomeSing i     $ \si  ->
   withSomeSing " 01" $ \s01 ->
   withSomeSing " 02" $ \s02 ->
@@ -218,8 +247,8 @@ _injAreaCon id i =
       SJust sr -> withSingI sr $ T $ injAreaCon' sid s01 s02 s03 s04 si
 
 _injAreaCov :: Num v => Demote Symbol -> Demote Symbol -> T v
-_injAreaCov id i =
-  withSomeSing id    $ \sid ->
+_injAreaCov vid i =
+  withSomeSing vid   $ \sid ->
   withSomeSing i     $ \si  ->
   withSomeSing " 01" $ \s01 ->
   withSomeSing " 02" $ \s02 ->
@@ -229,8 +258,8 @@ _injAreaCov id i =
       SJust sr -> withSingI sr $ T $ injAreaCov' sid s01 s02 s03 s04 si
 
 _surjAreaCon :: Fractional v => Demote Symbol -> Demote Symbol -> T v
-_surjAreaCon id i =
-  withSomeSing id    $ \sid ->
+_surjAreaCon vid i =
+  withSomeSing vid   $ \sid ->
   withSomeSing i     $ \si  ->
   withSomeSing " 01" $ \s01 ->
   withSomeSing " 02" $ \s02 ->
@@ -240,8 +269,8 @@ _surjAreaCon id i =
       SJust sr -> withSingI sr $ T $ surjAreaCon' sid s01 s02 s03 s04 si
 
 _surjAreaCov :: Fractional v => Demote Symbol -> Demote Symbol -> T v
-_surjAreaCov id i =
-  withSomeSing id    $ \sid ->
+_surjAreaCov vid i =
+  withSomeSing vid   $ \sid ->
   withSomeSing i     $ \si  ->
   withSomeSing " 01" $ \s01 ->
   withSomeSing " 02" $ \s02 ->
@@ -285,12 +314,12 @@ someInterAreaCon vid m n a b = t
   where
     Right t = runExcept $
       do
-        j <- someSurjAreaCon vid " 1" " 2" " 3" n a
-        i <- someInjAreaCon vid " 1" " 2" " 3" m b
-        product <- i .* j
-        let res = contractT $ fmap (*(-4)) product
-        return $ fmap (\i -> if denominator i == 1
-                             then fromIntegral (numerator i)
+        j :: T (Ratio Int) <- someSurjAreaCon vid " 1" " 2" " 3" n a
+        i :: T (Ratio Int) <- someInjAreaCon vid " 1" " 2" " 3" m b
+        prod <- i .* j
+        let res = contractT $ fmap (*(-4)) prod
+        return $ fmap (\v -> if denominator v == 1
+                             then fromIntegral (numerator v)
                              else error "someInterAreaCon is not fraction-free, as it should be!") res
 
 someInterAreaCov :: Num v =>
@@ -300,24 +329,24 @@ someInterAreaCov vid m n a b = t
   where
     Right t = runExcept $
       do
-        j <- someSurjAreaCov vid " 1" " 2" " 3" m a
-        i <- someInjAreaCov vid " 1" " 2" " 3" n b
-        product <- i .* j
-        let res = contractT $ fmap (*4) product
-        return $ fmap (\i -> if denominator i == 1
-                             then fromIntegral (numerator i)
+        j :: T (Ratio Int) <- someSurjAreaCov vid " 1" " 2" " 3" m a
+        i :: T (Ratio Int) <- someInjAreaCov vid " 1" " 2" " 3" n b
+        prod <- i .* j
+        let res = contractT $ fmap (*4) prod
+        return $ fmap (\v -> if denominator v == 1
+                             then fromIntegral (numerator v)
                              else error "someInterAreaCov is not fraction-free, as it should be!") res
 
 someDeltaArea :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> T v
-someDeltaArea id = someDelta (id <> "Area") 21
+someDeltaArea vid = someDelta (vid <> "Area") 21
 
 flatAreaCon :: forall (id :: Symbol) (a :: Symbol) (r :: Rank) v.
                (
-                '[ '( 'VSpace (id <> "Area") 21, 'Con (a :| '[]))] ~ r,
+                '[ '( 'VSpace (id <> "Area") 21, 'Con (a ':| '[]))] ~ r,
                 Num v
                ) => Sing id -> Sing a -> Tensor r v
 flatAreaCon sid sa =
-  withKnownSymbol (sid `sMappend` (sing :: Sing "Area")) $
+  withKnownSymbol (sid %<> (sing :: Sing "Area")) $
   withKnownSymbol sa $
   fromList [(0 `VCons` VNil, -1), (5 `VCons` VNil, 1),   --  0  1  2  3  4  5
             (6 `VCons` VNil, -1), (9 `VCons` VNil, -1),  --     6  7  8  9 10
@@ -329,9 +358,9 @@ flatAreaCon sid sa =
 
 
 someFlatAreaCon :: Num v => Demote Symbol -> Demote Symbol -> T v
-someFlatAreaCon id a =
-  withSomeSing id $ \sid ->
-  withSomeSing a  $ \sa  ->
-  withKnownSymbol (sid `sMappend` (sing :: Sing "Area")) $
+someFlatAreaCon vid a =
+  withSomeSing vid $ \sid ->
+  withSomeSing a   $ \sa  ->
+  withKnownSymbol (sid %<> (sing :: Sing "Area")) $
   withKnownSymbol sa $
   T $ flatAreaCon sid sa

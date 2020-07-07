@@ -1,13 +1,5 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    -Weverything
-    -Wno-prepositive-qualified-module
-    -Wno-missing-deriving-strategies
-    -Wno-implicit-prelude
-    #-}
 
 -----------------------------------------------------------------------------
 {-|

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5d9ff74f1b685c44c350ff95a0d7f8bf753a9a666c8289c1cc2b693cf9ae764c
+-- hash: 5d59a7cc4f53735e95ca1e4a6ba6fe71613d3fa3e34b431aeb7bca5aa4f8b6bb
 
 name:           safe-tensor
 version:        0.1.0.0
@@ -47,7 +47,7 @@ library
       Paths_safe_tensor
   hs-source-dirs:
       src
-  ghc-options: -fspecialise -fcross-module-specialise -fspecialise-aggressively -fexpose-all-unfoldings
+  ghc-options: -O2 -fspecialise -fcross-module-specialise -fspecialise-aggressively -fexpose-all-unfoldings -Werror -Wall -Wmonomorphism-restriction -Wmissing-local-signatures -Wmissing-exported-signatures -Wmissing-home-modules -Widentities -Wpartial-fields -Wmissed-specialisations -Wall-missed-specialisations -Wno-incomplete-patterns
   build-depends:
       base >=4.7 && <5
     , constraints >=0.10 && <0.13

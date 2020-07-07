@@ -1,17 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-{-# OPTIONS_GHC
-    -Wall
-    -Weverything
-    -Wno-prepositive-qualified-module
-    -Wno-missing-deriving-strategies
-    -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode
-    -Wno-unsafe
-    -Werror
-    #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.LinearAlgebra.Matrix

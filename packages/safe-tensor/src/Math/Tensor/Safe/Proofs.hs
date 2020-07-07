@@ -11,8 +11,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-{-# OPTIONS_GHC -Wall -Werror #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe.Proofs

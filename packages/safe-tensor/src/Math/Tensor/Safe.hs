@@ -13,12 +13,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    -Wno-incomplete-patterns
-    #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe

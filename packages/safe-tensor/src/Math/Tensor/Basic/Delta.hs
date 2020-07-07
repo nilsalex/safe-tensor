@@ -11,19 +11,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    -Weverything
-    -Wno-prepositive-qualified-module
-    -Wno-missing-deriving-strategies
-    -Wno-implicit-prelude
-    -Wno-missing-import-lists
-    -Wno-missing-safe-haskell-mode
-    -Wno-unsafe
-    -Wno-incomplete-patterns
-    #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Delta

@@ -39,16 +39,13 @@ module Math.Tensor.Basic.TH where
 
 import Math.Tensor.Safe.TH
 
-import Data.Kind (Type)
-
 import Data.Singletons.Prelude
 import Data.Singletons.Prelude.Enum
 import Data.Singletons.Prelude.List.NonEmpty hiding (sLength)
-import Data.Singletons.Prelude.Ord
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 
-import Data.List.NonEmpty (NonEmpty((:|)),sort,sortBy,(<|))
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 $(singletons [d|
 

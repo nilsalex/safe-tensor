@@ -4,8 +4,6 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-{-# OPTIONS_GHC -Wall -Werror #-}
-
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe.Vector

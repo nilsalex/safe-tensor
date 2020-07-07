@@ -12,20 +12,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-{-# OPTIONS_GHC
-    -Wall
-    -Werror
-    -Weverything
-    -Wno-prepositive-qualified-module
-    -Wno-missing-deriving-strategies
-    -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode
-    -Wno-unsafe
-    -Wno-missing-import-lists
-    -Wno-incomplete-patterns
-    -Wno-incomplete-uni-patterns
-    -Wno-redundant-constraints
-    #-}
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Basic.Sym2
