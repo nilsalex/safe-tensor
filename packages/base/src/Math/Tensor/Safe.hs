@@ -12,6 +12,9 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+
+{-# OPTIONS_GHC -Wall #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -63,14 +66,35 @@ import Math.Tensor.Safe.Vector
 
 import Data.Kind (Type)
 
-import Data.Constraint hiding (contract)
+import Data.Constraint (Dict(Dict), (:-)(Sub))
 
 import Data.Singletons
+  ( Sing
+  , SingI (sing)
+  , withSingI, fromSing
+  )
 import Data.Singletons.Prelude
+  ( SBool (STrue, SFalse)
+  , SList (SNil)
+  , SMaybe (SJust)
+  , SOrdering (SLT, SEQ, SGT)
+  , STuple2 (STuple2)
+  , Tail
+  , sFst, sSnd, sHead, sTail
+  , sCompare, (%==)
+  )
 import Data.Singletons.Prelude.Maybe
+  ( IsJust
+  , sIsJust
+  )
 import Data.Singletons.Decide
-import Data.Singletons.TypeLits
+  ( Decision (Proved, Disproved)
+  , (:~:) (Refl)
+  , (%~)
+  )
+import Data.Singletons.TypeLits (Nat, Symbol)
 
+import Data.Maybe (catMaybes)
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
@@ -88,11 +112,11 @@ data Tensor :: Rank -> Type -> Type where
     -- component-value pairs. The keys must be unique and in ascending order.
     -- The values are tensors of the next-lower rank.
 
-deriving instance Eq v => Eq (Tensor r v)
-deriving instance Show v => Show (Tensor r v)
+deriving stock instance Eq v => Eq (Tensor r v)
+deriving stock instance Show v => Show (Tensor r v)
 
 instance Functor (Tensor r) where
-  fmap f ZeroTensor = ZeroTensor
+  fmap _ ZeroTensor = ZeroTensor
   fmap f (Scalar s) = Scalar $ f s
   fmap f (Tensor ms) = Tensor $ fmap (fmap (fmap f)) ms
 
@@ -106,20 +130,6 @@ unionWith f g h xs@((ix,vx):xs') ys@((iy,vy):ys') =
     LT -> (ix, g vx) : unionWith f g h xs' ys
     EQ -> (ix, f vx vy) : unionWith f g h xs' ys'
     GT -> (iy, h vy) : unionWith f g h xs ys'
-
--- |Add two sorted assocs lists.
-addLists :: (Num a, Eq a) => [(Int, a)] -> [(Int, a)] -> [(Int, a)]
-addLists [] ys = ys
-addLists xs [] = xs
-addLists xs@((ix,vx):xs') ys@((iy,vy):ys') =
-  case ix `compare` iy of
-    LT -> (ix, vx) : addLists xs' ys
-    EQ -> let vz = vx + vy
-              zs = addLists xs' ys' in
-          if vz == 0
-          then zs
-          else (ix, vz) : zs
-    GT -> (iy, vy) : addLists xs ys'
 
 -- |Given a 'Num' and 'Eq' instance, remove all zero values from the tensor,
 -- eventually replacing a zero @Scalar@ or an empty @Tensor@ with @ZeroTensor@.
@@ -167,7 +177,7 @@ infixl 6 &-
 
 -- |Tensor multiplication, ranks of factors passed explicitly as singletons.
 mult :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
-               (Num v, Just r'' ~ MergeR r r') =>
+               (Num v, 'Just r'' ~ MergeR r r') =>
                Sing r -> Sing r' -> Tensor r v -> Tensor r' v -> Tensor r'' v
 mult _ _ (Scalar s) (Scalar t) = Scalar (s*t)
 mult sr sr' (Scalar s) (Tensor ms) =
@@ -226,7 +236,7 @@ mult sr sr' (Tensor _) ZeroTensor =
 -- |Tensor multiplication. Ranks of factors must not overlap. The Product
 -- rank is the merged rank of the factors.
 (&*) :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
-               (Num v, Just r'' ~ MergeR r r', SingI r, SingI r') =>
+               (Num v, 'Just r'' ~ MergeR r r', SingI r, SingI r') =>
                Tensor r v -> Tensor r' v -> Tensor r'' v
 (&*) = mult (sing :: Sing r) (sing :: Sing r')
 
@@ -245,8 +255,8 @@ contract'' :: forall (r :: Rank) (r' :: Rank) v.
 contract'' sr ZeroTensor =
   case saneContractProof sr of
     Sub Dict -> ZeroTensor
-contract'' sr (Scalar v) = Scalar v
-contract'' sr t@(Tensor ms) =
+contract'' _ (Scalar v) = Scalar v
+contract'' sr (Tensor ms) =
     case sTail' sr of
        SNil ->
          case singletonContractProof sr of
@@ -275,16 +285,13 @@ contract'' sr t@(Tensor ms) =
                                                               [] -> Nothing
                                                               [(_, v')] -> Just v'
                                                               _ -> error "duplicate key in tensor assoc list") ms
-                              ms'' = filter (\case
-                                                 Nothing -> False
-                                                 Just x' -> True) ms'
-                              ms''' = fmap (\(Just x) -> x) ms'' :: [Tensor (Tail' (Tail' r)) v]
+                              ms'' = catMaybes ms' :: [Tensor (Tail' (Tail' r)) v]
                           in  case saneTail'Proof sr of
                                 Sub Dict ->
                                   case saneTail'Proof st of
                                     Sub Dict ->
                                       case contractTailSameVSameIProof sr of
-                                        Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms'''
+                                        Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms''
                         SFalse ->
                           case contractTailSameVDiffIProof sr of
                             Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
@@ -344,7 +351,7 @@ transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (r ::
                  (IsJust (Transpositions vs tl r) ~ 'True, SingI r) =>
                  Sing vs -> Sing tl -> Tensor r v -> Tensor r v
 transposeMult _ _ ZeroTensor = ZeroTensor
-transposeMult sv stl t@(Tensor ms) =
+transposeMult sv stl tens@(Tensor ms) =
     let sr = sing :: Sing r
         sh = sHead' sr
         st = sTail' sr
@@ -362,7 +369,7 @@ transposeMult sv stl t@(Tensor ms) =
                        n  = fromSing sn
                        ts  = fromSing sts'
                        ts' = go ts $ take' n 0
-                       xs  = toTListWhile t
+                       xs  = toTListWhile tens
                        xs' = fmap (first (transposeIndices ts')) xs
                        xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
                    in  fromTList xs''
@@ -371,21 +378,26 @@ transposeMult sv stl t@(Tensor ms) =
            case sIsJust (sTranspositions sv stl st) %~ STrue of
              Proved Refl -> Tensor $ fmap (fmap (transposeMult sv stl)) ms
   where
+    take' :: N -> Int -> [Int]
     take' Z i = [i]
     take' (S n) i = i : take' n (i+1)
 
+    transposeIndices :: [Int] -> [Int] -> [Int]
     transposeIndices ts' is = fmap snd $
                               sortBy (\(i,_) (i',_) -> i `compare` i') $
                               zip ts' is
 
     go :: [(N,N)] -> [Int] -> [Int]
     go [] is = is
-    go ((s,t):ts) (i:is)
-      | s' == i = t' : go ts is
-      | s' >  i = i : go ((s,t):ts) is
+    go ((s,t):ts) (i:is) =
+      case s' `compare` i of
+        EQ -> t' : go ts is
+        GT -> i : go ((s,t):ts) is
+        LT -> error $ "illegal permutation" <> show ((s,t):ts) <> "\t" <> show (i:is)
      where
       s' = toInt s
       t' = toInt t
+    go _ [] = error "cannot transpose elements of empty list"
 
 -- |Tensor relabelling. Given a vector space and a list of relabellings, the result is a tensor
 -- with the resulting rank after relabelling. Only possible if labels to be renamed are part of
@@ -394,7 +406,7 @@ relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelList Symbol) (r1 :: Ra
                  (RelabelR vs rl r1 ~ 'Just r2, Sane r2 ~ 'True, SingI r1, SingI r2) =>
                  Sing vs -> Sing rl -> Tensor r1 v -> Tensor r2 v
 relabel _ _ ZeroTensor = ZeroTensor
-relabel sv srl t@(Tensor ms) =
+relabel sv srl tens@(Tensor ms) =
     let sr1 = sing :: Sing r1
         sr2 = sing :: Sing r2
         sh = sHead' sr1
@@ -414,7 +426,7 @@ relabel sv srl t@(Tensor ms) =
                        n  = fromSing sn
                        ts  = fromSing sts'
                        ts' = go ts $ take' n 0
-                       xs  = toTListWhile t
+                       xs  = toTListWhile tens
                        xs' = fmap (first (transposeIndices ts')) xs
                        xs'' = sortBy (\(i,_) (i',_) -> i `compare` i') xs'
                    in  fromTList xs''
@@ -424,21 +436,26 @@ relabel sv srl t@(Tensor ms) =
                case sSane sr2' %~ STrue of
                  Proved Refl -> withSingI sr1' $ withSingI sr2' $ Tensor $ fmap (fmap (relabel sv srl)) ms
   where
+    take' :: N -> Int -> [Int]
     take' Z i = [i]
     take' (S n) i = i : take' n (i+1)
 
+    transposeIndices :: [Int] -> [Int] -> [Int]
     transposeIndices ts' is = fmap snd $
                               sortBy (\(i,_) (i',_) -> i `compare` i') $
                               zip ts' is
 
     go :: [(N,N)] -> [Int] -> [Int]
     go [] is = is
-    go ((s,t):ts) (i:is)
-      | s' == i = t' : go ts is
-      | s' >  i = i : go ((s,t):ts) is
+    go ((s,t):ts) (i:is) =
+      case s' `compare` i of
+        EQ -> t' : go ts is
+        GT -> i : go ((s,t):ts) is
+        LT -> error $ "illegal permutation" <> show ((s,t):ts) <> "\t" <> show (i:is)
      where
       s' = toInt s
       t' = toInt t
+    go _ [] = error "cannot transpose elements of empty list"
 
 -- |Get assocs list from tensor. Keys are length-indexed vectors of indices.
 toList :: forall r v n.
@@ -460,12 +477,12 @@ toList (Tensor ms) =
              withSingI sm' $
              case sm %~ sm' of
                Proved Refl ->
-                 concatMap (\(i, v) -> case v of Tensor t -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
+                 concatMap (\(i, v) -> case v of Tensor _ -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
 
 fromList' :: forall r v n.
-             (Sane r ~ True, LengthR r ~ n) =>
+             (Sane r ~ 'True, LengthR r ~ n) =>
              Sing r -> [(Vec n Int, v)] -> Tensor r v
-fromList' sr [] = ZeroTensor
+fromList' _  [] = ZeroTensor
 fromList' sr xs =
     let sn = sLengthR sr
         st = sTail' sr
@@ -484,13 +501,14 @@ fromList' sr xs =
                        case fmap (\(i `VCons` is,v) -> (i,(is ,v))) xs of
                          xs' -> Tensor $ fmap (fromList' st) <$> myGroup xs'
   where
+    myGroup :: Eq k => [(k,a)] -> [(k, [a])]
     myGroup ys =
       let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
       in fmap (\x -> (fst $ head x, fmap snd x)) ys'
 
 -- |Construct 'Tensor' from assocs list. Keys are length-indexed vectors of indices.
 fromList :: forall r v n.
-            (SingI r, Sane r ~ True, LengthR r ~ n) =>
+            (SingI r, Sane r ~ 'True, LengthR r ~ n) =>
             [(Vec n Int, v)] -> Tensor r v
 fromList =
   let sr = sing :: Sing r
@@ -499,7 +517,7 @@ fromList =
 -- |Decompose tensor into assocs list with keys being lists of indices for the first vector space
 -- and values being the tensors with lower rank for the remaining vector spaces.
 toTListWhile :: forall r v.
-                (SingI r, Sane r ~ True) =>
+                (SingI r, Sane r ~ 'True) =>
                 Tensor r v -> [([Int], Tensor (Tail r) v)]
 toTListWhile (Tensor ms) =
   let sr = sing :: Sing r
@@ -519,7 +537,7 @@ toTListWhile (Tensor ms) =
 -- |Decompose tensor into assocs list with keys being lists of indices up to and including the
 -- desired label, and values being tensors of corresponding lower rank.
 toTListUntil :: forall (a :: Ix Symbol) r r' v.
-                (SingI r, SingI r', RemoveUntil a r ~ r', Sane r ~ True, Sane r' ~ True) =>
+                (SingI r, SingI r', RemoveUntil a r ~ r', Sane r ~ 'True, Sane r' ~ 'True) =>
                 Sing a -> Tensor r v -> [([Int], Tensor r' v)]
 toTListUntil sa (Tensor ms) =
     let sr = sing :: Sing r
@@ -540,7 +558,7 @@ toTListUntil sa (Tensor ms) =
 
 -- |Construct tensor from assocs list. Keys are lists of indices, values are
 -- tensors of lower rank. Used internally for tensor algebra.
-fromTList :: forall r r' v.(Sane r ~ True, Sane r' ~ True, SingI r, SingI r') =>
+fromTList :: forall r r' v.(Sane r ~ 'True, Sane r' ~ 'True, SingI r, SingI r') =>
                            [([Int], Tensor r v)] -> Tensor r' v
 fromTList [] = ZeroTensor
 fromTList xs@((i0,t0):ys)

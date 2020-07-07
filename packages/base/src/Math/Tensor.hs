@@ -67,14 +67,16 @@ import Data.Singletons
   , withSomeSing, withSingI
   , fromSing
   )
-
 import Data.Singletons.Prelude
-  (SBool(STrue, SFalse))
+  ( SBool (STrue, SFalse)
+  , SMaybe (SNothing, SJust)
+  )
 import Data.Singletons.Prelude.Maybe
-  (SMaybe(SNothing, SJust), sIsJust)
+  ( sIsJust
+  )
 import Data.Singletons.Decide
   ( Decision(Proved, Disproved)
-  , (:~:)(Refl), (%~)
+  , (:~:) (Refl), (%~)
   )
 import Data.Singletons.TypeLits
   ( Nat
