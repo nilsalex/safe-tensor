@@ -135,26 +135,59 @@ module Math.Tensor.Safe
     mergeR
 
   , -- * The Tensor GADT
+    -- |The 'Tensor' type parameterised by a generalized rank @r@ and a value type @v@
+    -- is a recursive container for tensor components of value @v@.
+    --
+    --   - The base case is a 'Scalar', which represents a tensor with empty rank.
+    --     A scalar holds a single value of type @v@.
+    --
+    --   - For non-empty ranks, a tensor is represented of as a mapping from all possible
+    --     index values for the first index @'headR' r@ to tensors of lower rank @'tailR' r@,
+    --     implemented as sparse ascending assocs list (omitting zero values).
+    --
+    --   - There is a shortcut for zero tensors, which are represented as 'ZeroTensor'
+    --     regardless of the generalized rank.
+    --
+    -- Generalized ranks must be 'Sane'. The empty rank @'[]@ is always sane.
     Tensor(..)
-  , -- * Length-typed assocs lists
-    -- |Type-level naturals used internally.
-    N(..)
-  , -- |Length-typed vector used internally.
-    Vec(..)
-  , vecFromListUnsafe
-  , -- * Conversion from and to lists
+  , -- ** Conversion from and to lists
+    -- |A @'Tensor' r v@ can be constructed from a list of key-value pairs,
+    -- where keys are lists (length-typed vectors) of @'lengthR' r@ indices
+    -- and values are the corresponding components.
+    --
+    -- The index values must be given in the order defined by repeatedly applying
+    -- 'headR' to the rank.
+    --
+    -- Given a value, such an assocs list is obtained by 'toList'.
     fromList
   , fromList'
   , toList
-  , -- * Tensor algebra
+  , -- ** Tensor algebra
     (&+), (&-), (&*), removeZeros
-  , -- * Contraction
+  , -- ** Contraction
     contract
-  , -- * Transpositions
-    transpose
+  , -- ** Transpositions
+    -- |Sum type for specifying single contravariant or covariant indices.
+    -- Used for transposition of two indices in a tensor.
+    Ix(..)
+  , -- |Transposition rule: Indices in the first list are swapped
+    -- with indices in the second list. Lists must be permutations of each other.
+    TransList (..)
+  , transpose
   , transposeMult
-  , -- * Relabelling
-    relabel
+  , -- ** Relabelling
+    -- |Relabelling rule: Non-empty list of source and target.
+    RelabelList
+  , -- |Given a vector space, a relabelling rule, and a generalized rank, returns @'Nothing'@ if
+    -- the relabelling is illegal. Otherwise, returns the new generalized rank after relabelling.
+    relabelR
+  , relabel
+  , -- ** Length-typed assocs lists
+    -- |Type-level naturals used for tensor construction and also internally.
+    N(..)
+  , -- |Length-typed vector used for tensor construction and also internally.
+    Vec(..)
+  , vecFromListUnsafe
   ) where
 
 import Math.Tensor.Safe.TH
@@ -186,19 +219,14 @@ import Data.Maybe (catMaybes)
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
--- |The 'Tensor' type is parameterized by its generalized 'Rank' @r@ and holds
--- arbitrary values @v@.
+-- |The 'Tensor' type parameterized by its generalized 'Rank' @r@ and
+-- arbitrary value type @v@.
 data Tensor :: Rank -> Type -> Type where
-    ZeroTensor :: forall (r :: Rank) v . Sane r ~ 'True => Tensor r v -- ^
-    -- A tensor of any sane rank type can be zero.
-    Scalar :: forall v. !v -> Tensor '[] v -- ^
-    -- A tensor of empty rank is a scalar holding some value.
+    ZeroTensor :: forall (r :: Rank) v . Sane r ~ 'True => Tensor r v
+    Scalar :: forall v. !v -> Tensor '[] v
     Tensor :: forall (r :: Rank) (r' :: Rank) v.
               (Sane r ~ 'True, TailR r ~ r') =>
-              [(Int, Tensor r' v)] -> Tensor r v -- ^
-    -- A non-zero tensor of sane non-empty rank is represented as an assocs list of
-    -- component-value pairs. The keys must be unique and in ascending order.
-    -- The values are tensors of the next-lower rank.
+              [(Int, Tensor r' v)] -> Tensor r v
 
 deriving instance Eq v => Eq (Tensor r v)
 deriving instance Show v => Show (Tensor r v)
@@ -236,7 +264,7 @@ removeZeros (Tensor ms) =
           _          -> True) $
             fmap (fmap removeZeros) ms
 
--- |Tensor addition. Ranks of summands and sum coincide.
+-- |Tensor addition. Ranks of summands and result coincide.
 -- Zero values are removed from the result.
 (&+) :: forall (r :: Rank) (r' :: Rank) v.
         ((r ~ r'), Num v, Eq v) =>
@@ -254,7 +282,7 @@ removeZeros (Tensor ms) =
 
 infixl 6 &+
 
--- |Tensor subtraction. Ranks of operands and difference coincide.
+-- |Tensor subtraction. Ranks of operands and result coincide.
 -- Zero values are removed from the result.
 (&-) :: forall (r :: Rank) (r' :: Rank) v.
         ((r ~ r'), Num v, Eq v) =>
@@ -263,7 +291,8 @@ infixl 6 &+
 
 infixl 6 &-
 
--- |Tensor multiplication, ranks of factors passed explicitly as singletons.
+-- |Tensor multiplication, ranks @r@, @r'@ of factors passed explicitly as singletons.
+-- Rank of result is @'MergeR' r r'@.
 mult :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
                (Num v, 'Just r'' ~ MergeR r r') =>
                Sing r -> Sing r' -> Tensor r v -> Tensor r' v -> Tensor r'' v
@@ -321,8 +350,8 @@ mult sr sr' (Tensor _) ZeroTensor =
   case saneMergeRProof sr sr' of
     Sub Dict -> ZeroTensor
 
--- |Tensor multiplication. Ranks of factors must not overlap. The Product
--- rank is the merged rank of the factors.
+-- |Tensor multiplication. Ranks @r@, @r'@ of factors must not overlap. The product
+-- rank is the merged rank @'MergeR' r r'@ of the factor ranks.
 (&*) :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
                (Num v, 'Just r'' ~ MergeR r r', SingI r, SingI r') =>
                Tensor r v -> Tensor r' v -> Tensor r'' v
@@ -545,7 +574,7 @@ relabel sv srl tens@(Tensor ms) =
       t' = toInt t
     go _ [] = error "cannot transpose elements of empty list"
 
--- |Get assocs list from tensor. Keys are length-indexed vectors of indices.
+-- |Get assocs list from 'Tensor'. Keys are length-typed vectors of indices.
 toList :: forall r v n.
           (SingI r, SingI n, LengthR r ~ n) =>
           Tensor r v -> [(Vec n Int, v)]
@@ -567,6 +596,8 @@ toList (Tensor ms) =
                Proved Refl ->
                  concatMap (\(i, v) -> case v of Tensor _ -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
 
+-- |Construct 'Tensor' from assocs list. Keys are length-typed vectors of indices. Generalized
+-- rank is passed explicitly as singleton.
 fromList' :: forall r v n.
              (Sane r ~ 'True, LengthR r ~ n) =>
              Sing r -> [(Vec n Int, v)] -> Tensor r v
@@ -594,7 +625,7 @@ fromList' sr xs =
       let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
       in fmap (\x -> (fst $ head x, fmap snd x)) ys'
 
--- |Construct 'Tensor' from assocs list. Keys are length-indexed vectors of indices.
+-- |Construct 'Tensor' from assocs list. Keys are length-typed vectors of indices.
 fromList :: forall r v n.
             (SingI r, Sane r ~ 'True, LengthR r ~ n) =>
             [(Vec n Int, v)] -> Tensor r v
