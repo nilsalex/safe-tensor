@@ -359,27 +359,27 @@ $(singletons [d|
         | snd (headR r') == i' = tailR r'
         | otherwise            = go i $ tailR r'
   
-  data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
+  data TransRule a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
     deriving (Show, Eq)
   
-  saneTransList :: Ord a => TransList a -> Bool
-  saneTransList tl =
+  saneTransRule :: Ord a => TransRule a -> Bool
+  saneTransRule tl =
       case tl of
         TransCon sources targets -> isAscendingNE sources &&
                                     sort targets == sources
         TransCov sources targets -> isAscendingNE sources &&
                                     sort targets == sources
   
-  canTransposeMult :: (Ord s, Ord n) => VSpace s n -> TransList s -> GRank s n -> Bool
+  canTransposeMult :: (Ord s, Ord n) => VSpace s n -> TransRule s -> GRank s n -> Bool
   canTransposeMult vs tl r = case transpositions vs tl r of
                                Just _  -> True
                                Nothing -> False
   
-  transpositions :: (Ord s, Ord n) => VSpace s n -> TransList s -> GRank s n -> Maybe [(N,N)]
+  transpositions :: (Ord s, Ord n) => VSpace s n -> TransRule s -> GRank s n -> Maybe [(N,N)]
   transpositions _ _ []              = Nothing
   transpositions vs tl ((vs',il):r) =
-      case saneTransList tl of
+      case saneTransRule tl of
         False -> Nothing
         True ->
           case compare vs vs' of
@@ -450,10 +450,10 @@ $(singletons [d|
       zip' (_ :| []) (_ :| (_:_)) = Nothing
       zip' (y:|(y':ys')) (z:|(z':zs')) = ((y,z):) <$> zip' (y':|ys') (z':|zs')
   
-  type RelabelList s = NonEmpty (s,s)
+  type RelabelRule s = NonEmpty (s,s)
   
-  saneRelabelList :: Ord a => NonEmpty (a,a) -> Bool
-  saneRelabelList xs = isAscendingNE xs &&
+  saneRelabelRule :: Ord a => NonEmpty (a,a) -> Bool
+  saneRelabelRule xs = isAscendingNE xs &&
                        isAscendingNE xs'
     where
       xs' = sort $ fmap (\(a,b) -> (b,a)) xs
@@ -480,7 +480,7 @@ $(singletons [d|
               []     -> Just $ (x,x) :| []
               x':xs' -> ((x,x) <|) <$> go ((source,target) :| ms) (x' :| xs')
   
-  relabelR :: (Ord s, Ord n) => VSpace s n -> RelabelList s -> GRank s n -> Maybe (GRank s n)
+  relabelR :: (Ord s, Ord n) => VSpace s n -> RelabelRule s -> GRank s n -> Maybe (GRank s n)
   relabelR _ _ [] = Nothing
   relabelR vs rls ((vs',il):r) =
     case vs `compare` vs' of

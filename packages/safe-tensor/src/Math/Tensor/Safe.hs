@@ -55,33 +55,36 @@ module Math.Tensor.Safe
     --    T = T^{a_1\dots a_r}_{\hphantom{a_1\dots a_3}b_1\dots b_s} \cdot e_{a_1} \otimes \dots \otimes e_{a_r} \otimes \epsilon^{b_1} \otimes \dots \otimes \epsilon^{b_s}
     -- \]
     --
-    -- using the [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_notation)
+    -- using the [Einstein summation convention](https://ncatlab.org/nlab/show/Einstein+summation+convention)
     -- and the [tensor product](https://en.wikipedia.org/wiki/Tensor_product).
     --
-    -- This representation of tensors using their components with respect to a fixed but arbitrary
-    -- basis forms the foundation of our tensor calculus. An example is the sum of a \((2,0)\) tensor
-    -- \(T\) and the transposition of a \((2,0)\) tensor \(S\)
+    -- The representation of tensors using their components with respect to a fixed but arbitrary
+    -- basis forms the foundation of this tensor calculus. An example is the sum of a \((2,0)\) tensor
+    -- \(T\) and the transposition of a \((2,0)\) tensor \(S\), which using the calculus can be
+    -- written as
     --
     -- \[
     --    \lbrack T + \operatorname{transpose}(S)\rbrack^{a b} = T^{a b} + S^{b a}.
     -- \]
     --
-    -- The /generalized rank/ of the tensor \(T^{a b}\) in the above example is the collection of
+    -- The /generalized rank/ of the tensor \(T^{a b}\) in the above example is the set of
     -- contravariant indices \(\{a, b\}\). The indices must be distinct. The generalized
     -- rank of a tensor with both contravariant and covariant indices
-    -- (e.g. \(T^{ac}_{\hphantom{ac}rbl}\)) is the collection of contravariant and the
-    -- collection of covariant indices (e.g. \(\{a,c\}, \{b,l,r\}\)). Note that
+    -- (e.g. \(T^{ac}_{\hphantom{ac}rbl}\)) is the set of contravariant and the
+    -- set of covariant indices (e.g. \((\{a,c\}, \{b,l,r\})\)). Note that
     -- both sets need not be distinct, as they label completely different entities
-    -- (i.e. basis vectors and dual basis vectors). Overlapping indices can be removed
-    -- by performing a contraction, see 'contract'.
+    -- (basis vectors vs. dual basis vectors). Overlapping indices can be removed
+    -- by performing a [contraction](https://ncatlab.org/nlab/show/contraction#contraction_of_tensors),
+    -- see also @'contract'@.
     --
-    -- Tensors with generalized rank can be understood as a graded algebra where only
+    -- Tensors with generalized rank can be understood as a
+    -- [graded algebra](https://ncatlab.org/nlab/show/graded+algebra) where only
     -- tensors of the same generalized rank can be added together and the tensor product
     -- of two tensors yields a tensor with new generalized rank. Importantly, this product
     -- is only possible if both the contravariant indices and the covariant indices of the
     -- factors do not overlap. As an example, the generalized rank of the tensor product
     -- \(T^{ap}_{\hphantom{ap}fc} S^{eg}_{\hphantom{eg}p}\) would be
-    -- \(\{a,e,g,p\},\{c,f,p\}\).
+    -- \((\{a,e,g,p\},\{c,f,p\})\).
     --
     -- We take this abstraction one step further and consider tensors that are multilinear
     -- maps over potentially different vector spaces and duals thereof. The generalized rank
@@ -90,20 +93,21 @@ module Math.Tensor.Safe
     -- and contraction only removes overlapping indices among the same vector space.
     --
     -- Practical examples of configurations with multiple vector spaces are situations where
-    -- there is a tangent space to spacetime, \(V = T_pM\), and we consider symmetric tensors
-    -- \(S^2(V) \subset V\otimes V\), which is a proper subset of \(V^2\).
-    -- See also "Math.Tensor.Basic.Sym2".
+    -- both the tangent space to spacetime, \(V = T_pM\), and symmetric tensors
+    -- \(S^2(V) \subset V\otimes V\), which form a proper subset of \(V\otimes V\),
+    -- are considered simultaneously. See also "Math.Tensor.Basic.Sym2".
 
     -- * Generalized rank
-    -- |The tensor calculus described above is now implemented in Haskell. Using Template Haskell
+    -- |The tensor calculus described above is now implemented in Haskell. Using @Template Haskell@
     -- provided by the @singletons@ library, this code is lifted to the type level and
     -- singletons are generated.
     --
     -- A vector space is parameterised by a label @a@ and a dimension @b@.
     VSpace(..)
   , -- |Each vector space must have a list of indices. This can be a contravariant index list,
-    -- a covariant index list, or both. For sane generalized ranks, the individual
-    -- lists must be ascending.
+    -- a covariant index list, or both. For @'sane'@ generalized ranks, the individual
+    -- lists must be ascending. As already noted, both lists in the mixed case need not
+    -- be disjoint.
     IList(..)
   , -- |The generalized tensor rank is a list of vector spaces and associated index lists.
     -- Sane generalized ranks have their vector spaces in ascending order.
@@ -114,75 +118,94 @@ module Math.Tensor.Safe
     -- be unique. They must also be /sorted/ for more efficiency. The same applies for the
     -- vector spaces: Each distinct vector space must have a unique representation,
     -- generalized ranks are sorted by the vector spaces. This is checked by the function
-    -- 'sane'.
+    -- @'sane'@.
     sane
-  , -- |The first index within a generalized rank. The first index is always referring to the
+  , -- |The function @'headR'@ extracts the first index within a generalized rank.
+    -- The first index is always referring to the
     -- first vector space within the rank. If the rank is purely covariant or purley contravariant,
     -- the first index ist the first element of the respective index list. For mixed
     -- ranks, the first index is the one which compares less. If they compare equal, it is always
     -- the contravariant index. This defines an order where contractible indices always appear
     -- next to each other, which greatly facilitates contraction.
     headR
-  , -- |The remaining rank after popping the 'headR'.
+  , -- |The remaining rank after popping the @'headR'@ is obtained by the function @'tailR'@.
     tailR
-  , -- |Total number of indices.
+  , -- |The total number of indices. 
     lengthR
-  , -- |Contraction of a generalized rank. Per vector space, indices appearing in both
-    -- contravariant and covariant position are removed. Vector spaces with eventually empty
-    -- index list are removed.
+  , -- |A generalized rank is contracted by considering each vector space separately.
+    -- Indices appearing in both upper and lower position are removed from the rank.
+    -- If that leaves a vector space without indices, it is also discarded.
     contractR
-  , -- |Merging two generalized ranks. Returns 'Nothing' for incompatible ranks.
+  , -- |Merging two generalized ranks in order to obtain the generalized rank of the
+    -- tensor product. Returns @'Nothing'@ for incompatible ranks.
     mergeR
+  , -- |To perform transpositions of two indices, single contravariant or covariant indices
+    -- have to be specified. A representation for single indices is provided by the sum type @'Ix'@.
+    Ix(..)
+  , -- |To perform transpositions of multiple indices at once, a list of source
+    -- and a list of target indices has to be provided. Both lists must be permutations
+    -- of each other. A suitable representation is provided by the sum type @'TransRule'@.
+    --
+    -- Note that transposing indices in a tensor does not change its generalized rank.
+    TransRule (..)
+  , -- |To relabel a tensor, a list of source-target pairs has to be provided. Relabelling
+    -- affects each index regardless of upper or lower position, so it suffices to have
+    -- the type synonym @'RelabelRule'@.
+    RelabelRule
+  , -- |Relabelling a tensor changes its generalized rank. If tensor indices corresponding
+    -- to a given vector space can be relabelled using a given @'RelabelRule'@,
+    -- @'relabelR'@ returns the new generalized rank. Otherwise, it returns @'Nothing'@.
+    relabelR
 
   , -- * The Tensor GADT
-    -- |The 'Tensor' type parameterised by a generalized rank @r@ and a value type @v@
+    -- |The @'Tensor'@ type parameterised by a generalized rank @r@ and a value type @v@
     -- is a recursive container for tensor components of value @v@.
     --
-    --   - The base case is a 'Scalar', which represents a tensor with empty rank.
+    --   - The base case is a @'Scalar'@, which represents a tensor with empty rank.
     --     A scalar holds a single value of type @v@.
     --
     --   - For non-empty ranks, a tensor is represented of as a mapping from all possible
     --     index values for the first index @'headR' r@ to tensors of lower rank @'tailR' r@,
     --     implemented as sparse ascending assocs list (omitting zero values).
     --
-    --   - There is a shortcut for zero tensors, which are represented as 'ZeroTensor'
+    --   - There is a shortcut for zero tensors, which are represented as @'ZeroTensor'@
     --     regardless of the generalized rank.
     --
-    -- Generalized ranks must be 'Sane'. The empty rank @'[]@ is always sane.
+    -- Generalized ranks must be @'Sane'@. The empty rank @'[]@ is always sane.
     Tensor(..)
   , -- ** Conversion from and to lists
     -- |A @'Tensor' r v@ can be constructed from a list of key-value pairs,
-    -- where keys are lists (length-typed vectors) of @'lengthR' r@ indices
+    -- where keys are length-typed vectors @'Vec'@ of @n = 'lengthR' r@ indices
     -- and values are the corresponding components.
     --
     -- The index values must be given in the order defined by repeatedly applying
-    -- 'headR' to the rank.
+    -- @'headR'@ to the rank.
     --
-    -- Given a value, such an assocs list is obtained by 'toList'.
+    -- Given a value, such an assocs list is obtained by @'toList'@.
     fromList
   , fromList'
   , toList
-  , -- ** Tensor algebra
+
+  , -- * Basic operations
+    -- |We have now everything at our disposal to define basic tensor operations
+    -- using the rank-parameterised @'Tensor'@ type. These operations (algebra,
+    -- contraction, transposition, relabelling) are /safe/ in the sense that
+    -- they can only be performed between tensors of matching type and the
+    -- type of the resulting tensor is predetermined. There is also an
+    -- existentially quantified variant of these operations available from
+    -- "Math.Tensor".
+
+    -- ** Tensor algebra
     (&+), (&-), (&*), removeZeros
   , -- ** Contraction
     contract
   , -- ** Transpositions
-    -- |Sum type for specifying single contravariant or covariant indices.
-    -- Used for transposition of two indices in a tensor.
-    Ix(..)
-  , -- |Transposition rule: Indices in the first list are swapped
-    -- with indices in the second list. Lists must be permutations of each other.
-    TransList (..)
-  , transpose
+    transpose
   , transposeMult
   , -- ** Relabelling
-    -- |Relabelling rule: Non-empty list of source and target.
-    RelabelList
-  , -- |Given a vector space, a relabelling rule, and a generalized rank, returns @'Nothing'@ if
-    -- the relabelling is illegal. Otherwise, returns the new generalized rank after relabelling.
-    relabelR
-  , relabel
-  , -- ** Length-typed assocs lists
+    relabel
+
+  , -- * Length-typed vectors
     -- |Type-level naturals used for tensor construction and also internally.
     N(..)
   , -- |Length-typed vector used for tensor construction and also internally.
@@ -219,7 +242,7 @@ import Data.Maybe (catMaybes)
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
--- |The 'Tensor' type parameterized by its generalized 'Rank' @r@ and
+-- |The @'Tensor'@ type parameterized by its generalized rank @r@ and
 -- arbitrary value type @v@.
 data Tensor :: Rank -> Type -> Type where
     ZeroTensor :: forall (r :: Rank) v . Sane r ~ 'True => Tensor r v
@@ -247,7 +270,7 @@ unionWith f g h xs@((ix,vx):xs') ys@((iy,vy):ys') =
     EQ -> (ix, f vx vy) : unionWith f g h xs' ys'
     GT -> (iy, h vy) : unionWith f g h xs ys'
 
--- |Given a 'Num' and 'Eq' instance, remove all zero values from the tensor,
+-- |Given a @'Num'@ and @'Eq'@ instance, remove all zero values from the tensor,
 -- eventually replacing a zero @Scalar@ or an empty @Tensor@ with @ZeroTensor@.
 removeZeros :: (Num v, Eq v) => Tensor r v -> Tensor r v
 removeZeros ZeroTensor = ZeroTensor
@@ -282,7 +305,7 @@ removeZeros (Tensor ms) =
 
 infixl 6 &+
 
--- |Tensor subtraction. Ranks of operands and result coincide.
+-- |Tensor subtraction. Generalized ranks of summands and sum coincide.
 -- Zero values are removed from the result.
 (&-) :: forall (r :: Rank) (r' :: Rank) v.
         ((r ~ r'), Num v, Eq v) =>
@@ -350,7 +373,7 @@ mult sr sr' (Tensor _) ZeroTensor =
   case saneMergeRProof sr sr' of
     Sub Dict -> ZeroTensor
 
--- |Tensor multiplication. Ranks @r@, @r'@ of factors must not overlap. The product
+-- |Tensor multiplication. Generalized anks @r@, @r'@ of factors must not overlap. The product
 -- rank is the merged rank @'MergeR' r r'@ of the factor ranks.
 (&*) :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
                (Num v, 'Just r'' ~ MergeR r r', SingI r, SingI r') =>
@@ -420,7 +443,8 @@ contract'' sr (Tensor ms) =
                         Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
 
 -- |Tensor contraction. Contracting a tensor is the identity function on non-contractible tensors.
--- Otherwise, the result is the contracted tensor with the contracted labels removed from the rank.
+-- Otherwise, the result is the contracted tensor with the contracted labels removed from the
+-- generalized rank.
 contract :: forall (r :: Rank) (r' :: Rank) v.
             (r' ~ ContractR r, SingI r, Num v, Eq v)
             => Tensor r v -> Tensor r' v
@@ -428,7 +452,7 @@ contract = contract' (sing :: Sing r)
 
 -- |Tensor transposition. Given a vector space and two index labels, the result is a tensor with
 -- the corresponding entries swapped. Only possible if the indices are part of the rank. The
--- rank remains untouched.
+-- generalized rank remains untouched.
 transpose :: forall (vs :: VSpace Symbol Nat) (a :: Ix Symbol) (b :: Ix Symbol) (r :: Rank) v.
               (CanTranspose vs a b r ~ 'True, SingI r) =>
               Sing vs -> Sing a -> Sing b -> Tensor r v -> Tensor r v
@@ -461,10 +485,10 @@ transpose v a b t@(Tensor ms) =
            Disproved _ -> case sCanTranspose v a b st of
                             STrue -> Tensor $ fmap (fmap (transpose v a b)) ms
 
--- |Transposition of multiple labels. Given a vector space and a list of transpositions, the
+-- |Transposition of multiple labels. Given a vector space and a transposition rule, the
 -- result is a tensor with the corresponding entries swapped. Only possible if the indices are
--- part of the rank. The rank remains untouched.
-transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (r :: Rank) v.
+-- part of the generalized rank. The generalized rank remains untouched.
+transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransRule Symbol) (r :: Rank) v.
                  (IsJust (Transpositions vs tl r) ~ 'True, SingI r) =>
                  Sing vs -> Sing tl -> Tensor r v -> Tensor r v
 transposeMult _ _ ZeroTensor = ZeroTensor
@@ -516,10 +540,11 @@ transposeMult sv stl tens@(Tensor ms) =
       t' = toInt t
     go _ [] = error "cannot transpose elements of empty list"
 
--- |Tensor relabelling. Given a vector space and a list of relabellings, the result is a tensor
--- with the resulting rank after relabelling. Only possible if labels to be renamed are part of
--- the rank and if uniqueness of labels after relabelling is preserved.
-relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelList Symbol) (r1 :: Rank) (r2 :: Rank) v.
+-- |Tensor relabelling. Given a vector space and a relabelling rule, the result is a tensor
+-- with the resulting generalized rank after relabelling. Only possible if labels to be
+-- renamed are part of the generalized rank and if uniqueness of labels after
+-- relabelling is preserved.
+relabel :: forall (vs :: VSpace Symbol Nat) (rl :: RelabelRule Symbol) (r1 :: Rank) (r2 :: Rank) v.
                  (RelabelR vs rl r1 ~ 'Just r2, Sane r2 ~ 'True, SingI r1, SingI r2) =>
                  Sing vs -> Sing rl -> Tensor r1 v -> Tensor r2 v
 relabel _ _ ZeroTensor = ZeroTensor
@@ -574,7 +599,7 @@ relabel sv srl tens@(Tensor ms) =
       t' = toInt t
     go _ [] = error "cannot transpose elements of empty list"
 
--- |Get assocs list from 'Tensor'. Keys are length-typed vectors of indices.
+-- |Get assocs list from @'Tensor'@. Keys are length-typed vectors of indices.
 toList :: forall r v n.
           (SingI r, SingI n, LengthR r ~ n) =>
           Tensor r v -> [(Vec n Int, v)]
@@ -596,7 +621,7 @@ toList (Tensor ms) =
                Proved Refl ->
                  concatMap (\(i, v) -> case v of Tensor _ -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
 
--- |Construct 'Tensor' from assocs list. Keys are length-typed vectors of indices. Generalized
+-- |Construct @'Tensor'@ from assocs list. Keys are length-typed vectors of indices. Generalized
 -- rank is passed explicitly as singleton.
 fromList' :: forall r v n.
              (Sane r ~ 'True, LengthR r ~ n) =>
@@ -625,7 +650,7 @@ fromList' sr xs =
       let ys' = groupBy (\(i,_) (i',_) -> i == i') ys
       in fmap (\x -> (fst $ head x, fmap snd x)) ys'
 
--- |Construct 'Tensor' from assocs list. Keys are length-typed vectors of indices.
+-- |Construct @'Tensor'@ from assocs list. Keys are length-typed vectors of indices.
 fromList :: forall r v n.
             (SingI r, Sane r ~ 'True, LengthR r ~ n) =>
             [(Vec n Int, v)] -> Tensor r v
