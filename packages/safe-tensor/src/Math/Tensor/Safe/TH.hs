@@ -26,14 +26,13 @@
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe.TH
-Description : Generalized rank lifted to the type level.
+Description : Type families and singletons for generalized types.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
-Generalized rank lifted to the type level. For documentation see re-exports
-in "Math.Tensor.Safe".
+Type families and singletons for generalized types.
+For documentation see re-exports in "Math.Tensor.Safe".
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Safe.TH where

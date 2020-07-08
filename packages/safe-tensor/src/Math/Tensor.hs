@@ -18,7 +18,6 @@ Description : Existentially quantified wrapper for Math.Tensor.Safe.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Existentially quantified wrapper around the safe interface from "Math.Tensor.Safe".
 In contrast to the safe interface, all tensor operations are fair game, but potentially

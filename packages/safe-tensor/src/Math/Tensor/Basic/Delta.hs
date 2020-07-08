@@ -18,7 +18,6 @@ Description : Definitions of Kronecker deltas.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of Kronecker deltas \(\delta^{a}_{\hphantom ab}\)
 (identity automorphisms) for arbitrary vector spaces.

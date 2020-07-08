@@ -19,22 +19,81 @@ Description : Dependently typed tensor algebra.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
-Dependently typed tensor algebra.
+Dependently typed implementation of the Einstein tensor calculus, primarily used
+in mathematical physics. For usage examples, see
+<https://github.com/nilsalex/safe-tensor/#readme>.
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Safe
-  ( -- * The Tensor GADT
-    Tensor(..)
-    -- * Generic Rank of a Tensor
-    -- |A vector space is the product of a label and a dimension.
-  , VSpace(..)
+  ( 
+    -- * Tensor calculus
+    -- |Given a field \(K\) and a \(K\)-vector space \(V\) of dimension \(n\),
+    -- a /tensor/ \(T\) of rank \((r,s)\) is a multilinear map from \(r\)
+    -- copies of the dual vector space \(V^\ast\) and \(s\) copies of \(V\)
+    -- to \(K\),
+    --
+    -- \[
+    --    T \colon \underbrace{V^\ast \times \dots \times V^\ast}_{r\text{ times}} \times \underbrace{V \times \dots \times V}_{s\text{ times}} \rightarrow K.
+    -- \]
+    --
+    -- The /components/ \(T^{a_1\dots a_r}_{\hphantom{a_1\dots a_r}b_1\dots b_s} \in K\)
+    -- with respect to a basis \((e_i)_{i=1\dots n}\) of \(V\) and a corresponding
+    -- dual basis \((\epsilon^i)_{i=1\dots n}\) of \(V^\ast\) are the \(n^{r+s}\)
+    -- numbers
+    --
+    -- \[
+    --    T^{a_1\dots a_r}_{\hphantom{a_1\dots a_r}b_1\dots b_s} = T(\epsilon^{a_1},\dots,\epsilon^{a_r},e_{b_1},\dots,e_{b_s}).
+    -- \]
+    --
+    -- The upper indices \(a_i\) are called /contravariant/ and the lower indices \(b_i\) are
+    -- called /covariant/, reflecting their behaviour under a
+    -- [change of basis](https://en.wikipedia.org/wiki/Change_of_basis). From the components
+    -- and the basis, the tensor can be reconstructed as
+    --
+    -- \[
+    --    T = T^{a_1\dots a_r}_{\hphantom{a_1\dots a_3}b_1\dots b_s} \cdot e_{a_1} \otimes \dots \otimes e_{a_r} \otimes \epsilon^{b_1} \otimes \dots \otimes \epsilon^{b_s}
+    -- \]
+    --
+    -- using the [Einstein summation convention](https://en.wikipedia.org/wiki/Einstein_notation)
+    -- and the [tensor product](https://en.wikipedia.org/wiki/Tensor_product).
+    --
+    -- This representation of tensors using their components with respect to a fixed but arbitrary
+    -- basis forms the foundation of our tensor calculus. An example is the sum of a \((2,0)\) tensor
+    -- \(T\) and the transposition of a \((2,0)\) tensor \(S\)
+    --
+    -- \[
+    --    \lbrack T + \operatorname{transpose}(S)\rbrack^{a b} = T^{a b} + S^{b a}.
+    -- \]
+    --
+    -- The /generalized rank/ of the tensor \(T^{a b}\) in the above example is the collection of
+    -- contravariant indices \(\{a, b\}\). The indices must be distinct. The generalized
+    -- rank of a tensor with both contravariant and covariant indices
+    -- (e.g. \(T^{ac}_{\hphantom{ac}rbl}\)) is the collection of contravariant and the
+    -- collection of covariant indices (e.g. \(\{a,c\}, \{b,l,r\}\)). Note that
+    -- both sets need not be distinct, as they label completely different entities
+    -- (i.e. basis vectors and dual basis vectors). Overlapping indices can be removed
+    -- by performing a contraction, see 'contract'.
+    --
+    -- Tensors with generalized rank can be understood as a graded algebra where only
+    -- tensors of the same generalized rank can be added together and the tensor product
+    -- of two tensors yields a tensor with new generalized rank. Importantly, this product
+    -- is only possible if both the contravariant indices and the covariant indices of the
+    -- factors do not overlap. As an example, the generalized rank of the tensor product
+    -- \(T^{ap}_{\hphantom{ap}fc} S^{eg}_{\hphantom{eg}p}\) would be
+    -- \(\{a,e,g,p\},\{c,f,p\}\).
+    --
+    -- We take this abstraction one step further and consider tensors that are multilinear
+    -- maps over potentially different vector spaces and duals thereof.
+    --
+    VSpace(..)
     -- |The generic tensor rank is a list of vector spaces with label, dimension and
     -- associated index list.
   , GRank
     -- |The rank of a tensor is a generic rank specialized to 'Symbol' and 'Nat'
   , Rank
+    -- * The Tensor GADT
+  , Tensor(..)
     -- * Length-typed assocs lists
     -- |Type-level naturals used internally.
   , N(..)
