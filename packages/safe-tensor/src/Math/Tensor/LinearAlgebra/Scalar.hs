@@ -8,7 +8,6 @@ Description : Scalar types for usage as Tensor values.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Scalar types for usage as Tensor values.
 -}

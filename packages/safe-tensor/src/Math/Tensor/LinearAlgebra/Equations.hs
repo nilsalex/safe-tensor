@@ -10,7 +10,6 @@ Description : Linear tensor equations.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Linear tensor equations.
 -}

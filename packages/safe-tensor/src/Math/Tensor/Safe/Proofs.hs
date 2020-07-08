@@ -14,13 +14,16 @@
 -----------------------------------------------------------------------------
 {-|
 Module      : Math.Tensor.Safe.Proofs
-Description : Identities for functions on generalized tensor ranks.
+Description : Type level equalities for generalized ranks.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
-Identities for functions on generalized tensor ranks.
+Type level equalities for generalized ranks. Used in "Math.Tensor.Safe" to prove
+impossible cases in pattern matching on singletons. Note that at the moment
+not every pattern match has a proof, which is reflected in the number of
+@-Wincomplete-patterns@ warnings.
+
 -}
 -----------------------------------------------------------------------------
 module Math.Tensor.Safe.Proofs

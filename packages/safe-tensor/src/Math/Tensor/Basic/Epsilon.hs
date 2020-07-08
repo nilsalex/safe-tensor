@@ -19,7 +19,6 @@ Description : Definitions of epsilon tensor densities.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of covariant and contravariant epsilon tensor densities
 like \(\epsilon_{abc}\).

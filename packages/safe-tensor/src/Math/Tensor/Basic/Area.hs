@@ -20,7 +20,6 @@ Description : Definitions of area-symmetric tensors.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of area-symmetric tensors.
 -}

@@ -30,7 +30,6 @@ Description : Template Haskell for Math.Tensor.Basic
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Template Haskell for 'Math.Tensor.Basic'.
 -}
