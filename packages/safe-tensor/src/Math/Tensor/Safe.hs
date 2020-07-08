@@ -287,7 +287,7 @@ removeZeros (Tensor ms) =
           _          -> True) $
             fmap (fmap removeZeros) ms
 
--- |Tensor addition. Ranks of summands and result coincide.
+-- |Tensor addition. Generalized ranks of summands and sum coincide.
 -- Zero values are removed from the result.
 (&+) :: forall (r :: Rank) (r' :: Rank) v.
         ((r ~ r'), Num v, Eq v) =>
@@ -305,7 +305,7 @@ removeZeros (Tensor ms) =
 
 infixl 6 &+
 
--- |Tensor subtraction. Generalized ranks of summands and sum coincide.
+-- |Tensor subtraction. Generalized ranks of operands and difference coincide.
 -- Zero values are removed from the result.
 (&-) :: forall (r :: Rank) (r' :: Rank) v.
         ((r ~ r'), Num v, Eq v) =>

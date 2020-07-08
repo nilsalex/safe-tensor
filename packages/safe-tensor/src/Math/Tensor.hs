@@ -99,7 +99,7 @@ import Data.List.NonEmpty (NonEmpty((:|)),sort)
 
 import Control.Monad.Except (MonadError, throwError)
 
--- |'T' wraps around 'Tensor' and exposes only the value type @v@.
+-- |@'T'@ wraps around @'Tensor'@ and exposes only the value type @v@.
 data T :: Type -> Type where
   T :: forall (r :: Rank) v. SingI r => Tensor r v -> T v
 
@@ -123,12 +123,12 @@ type Dimension = Demote Nat
 -- @ 'Demote' 'Rank' ~ 'GRank' 'Label' 'Dimension' ~ [('VSpace' 'Label' 'Dimension', 'IList' 'Dimension')] @
 type RankT     = Demote Rank
 
--- |'Scalar' of given value. Result is pure
+-- |@'Scalar'@ of given value. Result is pure
 -- because there is only one possible rank: @'[]@
 scalarT :: v -> T v
 scalarT v = T $ Scalar v
 
--- |'ZeroTensor' of given rank @r@. Throws an
+-- |@'ZeroTensor'@ of given rank @r@. Throws an
 -- error if @'Sane' r ~ ''False'@.
 zeroT :: MonadError String m => RankT -> m (T v)
 zeroT dr =
@@ -152,14 +152,14 @@ vecFromList (SS sn) (x:xs) = do
   xs' <- vecFromList sn xs
   return $ x `VCons` xs'
 
--- |Pure function removing all zeros from a tensor. Wraps around 'removeZeros'.
+-- |Pure function removing all zeros from a tensor. Wraps around @'removeZeros'@.
 removeZerosT :: (Eq v, Num v) => T v -> T v
 removeZerosT o =
   case o of
     T t -> T $ removeZeros t
 
 -- |Tensor product. Throws an error if ranks overlap, i.e.
--- @'MergeR' r1 r2 ~ ''Nothing'@. Wraps around '(&*)'.
+-- @'MergeR' r1 r2 ~ ''Nothing'@. Wraps around @'(&*)'@.
 (.*) :: (Num v, MonadError String m) => T v -> T v -> m (T v)
 (.*) o1 o2 =
   case o1 of
@@ -179,7 +179,7 @@ infixl 7 .*
 
 infixl 7 .°
 
--- |Tensor addition. Throws an error if summand ranks do not coincide. Wraps around '(&+)'.
+-- |Tensor addition. Throws an error if summand ranks do not coincide. Wraps around @'(&+)'@.
 (.+) :: (Eq v, Num v, MonadError String m) => T v -> T v -> m (T v)
 (.+) o1 o2 =
   case o1 of
@@ -195,7 +195,7 @@ infixl 7 .°
                Disproved _ -> throwError "Generalized tensor ranks do not match. Cannot add."
 infixl 6 .+
 
--- |Tensor subtraction. Throws an error if summand ranks do not coincide. Wraps around '(&-)'.
+-- |Tensor subtraction. Throws an error if summand ranks do not coincide. Wraps around @'(&-)'@.
 (.-) :: (Eq v, Num v, MonadError String m) => T v -> T v -> m (T v)
 (.-) o1 o2 =
   case o1 of
@@ -211,7 +211,7 @@ infixl 6 .+
                Disproved _ -> throwError "Generalized tensor ranks do not match. Cannot add."
 
 -- |Tensor contraction. Pure function, because a tensor of any rank can be contracted.
--- Wraps around 'contract'.
+-- Wraps around @'contract'@.
 contractT :: (Num v, Eq v) => T v -> T v
 contractT o =
   case o of
@@ -221,7 +221,7 @@ contractT o =
       in withSingI sr' $ T $ contract t
 
 -- |Tensor transposition. Throws an error if given indices cannot be transposed.
--- Wraps around 'transpose'.
+-- Wraps around @'transpose'@.
 transposeT :: MonadError String m =>
               VSpace Label Dimension -> Ix Label -> Ix Label ->
               T v -> m (T v)
@@ -238,7 +238,7 @@ transposeT v ia ib o =
            SFalse -> throwError $ "Cannot transpose indices " ++ show v ++ " " ++ show ia ++ " " ++ show ib ++ "!"
 
 -- |Transposition of multiple indices. Throws an error if given indices cannot be transposed.
--- Wraps around 'transposeMult'.
+-- Wraps around @'transposeMult'@.
 transposeMultT :: MonadError String m =>
                   VSpace Label Dimension -> [(Label,Label)] -> [(Label,Label)] -> T v -> m (T v)
 transposeMultT _ [] [] _ = throwError "Empty lists for transpositions!"
@@ -269,7 +269,7 @@ transposeMultT v [] (cov:covs) o =
 transposeMultT _ _ _ _ = throwError "Simultaneous transposition of contravariant and covariant indices not yet supported!"
 
 -- |Relabelling of tensor indices. Throws an error if given relabellings are not allowed.
--- Wraps around 'relabel'.
+-- Wraps around @'relabel'@.
 relabelT :: MonadError String m =>
             VSpace Label Dimension -> [(Label,Label)] -> T v -> m (T v)
 relabelT _ [] _ = throwError "Empty list for relabelling!"
@@ -289,7 +289,7 @@ relabelT v (r:rs) o =
                Disproved _ -> throwError $ "Cannot relabel indices " ++ show v ++ " " ++ show rr ++ "!"
            _ -> throwError $ "Cannot relabel indices " ++ show v ++ " " ++ show rr ++ "!"
 
--- |Hidden rank over which 'T' quantifies. Possible because of the @'SingI' r@ constraint.
+-- |Hidden rank over which @'T'@ quantifies. Possible because of the @'SingI' r@ constraint.
 rankT :: T v -> RankT
 rankT o =
   case o of
