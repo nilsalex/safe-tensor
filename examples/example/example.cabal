@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fda47c737b490f5784048c70b8e3bb4043a519d69be3d045532b7269e03fc69a
+-- hash: ee790fb5c265d4e15f5250ba74f6fcd5c9509639d35b47aeacd69b351c2b864a
 
 name:           example
 version:        0.1.0.0
@@ -36,7 +36,7 @@ library
   build-depends:
       base >=4.7 && <5
     , mtl >=2.2 && <2.3
-    , safe-tensor >=0.1 && <0.2
+    , safe-tensor >=0.2 && <0.3
     , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
   default-language: Haskell2010
 
@@ -51,6 +51,6 @@ executable run
       base >=4.7 && <5
     , example
     , mtl >=2.2 && <2.3
-    , safe-tensor >=0.1 && <0.2
+    , safe-tensor >=0.2 && <0.3
     , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
   default-language: Haskell2010

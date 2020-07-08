@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9ac05d49aaa46e9c07494c3ad9c44637d0ce7da4cc5837acc6cdae1b7843dd55
+-- hash: 6ad3538e39216db95cb8e8dca6979b57992a7c99fcef9e310a52b1b981f632c2
 
 name:           safe-tensor-sparse-tensor-compat
 version:        0.1.0.0
@@ -37,7 +37,7 @@ library
       base >=4.7 && <5
     , containers >=0.6 && <0.7
     , mtl >=2.2 && <2.3
-    , safe-tensor >=0.1 && <0.2
+    , safe-tensor >=0.2 && <0.3
     , singletons >=2.5 && <2.8
     , sparse-tensor >=0.3 && <0.4
   default-language: Haskell2010

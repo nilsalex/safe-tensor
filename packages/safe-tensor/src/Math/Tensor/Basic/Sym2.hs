@@ -179,7 +179,7 @@ gamma = case (sing :: Sing n) of
           sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                 in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 eta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -204,7 +204,7 @@ eta = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 gammaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -229,7 +229,7 @@ gammaInv = case (sing :: Sing n) of
             sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                   in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 etaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -254,7 +254,7 @@ etaInv = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 injSym2Con' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)

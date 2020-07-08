@@ -25,8 +25,8 @@ Identities for functions on generalized tensor ranks.
 -----------------------------------------------------------------------------
 module Math.Tensor.Safe.Proofs
   ( -- * Tails of sane ranks are sane
-    saneTail'Proof
-  , singITail'Proof
+    saneTailRProof
+  , singITailRProof
   , -- * Properties of merged ranks
     saneMergeRProof
   , proofMergeLT
@@ -59,20 +59,20 @@ import Data.Singletons.Prelude
   , Fst, Snd, Compare
   )
 
--- |The 'Tail'' of a sane rank type is sane.
-{-# INLINE saneTail'Proof #-}
-saneTail'Proof :: forall (r :: Rank).Sing r -> (Sane r ~ 'True) :- (Sane (Tail' r) ~ 'True)
-saneTail'Proof _ = Sub axiom
+-- |The 'TailR' of a sane rank type is sane.
+{-# INLINE saneTailRProof #-}
+saneTailRProof :: forall (r :: Rank).Sing r -> (Sane r ~ 'True) :- (Sane (TailR r) ~ 'True)
+saneTailRProof _ = Sub axiom
   where
-    axiom :: Sane r ~ 'True => Dict (Sane (Tail' r) ~ 'True)
+    axiom :: Sane r ~ 'True => Dict (Sane (TailR r) ~ 'True)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If a rank type has a 'SingI' instance, the tail has a 'SingI' instance.
-{-# INLINE singITail'Proof #-}
-singITail'Proof :: forall (r :: Rank).Sing r -> SingI r :- SingI (Tail' r)
-singITail'Proof _ = Sub axiom
+{-# INLINE singITailRProof #-}
+singITailRProof :: forall (r :: Rank).Sing r -> SingI r :- SingI (TailR r)
+singITailRProof _ = Sub axiom
   where
-    axiom :: SingI r => Dict (SingI (Tail' r))
+    axiom :: SingI r => Dict (SingI (TailR r))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |Successfully merging two sane rank types (result is not @Nothing@) yields a sane rank type.
@@ -87,19 +87,19 @@ saneMergeRProof _ _ = Sub axiom
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If two rank types can be merged and the first 'VSpace' of the first rank type is less than
--- the first 'VSpace' of the second rank type, the 'Tail'' of the merged rank type is equal to
+-- the first 'VSpace' of the second rank type, the 'TailR' of the merged rank type is equal to
 -- the tail of the first rank type merged with the second rank type.
 {-# INLINE proofMergeLT #-}
 proofMergeLT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                 Sing r -> Sing r' ->
                 (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-                 Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'LT)
-                :- (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
+                 Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'LT)
+                :- (MergeR (TailR r) r' ~ 'Just (TailR r''))
 proofMergeLT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-              Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'LT)
-             => Dict (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
+              Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'LT)
+             => Dict (MergeR (TailR r) r' ~ 'Just (TailR r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If two rank types can be merged and the first 'VSpace' of the first rank type coincides with
@@ -109,67 +109,67 @@ proofMergeLT _ _ = Sub axiom
 proofMergeIxNotEQ :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                      Sing r -> Sing r' ->
                      (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-                      Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ)
-                     :- ((IxCompare (Snd (Head' r)) (Snd (Head' r')) == 'EQ) ~ 'False)
+                      Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ)
+                     :- ((IxCompare (Snd (HeadR r)) (Snd (HeadR r')) == 'EQ) ~ 'False)
 proofMergeIxNotEQ _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-             Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ)
-             => Dict ((IxCompare (Snd (Head' r)) (Snd (Head' r')) == 'EQ) ~ 'False)
+             Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ)
+             => Dict ((IxCompare (Snd (HeadR r)) (Snd (HeadR r')) == 'EQ) ~ 'False)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If two rank types can be merged and the first 'VSpace' of the first rank type coincides with
 -- the first 'VSpace' of the second rank type and the first index of the first rank type compares
--- less than the first index of the second rank type, the 'Tail'' of the merged rank type is equal
+-- less than the first index of the second rank type, the 'TailR' of the merged rank type is equal
 -- to the tail of the first rank type merged with the second rank type.
 {-# INLINE proofMergeIxLT #-}
 proofMergeIxLT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                   Sing r -> Sing r' ->
                   (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-                   Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-                   IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'LT)
-                  :- (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
+                   Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ,
+                   IxCompare (Snd (HeadR r)) (Snd (HeadR r')) ~ 'LT)
+                  :- (MergeR (TailR r) r' ~ 'Just (TailR r''))
 proofMergeIxLT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-              Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'LT)
-             => Dict (MergeR (Tail' r) r' ~ 'Just (Tail' r''))
+              Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ,
+              IxCompare (Snd (HeadR r)) (Snd (HeadR r')) ~ 'LT)
+             => Dict (MergeR (TailR r) r' ~ 'Just (TailR r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If two rank types can be merged and the first 'VSpace' of the first rank type is greater than
--- the first 'VSpace' of the second rank type, the 'Tail'' of the merged rank type is equal to
+-- the first 'VSpace' of the second rank type, the 'TailR' of the merged rank type is equal to
 -- the first rank type merged with the tail of the second rank type.
 {-# INLINE proofMergeGT #-}
 proofMergeGT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                 Sing r -> Sing r' ->
                 (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-                 Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'GT)
-                :- (MergeR r (Tail' r') ~ 'Just (Tail' r''))
+                 Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'GT)
+                :- (MergeR r (TailR r') ~ 'Just (TailR r''))
 proofMergeGT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-              Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'GT)
-             => Dict (MergeR r (Tail' r') ~ 'Just (Tail' r''))
+              Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'GT)
+             => Dict (MergeR r (TailR r') ~ 'Just (TailR r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If two rank types can be merged and the first 'VSpace' of the first rank type coincides with
 -- the first 'VSpace' of the second rank type and the first index of the first rank type compares
--- greater than the first index of the second rank type, the 'Tail'' of the merged rank type is equal
+-- greater than the first index of the second rank type, the 'TailR' of the merged rank type is equal
 -- to the first rank type merged with the tail of the second rank type.
 {-# INLINE proofMergeIxGT #-}
 proofMergeIxGT :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank).
                   Sing r -> Sing r' ->
                   (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-                   Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-                   IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'GT)
-                  :- (MergeR r (Tail' r') ~ 'Just (Tail' r''))
+                   Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ,
+                   IxCompare (Snd (HeadR r)) (Snd (HeadR r')) ~ 'GT)
+                  :- (MergeR r (TailR r') ~ 'Just (TailR r''))
 proofMergeIxGT _ _ = Sub axiom
   where
     axiom :: (Sane r ~ 'True, Sane r' ~ 'True, MergeR r r' ~ 'Just r'',
-              Compare (Fst (Head' r)) (Fst (Head' r')) ~ 'EQ,
-              IxCompare (Snd (Head' r)) (Snd (Head' r')) ~ 'GT)
-             => Dict (MergeR r (Tail' r') ~ 'Just (Tail' r''))
+              Compare (Fst (HeadR r)) (Fst (HeadR r')) ~ 'EQ,
+              IxCompare (Snd (HeadR r)) (Snd (HeadR r')) ~ 'GT)
+             => Dict (MergeR r (TailR r') ~ 'Just (TailR r''))
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If a rank type is sane, its contraction is also sane.
@@ -183,72 +183,72 @@ saneContractProof _ = Sub axiom
 -- |The contraction of the empty rank type is the empty rank type.
 {-# INLINE singletonContractProof #-}
 singletonContractProof :: forall (r :: Rank).
-                          Sing r -> (Tail' r ~ '[]) :- (ContractR r ~ r)
+                          Sing r -> (TailR r ~ '[]) :- (ContractR r ~ r)
 singletonContractProof _ = Sub axiom
   where
-    axiom :: Tail' r ~ '[] => Dict (ContractR r ~ r)
+    axiom :: TailR r ~ '[] => Dict (ContractR r ~ r)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If the first two labels of a rank type cannot be contracted because they belong to
--- different 'VSpace's, the 'Tail'' of the contracted rank type is equal to the contraction
--- of the 'Tail'' of the rank type.
+-- different 'VSpace's, the 'TailR' of the contracted rank type is equal to the contraction
+-- of the 'TailR' of the rank type.
 {-# INLINE contractTailDiffVProof #-}
 contractTailDiffVProof :: forall (r :: Rank) (t :: Rank) (t' :: Rank).
                           Sing r ->
-                          (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'False)
-                          :- (Tail' (ContractR r) ~ ContractR t)
+                          (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'False)
+                          :- (TailR (ContractR r) ~ ContractR t)
 contractTailDiffVProof _ = Sub axiom
   where
-    axiom :: (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'False)
-             => Dict (Tail' (ContractR r) ~ ContractR t)
+    axiom :: (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'False)
+             => Dict (TailR (ContractR r) ~ ContractR t)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 
 -- |If the first two labels of a rank type cannot be contracted because the first label is
--- covariant, the 'Tail'' of the contracted rank type is equal to the contraction
--- of the 'Tail'' of the rank type.
+-- covariant, the 'TailR' of the contracted rank type is equal to the contraction
+-- of the 'TailR' of the rank type.
 {-# INLINE contractTailSameVNoConProof #-}
 contractTailSameVNoConProof :: forall (r :: Rank) (t :: Rank) (t' :: Rank) (i :: Symbol).
                                Sing r ->
-                               (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-                                Snd (Head' r) ~ 'ICov i)
-                               :- (Tail' (ContractR r) ~ ContractR t)
+                               (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+                                Snd (HeadR r) ~ 'ICov i)
+                               :- (TailR (ContractR r) ~ ContractR t)
 contractTailSameVNoConProof _ = Sub axiom
   where
-    axiom :: (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-              Snd (Head' r) ~ 'ICov i)
-             => Dict (Tail' (ContractR r) ~ ContractR t)
+    axiom :: (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+              Snd (HeadR r) ~ 'ICov i)
+             => Dict (TailR (ContractR r) ~ ContractR t)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If the first two labels of a rank type cannot be contracted because the second label is
--- covariant, the 'Tail'' of the contracted rank type is equal to the contraction
--- of the 'Tail'' of the rank type.
+-- covariant, the 'TailR' of the contracted rank type is equal to the contraction
+-- of the 'TailR' of the rank type.
 {-# INLINE contractTailSameVNoCovProof #-}
 contractTailSameVNoCovProof :: forall (r :: Rank) (t :: Rank) (t' :: Rank) (i :: Symbol).
                                Sing r ->
-                               (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-                                Snd (Head' t) ~ 'ICon i)
-                               :- (Tail' (ContractR r) ~ ContractR t)
+                               (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+                                Snd (HeadR t) ~ 'ICon i)
+                               :- (TailR (ContractR r) ~ ContractR t)
 contractTailSameVNoCovProof _ = Sub axiom
   where
-    axiom :: (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-              Snd (Head' t) ~ 'ICon i)
-             => Dict (Tail' (ContractR r) ~ ContractR t)
+    axiom :: (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+              Snd (HeadR t) ~ 'ICon i)
+             => Dict (TailR (ContractR r) ~ ContractR t)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If the first two labels of a rank type cannot be contracted because they differ,
--- the 'Tail'' of the contracted rank type is equal to the contraction of the 'Tail'' of the rank type.
+-- the 'TailR' of the contracted rank type is equal to the contraction of the 'TailR' of the rank type.
 {-# INLINE contractTailSameVDiffIProof #-}
 contractTailSameVDiffIProof :: forall (r :: Rank) (t :: Rank) (t' :: Rank) (i :: Symbol) (j :: Symbol).
                                Sing r ->
-                               (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-                                Snd (Head' r) ~ 'ICon i, Snd (Head' t) ~ 'ICov j, (i == j) ~ 'False)
-                               :- (Tail' (ContractR r) ~ ContractR t)
+                               (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+                                Snd (HeadR r) ~ 'ICon i, Snd (HeadR t) ~ 'ICov j, (i == j) ~ 'False)
+                               :- (TailR (ContractR r) ~ ContractR t)
 contractTailSameVDiffIProof _ = Sub axiom
   where
-    axiom :: (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-              Snd (Head' r) ~ 'ICon i, Snd (Head' t) ~ 'ICov j, (i == j) ~ 'False)
-             => Dict (Tail' (ContractR r) ~ ContractR t)
+    axiom :: (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+              Snd (HeadR r) ~ 'ICon i, Snd (HeadR t) ~ 'ICov j, (i == j) ~ 'False)
+             => Dict (TailR (ContractR r) ~ ContractR t)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))
 
 -- |If the first two labels of a rank type can be contracted, the contracted rank type is equal
@@ -256,12 +256,12 @@ contractTailSameVDiffIProof _ = Sub axiom
 {-# INLINE contractTailSameVSameIProof #-}
 contractTailSameVSameIProof :: forall (r :: Rank) (t :: Rank) (t' :: Rank) (i :: Symbol) (j :: Symbol).
                                Sing r ->
-                               (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-                                Snd (Head' r) ~ 'ICon i, Snd (Head' t) ~ 'ICov j, (i == j) ~ 'True)
+                               (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+                                Snd (HeadR r) ~ 'ICon i, Snd (HeadR t) ~ 'ICov j, (i == j) ~ 'True)
                                :- (ContractR t' ~ ContractR r)
 contractTailSameVSameIProof _ = Sub axiom
   where
-    axiom :: (t ~ Tail' r, t' ~ Tail' t, (Fst (Head' r) == Fst (Head' t)) ~ 'True,
-              Snd (Head' r) ~ 'ICon i, Snd (Head' t) ~ 'ICov j, (i == j) ~ 'True)
+    axiom :: (t ~ TailR r, t' ~ TailR t, (Fst (HeadR r) == Fst (HeadR t)) ~ 'True,
+              Snd (HeadR r) ~ 'ICon i, Snd (HeadR t) ~ 'ICov j, (i == j) ~ 'True)
              => Dict (ContractR t' ~ ContractR r)
     axiom = unsafeCoerce (Dict :: Dict (a ~ a))

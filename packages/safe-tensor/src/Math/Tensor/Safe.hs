@@ -93,7 +93,7 @@ data Tensor :: Rank -> Type -> Type where
     Scalar :: forall v. !v -> Tensor '[] v -- ^
     -- A tensor of empty rank is a scalar holding some value.
     Tensor :: forall (r :: Rank) (r' :: Rank) v.
-              (Sane r ~ 'True, Tail' r ~ r') =>
+              (Sane r ~ 'True, TailR r ~ r') =>
               [(Int, Tensor r' v)] -> Tensor r v -- ^
     -- A non-zero tensor of sane non-empty rank is represented as an assocs list of
     -- component-value pairs. The keys must be unique and in ascending order.
@@ -168,16 +168,16 @@ mult :: forall (r :: Rank) (r' :: Rank) (r'' :: Rank) v.
                Sing r -> Sing r' -> Tensor r v -> Tensor r' v -> Tensor r'' v
 mult _ _ (Scalar s) (Scalar t) = Scalar (s*t)
 mult sr sr' (Scalar s) (Tensor ms) =
-  case saneTail'Proof sr' of
-    Sub Dict -> Tensor $ fmap (fmap (mult sr (sTail' sr') (Scalar s))) ms
+  case saneTailRProof sr' of
+    Sub Dict -> Tensor $ fmap (fmap (mult sr (sTailR sr') (Scalar s))) ms
 mult sr sr' (Tensor ms) (Scalar s) =
-  case saneTail'Proof sr of
-    Sub Dict -> Tensor $ fmap (fmap (\t -> mult (sTail' sr) sr' t (Scalar s))) ms
+  case saneTailRProof sr of
+    Sub Dict -> Tensor $ fmap (fmap (\t -> mult (sTailR sr) sr' t (Scalar s))) ms
 mult sr sr' (Tensor ms) (Tensor ms') =
-  let sh = sHead' sr
-      sh' = sHead' sr'
-      st = sTail' sr
-      st' = sTail' sr'
+  let sh = sHeadR sr
+      sh' = sHeadR sr'
+      st = sTailR sr
+      st' = sTailR sr'
   in case saneMergeRProof sr sr' of
        Sub Dict ->
          case sh of
@@ -187,22 +187,22 @@ mult sr sr' (Tensor ms) (Tensor ms') =
                  case sCompare sv sv' of
                    SLT -> case proofMergeLT sr sr' of
                             Sub Dict ->
-                              case saneTail'Proof sr of
+                              case saneTailRProof sr of
                                 Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sr' t (Tensor ms'))) ms
                    SGT -> case proofMergeGT sr sr' of
                             Sub Dict ->
-                              case saneTail'Proof sr' of
+                              case saneTailRProof sr' of
                                 Sub Dict -> Tensor $ fmap (fmap (mult sr st' (Tensor ms))) ms'
                    SEQ -> case proofMergeIxNotEQ sr sr' of
                             Sub Dict ->
                               case sIxCompare si si' of
                                 SLT -> case proofMergeIxLT sr sr' of
                                          Sub Dict ->
-                                           case saneTail'Proof sr of
+                                           case saneTailRProof sr of
                                              Sub Dict -> Tensor $ fmap (fmap (\t -> mult st sr' t (Tensor ms'))) ms
                                 SGT -> case proofMergeIxGT sr sr' of
                                          Sub Dict ->
-                                           case saneTail'Proof sr' of
+                                           case saneTailRProof sr' of
                                              Sub Dict -> Tensor $ fmap (fmap (mult sr st' (Tensor ms))) ms'
 mult sr sr' ZeroTensor ZeroTensor =
   case saneMergeRProof sr sr' of
@@ -244,18 +244,18 @@ contract'' sr ZeroTensor =
     Sub Dict -> ZeroTensor
 contract'' _ (Scalar v) = Scalar v
 contract'' sr (Tensor ms) =
-    case sTail' sr of
+    case sTailR sr of
        SNil ->
          case singletonContractProof sr of
            Sub Dict -> Tensor ms
        st   ->
          case saneContractProof sr of
            Sub Dict ->
-             let st' = sTail' st
-                 sh  = sHead' sr
+             let st' = sTailR st
+                 sh  = sHeadR sr
                  sv  = sFst sh
                  si  = sSnd sh
-                 sh' = sHead' st
+                 sh' = sHeadR st
                  sv' = sFst sh'
                  si' = sSnd sh'
              in case sv %== sv' of
@@ -272,10 +272,10 @@ contract'' sr (Tensor ms) =
                                                               [] -> Nothing
                                                               [(_, v')] -> Just v'
                                                               _ -> error "duplicate key in tensor assoc list") ms
-                              ms'' = catMaybes ms' :: [Tensor (Tail' (Tail' r)) v]
-                          in  case saneTail'Proof sr of
+                              ms'' = catMaybes ms' :: [Tensor (TailR (TailR r)) v]
+                          in  case saneTailRProof sr of
                                 Sub Dict ->
-                                  case saneTail'Proof st of
+                                  case saneTailRProof st of
                                     Sub Dict ->
                                       case contractTailSameVSameIProof sr of
                                         Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms''
@@ -311,10 +311,10 @@ transpose v a b t@(Tensor ms) =
              Proved Refl -> transpose v b a t
     SLT ->
       let sr = sing :: Sing r
-          sh = sHead' sr
+          sh = sHeadR sr
           sv = sFst sh
           si = sSnd sh
-          st = sTail' sr
+          st = sTailR sr
       in withSingI st $
          case sv %~ v of
            Proved Refl -> case si %~ a of
@@ -340,8 +340,8 @@ transposeMult :: forall (vs :: VSpace Symbol Nat) (tl :: TransList Symbol) (r ::
 transposeMult _ _ ZeroTensor = ZeroTensor
 transposeMult sv stl tens@(Tensor ms) =
     let sr = sing :: Sing r
-        sh = sHead' sr
-        st = sTail' sr
+        sh = sHeadR sr
+        st = sTailR sr
         sr' = sTail sr
         sts = sTranspositions sv stl sr
     in case sv %~ sFst sh of
@@ -396,9 +396,9 @@ relabel _ _ ZeroTensor = ZeroTensor
 relabel sv srl tens@(Tensor ms) =
     let sr1 = sing :: Sing r1
         sr2 = sing :: Sing r2
-        sh = sHead' sr1
-        sr1' = sTail' sr1
-        sr2' = sTail' sr2
+        sh = sHeadR sr1
+        sr1' = sTailR sr1
+        sr2' = sTailR sr2
         sr1'' = sTail sr1
         sts = sRelabelTranspositions srl (sSnd (sHead sr1))
     in case sv %~ sFst sh of
@@ -451,7 +451,7 @@ toList :: forall r v n.
 toList ZeroTensor = []
 toList (Scalar s) = [(VNil, s)]
 toList (Tensor ms) =
-  let st = sTail' (sing :: Sing r)
+  let st = sTailR (sing :: Sing r)
       sn = sing :: Sing n
       sm = sLengthR st
   in case st of
@@ -472,7 +472,7 @@ fromList' :: forall r v n.
 fromList' _  [] = ZeroTensor
 fromList' sr xs =
     let sn = sLengthR sr
-        st = sTail' sr
+        st = sTailR sr
         sm = sLengthR st
     in case sn of
          SZ ->
@@ -508,7 +508,7 @@ toTListWhile :: forall r v.
                 Tensor r v -> [([Int], Tensor (Tail r) v)]
 toTListWhile (Tensor ms) =
   let sr = sing :: Sing r
-      st = sTail' sr
+      st = sTailR sr
   in case st %~ sTail sr of
        Proved Refl -> fmap (first pure) ms
        Disproved _ ->
@@ -528,8 +528,8 @@ toTListUntil :: forall (a :: Ix Symbol) r r' v.
                 Sing a -> Tensor r v -> [([Int], Tensor r' v)]
 toTListUntil sa (Tensor ms) =
     let sr = sing :: Sing r
-        st = sTail' sr
-        sh = sHead' sr
+        st = sTailR sr
+        sh = sHeadR sr
     in case sSnd sh %~ sa of
          Proved Refl -> withSingI st $
                         case st %~ (sing :: Sing r') of
@@ -555,7 +555,7 @@ fromTList xs@((i0,t0):ys)
               else error $ "illegal assocs in fromTList : " ++ show (fmap fst xs)
   | otherwise =
       let sr' = sing :: Sing r'
-          st' = sTail' sr'
+          st' = sTailR sr'
       in withSingI st' $
         case sSane st' of
           STrue -> Tensor $ fmap (fmap fromTList) xs'''

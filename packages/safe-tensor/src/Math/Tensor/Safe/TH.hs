@@ -147,8 +147,8 @@ $(singletons [d|
   sane ((v, is):(v', is'):xs) =
       v < v' && isAscendingI is && sane ((v',is'):xs)
   
-  head' :: Ord s => GRank s n -> (VSpace s n, Ix s)
-  head' ((v, l):_) = (v, case l of
+  headR :: Ord s => GRank s n -> (VSpace s n, Ix s)
+  headR ((v, l):_) = (v, case l of
                            ConCov (a :| _) (b :| _) ->
                              case compare a b of
                                LT -> ICon a
@@ -156,10 +156,10 @@ $(singletons [d|
                                GT -> ICov b
                            Con (a :| _)      -> ICon a
                            Cov (a :| _)      -> ICov a)
-  head' [] = error "head' of empty list"
+  headR [] = error "headR of empty list"
   
-  tail' :: Ord s => GRank s n -> GRank s n
-  tail' ((v, l):ls) =
+  tailR :: Ord s => GRank s n -> GRank s n
+  tailR ((v, l):ls) =
     let l' = case l of
                ConCov (a :| []) (b :| []) ->
                  case compare a b of
@@ -193,7 +193,7 @@ $(singletons [d|
              in case l' of
                   Just l'' -> (v, l''):ls
                   Nothing  -> ls
-  tail' [] = error "tail' of empty list"
+  tailR [] = error "tailR of empty list"
   
   mergeR :: (Ord s, Ord n) => GRank s n -> GRank s n -> Maybe (GRank s n)
   mergeR [] ys = Just ys
@@ -357,8 +357,8 @@ $(singletons [d|
   removeUntil i r = go i r
     where
       go i' r'
-        | snd (head' r') == i' = tail' r'
-        | otherwise            = go i $ tail' r'
+        | snd (headR r') == i' = tailR r'
+        | otherwise            = go i $ tailR r'
   
   data TransList a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
