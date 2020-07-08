@@ -13,7 +13,8 @@ extra-source-files:
 synopsis:            Dependently typed tensor algebra
 category:            Math
 
-description:         Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
+description:         For an introduction to the library, see "Math.Tensor.Safe".
+                     For more information, see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
 
 dependencies:
 - base >=4.7 && <5
