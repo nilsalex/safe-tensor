@@ -84,19 +84,61 @@ module Math.Tensor.Safe
     -- \(\{a,e,g,p\},\{c,f,p\}\).
     --
     -- We take this abstraction one step further and consider tensors that are multilinear
-    -- maps over potentially different vector spaces and duals thereof.
+    -- maps over potentially different vector spaces and duals thereof. The generalized rank
+    -- now consists of the contra- and covariant index sets for each distinct vector space.
+    -- Upon multiplication of tensors, only the indices for each vector space must be distinct
+    -- and contraction only removes overlapping indices among the same vector space.
     --
+    -- Practical examples of configurations with multiple vector spaces are situations where
+    -- there is a tangent space to spacetime, \(V = T_pM\), and we consider symmetric tensors
+    -- \(S^2(V) \subset V\otimes V\), which is a proper subset of \(V^2\).
+    -- See also "Math.Tensor.Basic.Sym2".
+
+    -- * Generalized rank
+    -- |The tensor calculus described above is now implemented in Haskell. Using Template Haskell
+    -- provided by the @singletons@ library, this code is lifted to the type level and
+    -- singletons are generated.
+    --
+    -- A vector space is parameterised by a label @a@ and a dimension @b@.
     VSpace(..)
-    -- |The generic tensor rank is a list of vector spaces with label, dimension and
-    -- associated index list.
-  , GRank
-    -- |The rank of a tensor is a generic rank specialized to 'Symbol' and 'Nat'
-  , Rank
-    -- * The Tensor GADT
-  , Tensor(..)
-    -- * Length-typed assocs lists
+  , -- |Each vector space must have a list of indices. This can be a contravariant index list,
+    -- a covariant index list, or both. For sane generalized ranks, the individual
+    -- lists must be ascending.
+    IList(..)
+  , -- |The generalized tensor rank is a list of vector spaces and associated index lists.
+    -- Sane generalized ranks have their vector spaces in ascending order.
+    GRank
+  , -- |The specialisation used for the parameterisation of the tensor type.
+    Rank
+  , -- |As explained above, the contravariant or covariant indices for each vector space must
+    -- be unique. They must also be /sorted/ for more efficiency. The same applies for the
+    -- vector spaces: Each distinct vector space must have a unique representation,
+    -- generalized ranks are sorted by the vector spaces. This is checked by the function
+    -- 'sane'.
+    sane
+  , -- |The first index within a generalized rank. The first index is always referring to the
+    -- first vector space within the rank. If the rank is purely covariant or purley contravariant,
+    -- the first index ist the first element of the respective index list. For mixed
+    -- ranks, the first index is the one which compares less. If they compare equal, it is always
+    -- the contravariant index. This defines an order where contractible indices always appear
+    -- next to each other, which greatly facilitates contraction.
+    headR
+  , -- |The remaining rank after popping the 'headR'.
+    tailR
+  , -- |Total number of indices.
+    lengthR
+  , -- |Contraction of a generalized rank. Per vector space, indices appearing in both
+    -- contravariant and covariant position are removed. Vector spaces with eventually empty
+    -- index list are removed.
+    contractR
+  , -- |Merging two generalized ranks. Returns 'Nothing' for incompatible ranks.
+    mergeR
+
+  , -- * The Tensor GADT
+    Tensor(..)
+  , -- * Length-typed assocs lists
     -- |Type-level naturals used internally.
-  , N(..)
+    N(..)
   , -- |Length-typed vector used internally.
     Vec(..)
   , vecFromListUnsafe
