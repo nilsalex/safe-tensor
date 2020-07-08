@@ -75,12 +75,6 @@ import Data.Singletons
   , withSingI
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue)
-  , POrd ((<))
-  , SOrdering (SLT)
-  , SMaybe (SJust)
-  , sCompare
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)

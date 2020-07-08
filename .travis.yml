@@ -37,6 +37,15 @@ matrix:
         - libblas-dev
         - liblapack-dev
         - ghc-8.8.2
+  - env: GHCVER=8.6.5 SOLVER=lts-14.27
+    addons:
+      apt:
+        sources:
+          - sourceline: 'ppa:hvr/ghc'
+        packages:
+        - libblas-dev
+        - liblapack-dev
+        - ghc-8.6.5
 
 before_install:
   - mkdir -p ~/.local/bin

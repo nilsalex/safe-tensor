@@ -49,9 +49,6 @@ import Data.Singletons
   , fromSing
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue)
-  , SMaybe (SNothing, SJust)
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)

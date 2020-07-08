@@ -65,9 +65,6 @@ import Data.Singletons
   , fromSing
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue, SFalse)
-  , SMaybe (SNothing, SJust)
-  )
 import Data.Singletons.Prelude.Maybe
   ( sIsJust
   )

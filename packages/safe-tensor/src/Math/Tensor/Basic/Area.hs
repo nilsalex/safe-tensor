@@ -65,11 +65,6 @@ import Data.Singletons
   , withSingI
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue)
-  , PSemigroup ((<>))
-  , SMaybe (SJust)
-  , (%<>)
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)

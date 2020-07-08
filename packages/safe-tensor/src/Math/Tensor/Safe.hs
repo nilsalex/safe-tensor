@@ -70,15 +70,6 @@ import Data.Singletons
   , withSingI, fromSing
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue, SFalse)
-  , SList (SNil)
-  , SMaybe (SJust)
-  , SOrdering (SLT, SEQ, SGT)
-  , STuple2 (STuple2)
-  , Tail
-  , sFst, sSnd, sHead, sTail
-  , sCompare, (%==)
-  )
 import Data.Singletons.Prelude.Maybe
   ( IsJust
   , sIsJust
