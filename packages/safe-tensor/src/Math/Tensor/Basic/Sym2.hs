@@ -19,7 +19,6 @@ Description : Definitions of symmetric tensors.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of symmetric tensors.
 -}
@@ -75,12 +74,6 @@ import Data.Singletons
   , withSingI
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue)
-  , POrd ((<))
-  , SOrdering (SLT)
-  , SMaybe (SJust)
-  , sCompare
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)
@@ -185,7 +178,7 @@ gamma = case (sing :: Sing n) of
           sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                 in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 eta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -210,7 +203,7 @@ eta = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 gammaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -235,7 +228,7 @@ gammaInv = case (sing :: Sing n) of
             sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                   in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 etaInv' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
@@ -260,7 +253,7 @@ etaInv = case (sing :: Sing n) of
         sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
               in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar (if i == 0 then 1 else -1))])) [0..x - 1]
 
 injSym2Con' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol)

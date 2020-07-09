@@ -7,7 +7,12 @@ import SecondOrder
 
 main :: IO ()
 main = do
-        -- mapM_ print tests
+        putStrLn "###### Test ansaetze ######"
+        putStrLn "Get ansaetze up to third order from sparse-tensor and verify that the ansatz equations are solved."
+        mapM_ print tests
+        putStrLn ""
+        putStrLn "###### Test diffeo equations, eom and noether ######"
+        putStrLn "Using the ansaetze up to second order from sparse-tensor, solve the diffeo equations, count independent vars in the eom and verify the noether theorem."
         res <- secondOrder
         case res of
           Right _  -> return ()

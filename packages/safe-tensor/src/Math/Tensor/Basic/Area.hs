@@ -20,7 +20,6 @@ Description : Definitions of area-symmetric tensors.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of area-symmetric tensors.
 -}
@@ -65,11 +64,6 @@ import Data.Singletons
   , withSingI
   )
 import Data.Singletons.Prelude
-  ( SBool (STrue)
-  , PSemigroup ((<>))
-  , SMaybe (SJust)
-  , (%<>)
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)

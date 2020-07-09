@@ -117,7 +117,7 @@ someInterAreaJet2_3 vid m n a b i p q = do
 diffeoEq1 :: (Num v, Eq v, MonadError String m) =>
              T v -> T v -> m (T v)
 diffeoEq1 ansatz0 ansatz4 = do
-    e1 <- (scalar (-1) .*) =<< (ansatz0 .* d)
+    e1 <- (scalarT (-1) .*) =<< (ansatz0 .* d)
     e2 <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
     res <- e1 .+ e2
     case rankT res of
@@ -143,8 +143,8 @@ diffeoEq1A :: (Num v, Eq v, MonadError String m) =>
               T v -> T v -> m (T v)
 diffeoEq1A ansatz4 ansatz8 = do
     e1 <- fmap contractT $ (.* c1) =<< relabelT (VSpace "STArea" 21) [("A","B")] ansatz4
-    e2 <- (scalar 2 .*) . contractT =<< ((ansatz8 .*) =<< (c2 .* n))
-    e3 <- (scalar (-1) .*) =<< (ansatz4 .* d)
+    e2 <- (scalarT 2 .*) . contractT =<< ((ansatz8 .*) =<< (c2 .* n))
+    e3 <- (scalarT (-1) .*) =<< (ansatz4 .* d)
     res <- (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
@@ -166,7 +166,7 @@ diffeoEq1AI ansatz6 ansatz10_1 = do
                 relabelT (VSpace "STSym2" 10) [("I","J")] ansatz6
     e1 <- fmap contractT $ (ansatz10_1' .*) =<< (c1 .* n)
     e2 <- fmap contractT $ ansatz6' .* c2
-    e3 <- (scalar (-1) .*) =<< (ansatz6 .* d)
+    e3 <- (scalarT (-1) .*) =<< (ansatz6 .* d)
     res <- (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
@@ -199,7 +199,7 @@ diffeoEq2Ap ansatz6 ansatz10_2 = do
                         show (rankT ansatz10_2)
   where
     n = someFlatAreaCon "ST" "C"
-    two = scalar 2
+    two = scalarT 2
 
 diffeoEq3A :: (Num v, Eq v, MonadError String m) =>
               T v -> T v -> m (T v)

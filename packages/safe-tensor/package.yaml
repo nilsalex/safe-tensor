@@ -1,5 +1,5 @@
 name:                safe-tensor
-version:             0.1.0.0
+version:             0.2.0.0
 github:              "nilsalex/safe-tensor"
 license:             MIT
 author:              "Nils Alex"
@@ -13,7 +13,8 @@ extra-source-files:
 synopsis:            Dependently typed tensor algebra
 category:            Math
 
-description:         Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
+description:         For an introduction to the library, see "Math.Tensor.Safe".
+                     For more information, see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
 
 dependencies:
 - base >=4.7 && <5

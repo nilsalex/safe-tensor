@@ -89,13 +89,13 @@ makeVarsConsecutive = go 0
 
 sndOrderAnsaetze :: forall m v.(Num v, MonadError String m) => m [T (Poly v)]
 sndOrderAnsaetze = do
-  let a0 :: T (Poly v) = scalar $ singletonPoly 0 1 1
+  let a0 :: T (Poly v) = scalarT $ singletonPoly 0 1 1
   let a6 :: T (Poly v) = someAns6 "ST" "A" "I"
   a8 <- someAns8 "ST" "A" "B"
   a10_1 <- someAns10_1 "ST" "A" "B" "I"
   a10_2 <- someAns10_2 "ST" "A" "B" "p" "q"
   let as = makeVarsConsecutive [a0,a6,a8,a10_1,a10_2]
-  z <- zero [(VSpace "STArea" 21, Cov ("A" :| []))]
+  z <- zeroT [(VSpace "STArea" 21, Cov ("A" :| []))]
   return $ z : as
 
 mapSym2 :: Num v => Int -> (v -> v)

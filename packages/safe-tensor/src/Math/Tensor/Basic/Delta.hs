@@ -18,7 +18,6 @@ Description : Definitions of Kronecker deltas.
 Copyright   : (c) Nils Alex, 2020
 License     : MIT
 Maintainer  : nils.alex@fau.de
-Stability   : experimental
 
 Definitions of Kronecker deltas \(\delta^{a}_{\hphantom ab}\)
 (identity automorphisms) for arbitrary vector spaces.
@@ -43,9 +42,6 @@ import Data.Singletons
   , withSomeSing
   )
 import Data.Singletons.Prelude
-  ( SList (SNil)
-  , SBool (STrue)
-  )
 import Data.Singletons.Decide
   ( (:~:) (Refl)
   , Decision (Proved)
@@ -71,8 +67,8 @@ delta' :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Ran
            KnownNat n,
            Num v,
            '[ '( 'VSpace id n, 'ConCov (a ':| '[]) (b ':| '[])) ] ~ r,
-           Tail' (Tail' r) ~ '[],
-           Sane (Tail' r) ~ 'True
+           TailR (TailR r) ~ '[],
+           Sane (TailR r) ~ 'True
           ) =>
           Sing id -> Sing n -> Sing a -> Sing b ->
           Tensor r v
@@ -84,8 +80,8 @@ delta' _ _ _ _ = delta
 delta :: forall (id :: Symbol) (n :: Nat) (a :: Symbol) (b :: Symbol) (r :: Rank) v.
          (
           '[ '( 'VSpace id n, 'ConCov (a ':| '[]) (b ':| '[]))] ~ r,
-          Tail' (Tail' r) ~ '[],
-          Sane (Tail' r) ~ 'True,
+          TailR (TailR r) ~ '[],
+          Sane (TailR r) ~ 'True,
           SingI n,
           Num v
          ) => Tensor r v
@@ -93,7 +89,7 @@ delta = case (sing :: Sing n) of
           sn -> let x = fromIntegral $ withKnownNat sn $ natVal sn
                 in Tensor (f x)
   where
-    f :: Int -> [(Int, Tensor (Tail' r) v)]
+    f :: Int -> [(Int, Tensor (TailR r) v)]
     f x = map (\i -> (i, Tensor [(i, Scalar 1)])) [0..x - 1]
 
 -- |The Kronecker delta \(\delta^a_{\hphantom ab} \) for a given
@@ -113,6 +109,6 @@ someDelta vid vdim a b =
   withKnownSymbol sa $
   withKnownSymbol sb $
   let sl = sDeltaRank svid svdim sa sb
-  in  case sTail' (sTail' sl) of
-        SNil -> case sSane (sTail' sl) %~ STrue of
+  in  case sTailR (sTailR sl) of
+        SNil -> case sSane (sTailR sl) %~ STrue of
                   Proved Refl -> T $ delta' svid svdim sa sb
