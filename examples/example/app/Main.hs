@@ -3,9 +3,15 @@
 module Main where
 
 import AnsaetzeTest
+import SecondOrder
 
 main :: IO ()
-main = mapM_ print tests
+main = do
+        -- mapM_ print tests
+        res <- secondOrder
+        case res of
+          Right _  -> return ()
+          Left err -> putStrLn err
   where
     tests = [ ans4Test    @Int
             , ans6Test    @Int

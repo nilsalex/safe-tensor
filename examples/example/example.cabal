@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fda47c737b490f5784048c70b8e3bb4043a519d69be3d045532b7269e03fc69a
+-- hash: 50c0315f246e073d4c52cecf83dfde05800995149853fe6cd9458bc9e8c8b82b
 
 name:           example
 version:        0.1.0.0
@@ -28,6 +28,7 @@ library
   exposed-modules:
       AnsaetzeTest
       DiffeoSymmetry
+      EOM
   other-modules:
       Paths_example
   hs-source-dirs:
@@ -43,6 +44,7 @@ library
 executable run
   main-is: Main.hs
   other-modules:
+      SecondOrder
       Paths_example
   hs-source-dirs:
       app
