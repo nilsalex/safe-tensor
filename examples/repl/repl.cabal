@@ -1,0 +1,61 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: de14897d62fdbd30eb2bff9c4e000a40bc14dd99bfeb7fe4fa51761dbb1c1561
+
+name:           repl
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
+homepage:       https://github.com/nilsalex/safe-tensor#readme
+bug-reports:    https://github.com/nilsalex/safe-tensor/issues
+author:         Nils Alex
+maintainer:     nils.alex@fau.de
+copyright:      2020 Nils Alex
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/nilsalex/safe-tensor
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_repl
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , haskeline
+    , mtl >=2.2 && <2.3
+    , safe-tensor >=0.2 && <0.3
+    , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
+    , text
+  default-language: Haskell2010
+
+executable run
+  main-is: Main.hs
+  other-modules:
+      Paths_repl
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , haskeline
+    , mtl >=2.2 && <2.3
+    , repl
+    , safe-tensor >=0.2 && <0.3
+    , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
+    , text
+  default-language: Haskell2010
