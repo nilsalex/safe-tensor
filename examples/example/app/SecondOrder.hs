@@ -12,11 +12,14 @@ import EOM
 
 import Control.Monad.Except
 
+thrd :: (a,b,c) -> c
+thrd (_,_,c) = c
+
 secondOrder :: IO (Either String ())
 secondOrder =
   runExceptT $
       do
-        as@[a4,a0,a6,a8,a10_1,a10_2] :: [T (Poly Rational)] <- sndOrderAnsaetze
+        as@[a4,a0,a6,a8,a10_1,a10_2] :: [T (Poly Rational)] <- fmap (fmap thrd) sndOrderAnsaetze
 
         lift $ putStrLn $ "vars in ansaetze        : " ++ show (systemRank as)
 

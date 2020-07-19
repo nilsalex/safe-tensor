@@ -23,6 +23,9 @@ import Math.Tensor.SparseTensor.Ansaetze
 
 import Control.Monad.Except
 
+thrd :: (a,b,c) -> c
+thrd (_,_,c) = c
+
 calc :: (Num v, Eq v) => Either String (T v)
 calc = runExcept $ do
     e_ab <- someEtaInv "Spacetime" 4 "a" "b"
@@ -37,7 +40,7 @@ calc = runExcept $ do
 ans4Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans4Test = runExcept $ do
   let c = someInterAreaCon "ST" "m" "n" "A" "B"
-  let a = someAns4 "ST" "A"
+  let a = thrd $ someAns4 "ST" "A"
   _eta <- someEtaInv "ST" 4 "p" "n"
   p1 <- c .* a
   p2 <- p1 .* _eta
@@ -48,7 +51,7 @@ ans4Test = runExcept $ do
 ans6Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans6Test = runExcept $ do
   let c = someInterAreaJet2 "ST" "m" "n" "A" "B" "I" "J"
-  let a = someAns6 "ST" "A" "I"
+  let a = thrd $ someAns6 "ST" "A" "I"
   _eta <- someEtaInv "ST" 4 "p" "n"
   p1 <- c .* a
   p2 <- p1 .* _eta
@@ -59,7 +62,7 @@ ans6Test = runExcept $ do
 ans8Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans8Test = runExcept $ do
   let c = someInterAreaCon "ST" "m" "n" "A" "C"
-  a <- someAns8 "ST" "A" "B"
+  a <- fmap thrd $ someAns8 "ST" "A" "B"
   _eta <- someEtaInv "ST" 4 "p" "n"
   p1 <- c .* a
   p2 <- p1 .* _eta
@@ -74,8 +77,8 @@ ans10_1Test = runExcept $ do
   let c1 = someInterAreaCon "ST" "m" "n" "C" "A"
   let c2 = someInterAreaJet2 "ST" "m" "n" "C" "B" "J" "I"
   _eta <- someEtaInv "ST" 4 "x" "n"
-  a1 <- someAns10_1 "ST" "C" "B" "I"
-  a2 <- someAns10_1 "ST" "A" "C" "J"
+  a1 <- fmap thrd $ someAns10_1 "ST" "C" "B" "I"
+  a2 <- fmap thrd $ someAns10_1 "ST" "A" "C" "J"
   t1 <- fmap contractT $ a1 .* c1
   t2 <- fmap contractT $ a2 .* c2
   tens <- fmap contractT $ (_eta .*) =<< (t1 .+ t2)
@@ -84,7 +87,7 @@ ans10_1Test = runExcept $ do
 ans10_2Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans10_2Test = runExcept $ do
   c <- someInterAreaJet1 "ST" "m" "n" "A" "C" "p" "r"
-  a <- someAns10_2 "ST" "A" "B" "p" "q"
+  a <- fmap thrd $ someAns10_2 "ST" "A" "B" "p" "q"
   _eta <- someEtaInv "ST" 4 "x" "n"
   t <- fmap contractT $ (a .*) =<< (c .* _eta)
   t' <- (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t
@@ -94,7 +97,7 @@ ans10_2Test = runExcept $ do
 ans12Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans12Test = runExcept $ do
   let c = someInterAreaCon "ST" "m" "n" "D" "A"
-  a <- someAns12 "ST" "B" "C" "D"
+  a <- fmap thrd $ someAns12 "ST" "B" "C" "D"
   _eta <- someEtaInv "ST" 4 "p" "n"
   p1 <- c .* a
   p2 <- p1 .* _eta
@@ -111,9 +114,9 @@ ans12Test = runExcept $ do
 ans14_1Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans14_1Test = runExcept $ do
   let c1 = someInterAreaCon "ST" "m" "n" "D" "B"
-  a1 <- someAns14_1 "ST" "A" "D" "C" "I"
+  a1 <- fmap thrd $ someAns14_1 "ST" "A" "D" "C" "I"
   let c2 = someInterAreaJet2 "ST" "m" "n" "D" "C" "J" "I"
-  a2 <- someAns14_1 "ST" "A" "B" "D" "J"
+  a2 <- fmap thrd $ someAns14_1 "ST" "A" "B" "D" "J"
   _eta <- someEtaInv "ST" 4 "x" "n"
   t1 <- fmap contractT $ a1 .* c1
   t1' <- (t1 .+) =<< transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") t1
@@ -123,11 +126,11 @@ ans14_1Test = runExcept $ do
 ans14_2Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans14_2Test = runExcept $ do
   let c1 = someInterAreaCon "ST" "m" "n" "D" "A"
-  a1 <- someAns14_2 "ST" "D" "B" "C" "q" "r"
+  a1 <- fmap thrd $ someAns14_2 "ST" "D" "B" "C" "q" "r"
   c2 <- someInterAreaJet1 "ST" "m" "n" "D" "B" "p" "q"
-  a2 <- someAns14_2 "ST" "A" "D" "C" "p" "r"
+  a2 <- fmap thrd $ someAns14_2 "ST" "A" "D" "C" "p" "r"
   c3 <- someInterAreaJet1 "ST" "m" "n" "D" "C" "p" "r"
-  a3 <- someAns14_2 "ST" "A" "D" "B" "p" "q"
+  a3 <- fmap thrd $ someAns14_2 "ST" "A" "D" "B" "p" "q"
   _eta <- someEtaInv "ST" 4 "x" "n"
   t1 <- fmap contractT $ a1 .* c1
   t2 <- fmap contractT $ a2 .* c2
