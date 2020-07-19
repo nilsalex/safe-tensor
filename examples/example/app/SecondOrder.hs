@@ -32,7 +32,7 @@ secondOrder =
         eqns' <- sndOrderDiffeoEqns as'
 
         lift $ putStrLn $ "eqns on solution space  :"
-        lift $ mapM_ print $ eqns'
+        lift $ mapM_ print eqns'
 
         lift $ putStrLn ""
 

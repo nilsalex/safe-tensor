@@ -17,6 +17,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 {-# LANGUAGE CPP #-}
 #if MIN_VERSION_base(4,14,0)
@@ -46,6 +48,9 @@ import Data.Singletons.TypeLits
 
 import Data.List.NonEmpty (NonEmpty((:|)),sort,sortBy,(<|))
 
+import GHC.Generics (Generic,Generic1)
+import Control.DeepSeq (NFData,NFData1)
+
 $(singletons [d|
   data N where
       Z :: N
@@ -56,6 +61,8 @@ $(singletons [d|
                 True -> Z
                 False -> S $ fromNat (pred n)
 
+  deriving instance Generic N
+  deriving instance NFData N
   deriving instance Show N
   deriving instance Eq N
   instance Ord N where
@@ -86,9 +93,9 @@ $(singletons [d|
   
   data VSpace a b = VSpace { vId :: a,
                             vDim :: b }
-                    deriving (Show, Ord, Eq)
+                    deriving (Show, Ord, Eq, Generic, NFData, Generic1, NFData1)
   
-  data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq)
+  data Ix a    = ICon a | ICov a deriving (Show, Ord, Eq, Generic, NFData, Generic1, NFData1)
   
   ixCompare :: Ord a => Ix a -> Ix a -> Ordering
   ixCompare (ICon a) (ICon b) = compare a b
@@ -105,7 +112,7 @@ $(singletons [d|
   data IList a = ConCov (NonEmpty a) (NonEmpty a) |
                  Cov (NonEmpty a) |
                  Con (NonEmpty a)
-                 deriving (Show, Ord, Eq)
+                 deriving (Show, Ord, Eq, Generic, NFData, Generic1, NFData1)
   
   type GRank s n = [(VSpace s n, IList s)]
   type Rank = GRank Symbol Nat
@@ -361,7 +368,7 @@ $(singletons [d|
   
   data TransRule a = TransCon (NonEmpty a) (NonEmpty a) |
                      TransCov (NonEmpty a) (NonEmpty a)
-    deriving (Show, Eq)
+    deriving (Show, Eq, Generic, NFData, Generic1, NFData1)
   
   saneTransRule :: Ord a => TransRule a -> Bool
   saneTransRule tl =

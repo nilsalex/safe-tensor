@@ -4,6 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
+-- hash: 26baea079a7c03c34c85c027c5d42acb4d46c890748f97cec11949ed51ee9fe9
 
 name:           example
 version:        0.1.0.0
@@ -40,7 +41,7 @@ library
     , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
   default-language: Haskell2010
 
-executable run
+executable example-exe
   main-is: Main.hs
   other-modules:
       SecondOrder

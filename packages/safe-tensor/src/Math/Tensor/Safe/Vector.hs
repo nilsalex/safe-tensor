@@ -25,11 +25,17 @@ import Math.Tensor.Safe.TH
 import Data.Kind (Type)
 import Data.Singletons (Sing)
 
+import Control.DeepSeq (NFData(rnf))
+
 data Vec :: N -> Type -> Type where
     VNil :: Vec 'Z a
     VCons :: a -> Vec n a -> Vec ('S n) a
 
 deriving instance Show a => Show (Vec n a)
+
+instance NFData a => NFData (Vec n a) where
+    rnf VNil         = ()
+    rnf (VCons x xs) = rnf x `seq` rnf xs
 
 instance Eq a => Eq (Vec n a) where
   VNil           == VNil           = True

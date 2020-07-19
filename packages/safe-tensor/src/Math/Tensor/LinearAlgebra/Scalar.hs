@@ -1,5 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -----------------------------------------------------------------------------
 {-|
@@ -34,16 +36,19 @@ import qualified Data.IntMap.Strict as IM
   , findMin
   )
 
+import GHC.Generics (Generic)
+import Control.DeepSeq (NFData)
+
 -- |Linear combination represented as mapping from
 -- variable number to prefactor.
-newtype Lin a = Lin (IM.IntMap a) deriving (Show, Ord, Eq)
+newtype Lin a = Lin (IM.IntMap a) deriving (Show, Ord, Eq, Generic, NFData)
 
 -- |Polynomial: Can be constant, affine, or something of higher
 -- rank which is not yet implemented.
 data Poly a = Const !a -- ^ constant value
             | Affine !a !(Lin a) -- ^ constant value plus linear term
             |  NotSupported -- ^ higher rank
-  deriving (Show, Ord, Eq)
+  deriving (Show, Ord, Eq, Generic, NFData)
 
 -- |Produces an affine value \(c + a\cdot x_i\)
 singletonPoly :: a       -- ^ constant
@@ -107,8 +112,8 @@ shiftVars s (Affine a (Lin lin)) =
 --    \mathrm{normalize}(c) = 1 \\
 --    \mathrm{normalize}(c + a_1\cdot x_1 + a_2\cdot x_2 + \dots + a_n\cdot x_n) = \frac{c}{a_1} + 1\cdot x_1 + \frac{a_2}{a_1}\cdot x_2 + \dots + \frac{a_n}{a_1}\cdot x_n
 -- \]
-normalize :: Fractional a => Poly a -> Poly a
-normalize (Const _) = Const 1
+normalize :: (Fractional a, Eq a) => Poly a -> Poly a
+normalize (Const c) = Const $ if c == 0 then 0 else 1
 normalize NotSupported = NotSupported
 normalize (Affine a (Lin lin)) = Affine (a/v) $ Lin $ IM.map (/v) lin
   where

@@ -73,6 +73,7 @@ import qualified Data.IntMap.Strict as IM
   , difference
   , intersectionWith
   , mapKeys
+  , empty
   )
 import Data.List (nub, sort)
 import Data.Ratio (numerator, denominator)
@@ -84,7 +85,7 @@ type Equation a = IM.IntMap a
 -- |Extract linear equations from tensor components.
 -- The equations are normalized, sorted, and made unique.
 tensorToEquations :: Integral a => T (Poly Rational) -> [Equation a]
-tensorToEquations = nub . sort . fmap (equationFromRational . normalize . snd) . toListT
+tensorToEquations = nub . sort . filter (not . IM.null) . fmap (equationFromRational . normalize . snd) . toListT
 
 -- |Extract linear equation with integral coefficients from polynomial
 -- tensor component with rational coefficients.
@@ -97,6 +98,8 @@ equationFromRational (Affine x (Lin lin))
     fac :: a
     fac = IM.foldl' (\acc v -> lcm (fromIntegral (denominator v)) acc) 1 lin
     lin' = IM.map (\v -> fromIntegral (numerator v) * (fac `div` fromIntegral (denominator v))) lin
+equationFromRational (Const c)
+    | c == 0    = IM.empty
 equationFromRational _ = error "equation can only be extracted from linear scalar!"
 
 -- |Convert list of equations to sparse matrix representation of the

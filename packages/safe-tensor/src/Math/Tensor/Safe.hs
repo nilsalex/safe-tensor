@@ -238,9 +238,11 @@ import Data.Singletons.Decide
   )
 import Data.Singletons.TypeLits (Nat, Symbol)
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (mapMaybe,catMaybes)
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
+
+import Control.DeepSeq (NFData(rnf))
 
 -- |The @'Tensor'@ type parameterized by its generalized rank @r@ and
 -- arbitrary value type @v@.
@@ -253,6 +255,11 @@ data Tensor :: Rank -> Type -> Type where
 
 deriving instance Eq v => Eq (Tensor r v)
 deriving instance Show v => Show (Tensor r v)
+
+instance NFData v => NFData (Tensor r v) where
+    rnf ZeroTensor  = ()
+    rnf (Scalar v)  = rnf v
+    rnf (Tensor ts) = rnf ts
 
 instance Functor (Tensor r) where
   fmap _ ZeroTensor = ZeroTensor
@@ -294,11 +301,8 @@ removeZeros (Tensor ms) =
         Tensor r v -> Tensor r' v -> Tensor r v
 (&+) ZeroTensor t = t
 (&+) t ZeroTensor = t
-(&+) (Scalar s) (Scalar s') = 
-    if s'' == 0 then ZeroTensor else Scalar s''
-  where
-    s'' = s + s'
-(&+) (Tensor xs) (Tensor xs') = removeZeros $ Tensor xs''
+(&+) (Scalar s) (Scalar s') = Scalar (s + s')
+(&+) (Tensor xs) (Tensor xs') = Tensor xs''
     where
        xs'' = unionWith (&+) id id xs xs' 
 (&+) _ _ = error "Cannot add scalar and tensor! Should have been caught by the type system!"
@@ -414,7 +418,7 @@ contract'' sr (Tensor ms) =
              in case sv %== sv' of
                   SFalse ->
                     case contractTailDiffVProof sr of
-                      Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                      Sub Dict -> Tensor $ fmap (fmap (contract'' st)) ms
                   STrue -> case si of
                     SICon sa -> case si' of
                       SICov sb -> case sa %== sb of
@@ -434,13 +438,13 @@ contract'' sr (Tensor ms) =
                                         Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms''
                         SFalse ->
                           case contractTailSameVDiffIProof sr of
-                            Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                            Sub Dict -> Tensor $ fmap (fmap (contract'' st)) ms
                       SICon _ ->
                         case contractTailSameVNoCovProof sr of
-                          Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                          Sub Dict -> Tensor $ fmap (fmap (contract'' st)) ms
                     SICov _ ->
                       case contractTailSameVNoConProof sr of
-                        Sub Dict -> removeZeros $ Tensor $ fmap (fmap (contract'' st)) ms
+                        Sub Dict -> Tensor $ fmap (fmap (contract'' st)) ms
 
 -- |Tensor contraction. Contracting a tensor is the identity function on non-contractible tensors.
 -- Otherwise, the result is the contracted tensor with the contracted labels removed from the
@@ -612,7 +616,9 @@ toList (Tensor ms) =
   in case st of
        SNil ->
          case sn of
-           SS SZ -> fmap (\(i, Scalar s) -> (VCons i VNil, s)) ms
+           SS SZ -> mapMaybe (\(i, x) -> case x of
+                                           ZeroTensor -> Nothing
+                                           Scalar s   -> Just (VCons i VNil, s)) ms
        _    ->
          case sn of
            SS sm' ->

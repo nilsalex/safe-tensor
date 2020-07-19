@@ -25,7 +25,7 @@ kinetic ansatz10_1 ansatz10_2 =
       let e1 = ansatz10_1
       e2 <- transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") ansatz10_1
       e3 <- (scalarT (-2) .*) =<< fmap contractT (i .* ansatz10_2)
-      (e1 .+) =<< (e2 .+ e3)
+      fmap removeZerosT $ (e1 .+) =<< (e2 .+ e3)
 
 noether1 :: (Num v, Eq v, MonadError String m) =>
             T v -> T v -> m (T v)
@@ -34,7 +34,7 @@ noether1 ansatz4 ansatz8 = do
     n1 <- (scalarT 2 .*) =<< fmap contractT ((n .*) =<< (ansatz8 .* c2))
     n2 <- (scalarT (-1) .*) =<< fmap contractT (ansatz4' .* c1)
     n3 <- (scalarT (-1) .*) =<< (ansatz4 .* d)
-    res <- (n3 .+) =<< (n1 .+ n2)
+    res <- fmap removeZerosT $ (n3 .+) =<< (n1 .+ n2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
@@ -52,4 +52,4 @@ noether2 :: (Num v, Eq v, MonadError String m) =>
 noether2 ansatz10_1 ansatz10_2 = do
     kin <- kinetic ansatz10_1 ansatz10_2
     c <- someInterAreaJet2_3 "ST" "m" "n" "B" "C" "I" "p" "q"
-    fmap contractT $ (kin .*) =<< (c .* someFlatAreaCon "ST" "C")
+    fmap (removeZerosT . contractT) $ (kin .*) =<< (c .* someFlatAreaCon "ST" "C")

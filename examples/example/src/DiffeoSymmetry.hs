@@ -119,7 +119,7 @@ diffeoEq1 :: (Num v, Eq v, MonadError String m) =>
 diffeoEq1 ansatz0 ansatz4 = do
     e1 <- (scalarT (-1) .*) =<< (ansatz0 .* d)
     e2 <- fmap contractT $ (ansatz4 .*) =<< (c .* n)
-    res <- e1 .+ e2
+    res <- fmap removeZerosT $ e1 .+ e2
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| []))] -> return res
       _ -> throwError $ "diffeoEq1: inconsistent ansatz rank\n" ++ show (rankT ansatz4)
@@ -132,7 +132,7 @@ diffeoEq3 :: (Num v, Eq v, MonadError String m) =>
              T v -> m (T v)
 diffeoEq3 ansatz6 = do
     c   <- someInterAreaJet2_3 "ST" "m" "n" "A" "B" "I" "p" "q"
-    res <- fmap contractT $ (ansatz6 .*) =<< (c .* n)
+    res <- fmap (removeZerosT . contractT) $ (ansatz6 .*) =<< (c .* n)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| []))] -> return res
       _ -> throwError $ "diffeoEq3: inconsistent ansatz rank\n" ++ show (rankT ansatz6)
@@ -145,7 +145,7 @@ diffeoEq1A ansatz4 ansatz8 = do
     e1 <- fmap contractT $ (.* c1) =<< relabelT (VSpace "STArea" 21) [("A","B")] ansatz4
     e2 <- (scalarT 2 .*) . contractT =<< ((ansatz8 .*) =<< (c2 .* n))
     e3 <- (scalarT (-1) .*) =<< (ansatz4 .* d)
-    res <- (e3 .+) =<< (e1 .+ e2)
+    res <- fmap removeZerosT $ (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
@@ -167,7 +167,7 @@ diffeoEq1AI ansatz6 ansatz10_1 = do
     e1 <- fmap contractT $ (ansatz10_1' .*) =<< (c1 .* n)
     e2 <- fmap contractT $ ansatz6' .* c2
     e3 <- (scalarT (-1) .*) =<< (ansatz6 .* d)
-    res <- (e3 .+) =<< (e1 .+ e2)
+    res <- fmap removeZerosT $ (e3 .+) =<< (e1 .+ e2)
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| []) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| [])),
@@ -190,7 +190,7 @@ diffeoEq2Ap ansatz6 ansatz10_2 = do
     ansatz10_2' <- relabelT (VSpace "ST" 4) [("q","r")] ansatz10_2
     e1 <- (two .*) . contractT =<< ((ansatz10_2' .*) =<< (c1 .* n))
     e2 <- fmap contractT $ ansatz6' .* c2
-    res <- e1 .+ e2
+    res <- fmap removeZerosT $ e1 .+ e2
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| []))] -> return res
@@ -209,7 +209,7 @@ diffeoEq3A ansatz6 ansatz10_1 = do
     ansatz6' <- relabelT (VSpace "STArea" 21) [("A","B")] ansatz6
     e1 <- fmap contractT $ (ansatz10_1 .*) =<< (c1 .* n)
     e2 <- fmap contractT $ ansatz6' .* c2
-    res <- e1 .+ e2
+    res <- fmap removeZerosT $ e1 .+ e2
     case rankT res of
       [(VSpace "ST" 4, ConCov ("m" :| ["p","q"]) ("n" :| [])),
        (VSpace "STArea" 21, Cov ("A" :| []))] -> return res

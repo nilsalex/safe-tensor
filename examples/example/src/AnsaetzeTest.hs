@@ -43,7 +43,7 @@ ans4Test = runExcept $ do
   p2 <- p1 .* _eta
   let contracted = contractT p2
   trans <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") contracted
-  contracted .- trans
+  fmap removeZerosT $ contracted .- trans
 
 ans6Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans6Test = runExcept $ do
@@ -54,7 +54,7 @@ ans6Test = runExcept $ do
   p2 <- p1 .* _eta
   let contracted = contractT p2
   trans <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") contracted
-  contracted .- trans
+  fmap removeZerosT $ contracted .- trans
 
 ans8Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans8Test = runExcept $ do
@@ -67,7 +67,7 @@ ans8Test = runExcept $ do
   trans <- transposeT (VSpace "ST" 4) (ICon "m") (ICon "p") contracted
   sym1 <- contracted .- trans
   trans' <- transposeT (VSpace "STArea" 21) (ICov "B") (ICov "C") sym1
-  sym1 .+ trans'
+  fmap removeZerosT $ sym1 .+ trans'
 
 ans10_1Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans10_1Test = runExcept $ do
@@ -79,7 +79,7 @@ ans10_1Test = runExcept $ do
   t1 <- fmap contractT $ a1 .* c1
   t2 <- fmap contractT $ a2 .* c2
   tens <- fmap contractT $ (_eta .*) =<< (t1 .+ t2)
-  (tens .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") tens
+  fmap removeZerosT $ (tens .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") tens
 
 ans10_2Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans10_2Test = runExcept $ do
@@ -88,8 +88,8 @@ ans10_2Test = runExcept $ do
   _eta <- someEtaInv "ST" 4 "x" "n"
   t <- fmap contractT $ (a .*) =<< (c .* _eta)
   t' <- (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t
-  (t' .+) =<< (transposeT (VSpace "STArea" 21) (ICov "B") (ICov "C") =<<
-               transposeT (VSpace "ST" 4) (ICon "q") (ICon "r") t')
+  fmap removeZerosT $ (t' .+) =<< (transposeT (VSpace "STArea" 21) (ICov "B") (ICov "C") =<<
+                      transposeT (VSpace "ST" 4) (ICon "q") (ICon "r") t')
 
 ans12Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans12Test = runExcept $ do
@@ -106,7 +106,7 @@ ans12Test = runExcept $ do
   trans3 <- transposeMultT (VSpace "STArea" 21) [] [("A","B"),("B","C"),("C","A")] sym1
   trans4 <- transposeMultT (VSpace "STArea" 21) [] [("A","C"),("B","A"),("C","B")] sym1
   trans5 <- transposeMultT (VSpace "STArea" 21) [] [("A","C"),("B","B"),("C","A")] sym1
-  (trans5 .+) =<< (trans4 .+) =<< (trans3 .+) =<< (trans2 .+) =<< (trans1 .+ sym1)
+  fmap removeZerosT $ (trans5 .+) =<< (trans4 .+) =<< (trans3 .+) =<< (trans2 .+) =<< (trans1 .+ sym1)
 
 ans14_1Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans14_1Test = runExcept $ do
@@ -118,7 +118,7 @@ ans14_1Test = runExcept $ do
   t1 <- fmap contractT $ a1 .* c1
   t1' <- (t1 .+) =<< transposeT (VSpace "STArea" 21) (ICov "A") (ICov "B") t1
   t2 <- fmap contractT $ (_eta .*) =<< ((t1' .+) . contractT =<< (a2 .* c2))
-  (t2 .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t2
+  fmap removeZerosT $ (t2 .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t2
 
 ans14_2Test :: (Num v, Eq v) => Either String (T (Poly v))
 ans14_2Test = runExcept $ do
@@ -133,4 +133,4 @@ ans14_2Test = runExcept $ do
   t2 <- fmap contractT $ a2 .* c2
   t3 <- fmap contractT $ a3 .* c3
   t  <- fmap contractT $ (_eta .*) =<< ((t3 .+) =<< (t1 .+ t2))
-  (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t
+  fmap removeZerosT $ (t .-) =<< transposeT (VSpace "ST" 4) (ICon "m") (ICon "x") t

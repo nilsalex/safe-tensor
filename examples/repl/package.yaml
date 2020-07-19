@@ -26,7 +26,7 @@ library:
   - -Wall
 
 executables:
-  run:
+  repl-exe:
     main:                Main.hs
     source-dirs:         app
     dependencies:

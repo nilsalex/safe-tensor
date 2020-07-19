@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 01b45dfa508544cf3d4c145d847b74cfe33a819cd020b449016b3c1d38cf3afc
+-- hash: cc0a6f06d95a9ce946bec4d32d048b446cd9abc5bbe6b7d2f85b522d466f584b
 
 name:           safe-tensor
 version:        0.2.0.0
@@ -53,6 +53,7 @@ library
       base >=4.7 && <5
     , constraints >=0.10 && <0.13
     , containers >=0.6 && <0.7
+    , deepseq >=1.4 && <1.5
     , hmatrix >=0.20 && <0.21
     , mtl >=2.2 && <2.3
     , singletons >=2.5 && <2.8

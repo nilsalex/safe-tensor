@@ -97,6 +97,8 @@ import Data.Bifunctor (first)
 
 import Data.List.NonEmpty (NonEmpty((:|)),sort)
 
+import Control.DeepSeq (NFData(rnf))
+
 import Control.Monad.Except (MonadError, throwError)
 
 -- |@'T'@ wraps around @'Tensor'@ and exposes only the value type @v@.
@@ -104,6 +106,9 @@ data T :: Type -> Type where
   T :: forall (r :: Rank) v. SingI r => Tensor r v -> T v
 
 deriving instance Show v => Show (T v)
+
+instance NFData v => NFData (T v) where
+  rnf (T t) = rnf t
 
 instance Functor T where
   fmap f (T t) = T $ fmap f t
