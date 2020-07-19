@@ -61,4 +61,4 @@ install:
 script:
   - stack --no-terminal --skip-ghc-check haddock
   - stack --no-terminal --skip-ghc-check test
-  - stack --no-terminal --skip-ghc-check exec -- run +RTS -N1 -A32m -s -RTS
+  - stack --no-terminal --skip-ghc-check exec -- example-exe +RTS -N1 -A32m -s -RTS
