@@ -13,7 +13,7 @@ description:         Please see the README on GitHub at <https://github.com/nils
 
 dependencies:
 - base >=4.7 && <5
-- safe-tensor >=0.2 && <0.3
+- safe-tensor >=0.2.1 && <0.3
 - safe-tensor-sparse-tensor-compat >=0.1 && <0.2
 - mtl >=2.2 && <2.3
 - containers

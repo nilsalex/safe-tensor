@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: cc0a6f06d95a9ce946bec4d32d048b446cd9abc5bbe6b7d2f85b522d466f584b
+-- hash: e0fcc8fb2efd3f5b62b7dd2ad65bca4521755f5226831bfe4553c23ab94904f6
 
 name:           safe-tensor
-version:        0.2.0.0
+version:        0.2.1.0
 synopsis:       Dependently typed tensor algebra
 description:    For an introduction to the library, see "Math.Tensor.Safe". For more information, see the README on GitHub at <https://github.com/nilsalex/safe-tensor#readme>
 category:       Math

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8cf938cb1f888c155c1d1d2418a20d7a6a5a5326891a7f1a0d027c43540bd24b
+-- hash: 5d18389963b93eefe6676442ecc8d879a70ad013d274046d24e2f00160b415a8
 
 name:           repl
 version:        0.1.0.0
@@ -37,7 +37,7 @@ library
     , containers
     , haskeline
     , mtl >=2.2 && <2.3
-    , safe-tensor >=0.2 && <0.3
+    , safe-tensor >=0.2.1 && <0.3
     , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
     , text
   default-language: Haskell2010
@@ -55,7 +55,7 @@ executable repl-exe
     , haskeline
     , mtl >=2.2 && <2.3
     , repl
-    , safe-tensor >=0.2 && <0.3
+    , safe-tensor >=0.2.1 && <0.3
     , safe-tensor-sparse-tensor-compat >=0.1 && <0.2
     , text
   default-language: Haskell2010
