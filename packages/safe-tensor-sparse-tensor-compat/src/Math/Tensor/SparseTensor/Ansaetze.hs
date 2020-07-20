@@ -50,6 +50,7 @@ module Math.Tensor.SparseTensor.Ansaetze
   , LG.Epsilon(..)
   , LG.AnsatzForestEta(..)
   , LG.AnsatzForestEpsilon
+  , LG.Var(..)
   ) where
 
 import Math.Tensor.SparseTensor.Ansaetze.TH
