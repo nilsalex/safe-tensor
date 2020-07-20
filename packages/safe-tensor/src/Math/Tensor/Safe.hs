@@ -238,7 +238,7 @@ import Data.Singletons.Decide
   )
 import Data.Singletons.TypeLits (Nat, Symbol)
 
-import Data.Maybe (mapMaybe,catMaybes)
+import Data.Maybe (mapMaybe)
 import Data.Bifunctor (first,second)
 import Data.List (foldl',groupBy,sortBy)
 
@@ -423,19 +423,20 @@ contract'' sr (Tensor ms) =
                     SICon sa -> case si' of
                       SICov sb -> case sa %== sb of
                         STrue -> 
-                          let ms' = fmap (\(i, v) -> case v of
-                                                       Tensor vs ->
-                                                         case filter (\(i', _) -> i == i') vs of
-                                                              [] -> Nothing
-                                                              [(_, v')] -> Just v'
-                                                              _ -> error "duplicate key in tensor assoc list") ms
-                              ms'' = catMaybes ms' :: [Tensor (TailR (TailR r)) v]
+                          let ms' = mapMaybe (\(i, v) -> case v of
+                                                           Tensor vs ->
+                                                             case filter (\(i', _) -> i == i') vs of
+                                                                  [] -> Nothing
+                                                                  [(_, v')] -> Just v'
+                                                                  _ -> error "duplicate key in tensor assoc list"
+                                                           ZeroTensor -> Nothing)
+                                             ms :: [Tensor (TailR (TailR r)) v]
                           in  case saneTailRProof sr of
                                 Sub Dict ->
                                   case saneTailRProof st of
                                     Sub Dict ->
                                       case contractTailSameVSameIProof sr of
-                                        Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms''
+                                        Sub Dict -> contract' st' $ foldl' (&+) ZeroTensor ms'
                         SFalse ->
                           case contractTailSameVDiffIProof sr of
                             Sub Dict -> Tensor $ fmap (fmap (contract'' st)) ms
@@ -625,7 +626,9 @@ toList (Tensor ms) =
              withSingI sm' $
              case sm %~ sm' of
                Proved Refl ->
-                 concatMap (\(i, v) -> case v of Tensor _ -> fmap (first (VCons i)) (withSingI st $ toList v)) ms
+                 concatMap (\(i, v) -> case v of
+                                         Tensor _   -> fmap (first (VCons i)) (withSingI st $ toList v)
+                                         ZeroTensor -> []) ms
 
 -- |Construct @'Tensor'@ from assocs list. Keys are length-typed vectors of indices. Generalized
 -- rank is passed explicitly as singleton.
