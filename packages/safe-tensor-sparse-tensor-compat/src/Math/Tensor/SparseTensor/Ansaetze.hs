@@ -76,12 +76,12 @@ import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import Data.Ratio (numerator, denominator)
 
-polyFromAnsVarR :: Num a => Rational -> T.AnsVarR -> Poly a
-polyFromAnsVarR factor (T.AnsVar im)
+polyFromAnsVarR :: Num a => T.AnsVarR -> Poly a
+polyFromAnsVarR (T.AnsVar im)
   | IM.null im = Const 0
   | otherwise  = Affine 0 (Lin $ IM.map (\(T.SField x) -> if   denominator x == 1
-                                                          then fromIntegral (numerator (factor * x))
-                                                          else error "Cannot convert from rational.") im)
+                                                          then fromIntegral (numerator x)
+                                                          else error $ "Cannot convert from rational: " <> show x) im)
 
 third :: (c -> d) -> (a,b,c) -> (a,b,d)
 third f (a,b,c) = (a,b,f c)
@@ -134,7 +134,7 @@ ans4 :: forall (id :: Symbol) (a :: Symbol) v.
 ans4 sid sa = (etaForest, epsilonForest, withSingI (sAns4Rank sid sa) $ fromList xs)
   where
     (etaForest,epsilonForest,a4) = LG.mkAnsatzTensorFastAbs 4 LG.symList4 LG.areaList4 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 1 0 0 0 0 T.AnsVarR)
-    xs = (\((_,i `T.Append` T.Empty,_,_,_,_),v) -> (T.indVal20 i `VCons` VNil,polyFromAnsVarR @v (1/8) v)) <$> T.toListT6 a4
+    xs = (\((_,i `T.Append` T.Empty,_,_,_,_),v) -> (T.indVal20 i `VCons` VNil,polyFromAnsVarR @v v)) <$> T.toListT6 a4
 
 someAns4 :: Num v => Demote Symbol -> Demote Symbol -> (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns4 vid a =
@@ -152,7 +152,7 @@ ans6 :: forall (id :: Symbol) (a :: Symbol) (i :: Symbol) v.
 ans6 sid sa si = (etaForest, epsilonForest, withSingI (sAns6Rank sid sa si) $ fromList xs)
   where
     (etaForest,epsilonForest,a6) = LG.mkAnsatzTensorFastAbs 6 LG.symList6 LG.areaList6 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 1 0 1 0 0 T.AnsVarR)
-    xs = (\((_,a `T.Append` T.Empty,_,i `T.Append` T.Empty,_,_),v) -> (T.indVal20 a `VCons` (T.indVal9 i `VCons` VNil),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v (1/16) v))) <$> T.toListT6 a6
+    xs = (\((_,a `T.Append` T.Empty,_,i `T.Append` T.Empty,_,_),v) -> (T.indVal20 a `VCons` (T.indVal9 i `VCons` VNil),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v v))) <$> T.toListT6 a6
 
 someAns6 :: Num v => Demote Symbol -> Demote Symbol -> Demote Symbol -> (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns6 vid a i =
@@ -175,7 +175,7 @@ ans8 sid sa sb = case sAns8Rank sid sa sb of
                        SS (SS SZ) -> (etaForest, epsilonForest, withSingI sl $ fromList xs)
   where
     (etaForest,epsilonForest,a8) = LG.mkAnsatzTensorFastAbs 8 LG.symList8 LG.areaList8 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 2 0 0 0 0 T.AnsVarR)
-    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,_,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` VNil),polyFromAnsVarR @v (1/128) v)) <$> T.toListT6 a8
+    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,_,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` VNil),polyFromAnsVarR @v v)) <$> T.toListT6 a8
 
 someAns8 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns8 vid a b =
@@ -200,7 +200,7 @@ ans10_1 sid sa sb si = case sAns10_1Rank sid sa sb si of
                              SS (SS (SS SZ)) -> (etaForest, epsilonForest, withSingI sl $ fromList xs)
   where
     (etaForest,epsilonForest,a10_1) = LG.mkAnsatzTensorFastAbs 10 LG.symList10_2 LG.areaList10_2 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 2 0 1 0 0 T.AnsVarR)
-    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,i `T.Append` T.Empty,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal9 i `VCons` VNil)),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v (1/128) v))) <$> T.toListT6 a10_1
+    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,i `T.Append` T.Empty,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal9 i `VCons` VNil)),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v v))) <$> T.toListT6 a10_1
 
 someAns10_1 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns10_1 vid a b i =
@@ -230,7 +230,7 @@ ans10_2 sid sa sb sp sq = case sAns10_2Rank sid sa sb sp sq of
                                                         )
   where
     (etaForest,epsilonForest,a10_2) = LG.mkAnsatzTensorFastAbs 10 LG.symList10_1 LG.areaList10_1 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 2 0 0 0 2 T.AnsVarR)
-    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,_,_,p `T.Append` (q `T.Append` T.Empty)),v) -> (T.indVal3 p `VCons` (T.indVal3 q `VCons` (T.indVal20 a `VCons` (T.indVal20 b `VCons` VNil))),polyMap (map2ST (T.indVal3 p) (T.indVal3 q)) (polyFromAnsVarR @v (1/128) v))) <$> T.toListT6 a10_2
+    xs = (\((_,a `T.Append` (b `T.Append` T.Empty),_,_,_,p `T.Append` (q `T.Append` T.Empty)),v) -> (T.indVal3 p `VCons` (T.indVal3 q `VCons` (T.indVal20 a `VCons` (T.indVal20 b `VCons` VNil))),polyMap (map2ST (T.indVal3 p) (T.indVal3 q)) (polyFromAnsVarR @v v))) <$> T.toListT6 a10_2
 
 someAns10_2 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns10_2 vid a b p q =
@@ -258,7 +258,7 @@ ans12 sid sa sb sc = case sAns12Rank sid sa sb sc of
                            SS (SS (SS SZ)) -> (etaForest, epsilonForest, withSingI sl $ fromList xs)
   where
     (etaForest,epsilonForest,a12) = LG.mkAnsatzTensorFastAbs 12 LG.symList12 LG.areaList12 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 3 0 0 0 0 T.AnsVarR)
-    xs = (\((_,a `T.Append` (b `T.Append` (c `T.Append` T.Empty)),_,_,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` VNil)),polyFromAnsVarR @v (1/3072) v)) <$> T.toListT6 a12
+    xs = (\((_,a `T.Append` (b `T.Append` (c `T.Append` T.Empty)),_,_,_,_),v) -> (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` VNil)),polyFromAnsVarR @v v)) <$> T.toListT6 a12
 
 someAns12 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns12 vid a b c =
@@ -285,7 +285,7 @@ ans14_1 sid sa sb sc si = case sAns14_1Rank sid sa sb sc si of
   where
     (etaForest,epsilonForest,a14_1) = LG.mkAnsatzTensorFastAbs 14 LG.symList14_2 LG.areaList14_2 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 3 0 1 0 0 T.AnsVarR)
     xs = (\((_,a `T.Append` (b `T.Append` (c `T.Append` T.Empty)),_,i `T.Append` T.Empty,_,_),v) ->
-                    (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` (T.indVal9 i `VCons` VNil))),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v (1/2048) v))) <$> T.toListT6 a14_1
+                    (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` (T.indVal9 i `VCons` VNil))),polyMap (mapSym2 (T.indVal9 i)) (polyFromAnsVarR @v v))) <$> T.toListT6 a14_1
 
 someAns14_1 :: (MonadError String m, Num v) => Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
 someAns14_1 vid a b c i =
@@ -317,7 +317,7 @@ ans14_2 sid sa sb sc sp sq = case sAns14_2Rank sid sa sb sc sp sq of
   where
     (etaForest,epsilonForest,a14_2) = LG.mkAnsatzTensorFastAbs 14 LG.symList14_1 LG.areaList14_1 :: (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T.ATens 0 3 0 0 0 2 T.AnsVarR)
     xs = (\((_,a `T.Append` (b `T.Append` (c `T.Append` T.Empty)),_,_,_,p `T.Append` (q `T.Append` T.Empty)),v) ->
-                    (T.indVal3 p `VCons` (T.indVal3 q `VCons` (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` VNil)))),polyMap (map2ST (T.indVal3 p) (T.indVal3 q)) (polyFromAnsVarR @v (1/1024) v))) <$> T.toListT6 a14_2
+                    (T.indVal3 p `VCons` (T.indVal3 q `VCons` (T.indVal20 a `VCons` (T.indVal20 b `VCons` (T.indVal20 c `VCons` VNil)))),polyMap (map2ST (T.indVal3 p) (T.indVal3 q)) (polyFromAnsVarR @v v))) <$> T.toListT6 a14_2
 
 someAns14_2 :: (MonadError String m, Num v) =>
                Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> Demote Symbol -> m (LG.AnsatzForestEta, LG.AnsatzForestEpsilon, T (Poly v))
