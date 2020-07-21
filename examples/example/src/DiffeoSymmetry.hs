@@ -16,7 +16,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 --
 --  L_A^p * C^A_B_p^{qm}_n * v^B_q
 --
-someInterAreaJet1 :: (Num v, MonadError String m) =>
+someInterAreaJet1 :: (Num v, Eq v, MonadError String m) =>
                      Label ->
                      Label -> Label ->
                      Label -> Label ->
@@ -25,7 +25,7 @@ someInterAreaJet1 :: (Num v, MonadError String m) =>
 someInterAreaJet1 vid m n a b p q = do
     i1 <- c .* someDelta vid 4 q p
     i2 <- (someDeltaArea vid a b .* ) =<< (someDelta vid 4 m p .* someDelta vid 4 q n)
-    res :: T Int <- i1 .+ i2
+    res :: T Int <- fmap removeZerosT $ i1 .+ i2
     return $ fmap fromIntegral res
   where
     c = someInterAreaCon vid m n a b
@@ -33,7 +33,7 @@ someInterAreaJet1 vid m n a b p q = do
 --
 --  L_A^I * C^A_B_I^{Jm}_n * v^B_J
 --
-someInterAreaJet2 :: Num v =>
+someInterAreaJet2 :: (Num v, Eq v) =>
                      Label ->
                      Label -> Label ->
                      Label -> Label ->
@@ -47,13 +47,13 @@ someInterAreaJet2 vid m n a b i j = int
       do
         i1 <- c .* someDeltaSym2 vid 4 j i
         i2 <- k .* someDeltaArea vid a b
-        res :: T Int <- i1 .+ i2
+        res :: T Int <- fmap removeZerosT $ i1 .+ i2
         return $ fmap fromIntegral res
 
 --
 --  L_A^r * C^A_B_r^{pm}_n * v^B
 --
-someInterAreaJet1_2 :: (Num v, MonadError String m) =>
+someInterAreaJet1_2 :: (Num v, Eq v, MonadError String m) =>
                        Label ->
                        Label -> Label ->
                        Label -> Label ->
@@ -61,7 +61,7 @@ someInterAreaJet1_2 :: (Num v, MonadError String m) =>
                        m (T v)
 someInterAreaJet1_2 vid m n a b r p = do
     i <- c .* someDelta @Int vid 4 p r
-    i' <- (i .+) =<< transposeT (VSpace vid 4) (ICon m) (ICon p) i
+    i' <- fmap removeZerosT $ (i .+) =<< transposeT (VSpace vid 4) (ICon m) (ICon p) i
     return $ fmap fromIntegral i'
   where
     c = someInterAreaCon vid m n a b
@@ -69,7 +69,7 @@ someInterAreaJet1_2 vid m n a b r p = do
 --
 --  L_A^I * C^A_B_I^{qpm}_n * v^B_q
 --
-someInterAreaJet2_2 :: (Num v, MonadError String m) =>
+someInterAreaJet2_2 :: (Num v, Eq v, MonadError String m) =>
                        Label ->
                        Label -> Label ->
                        Label -> Label ->
@@ -83,7 +83,8 @@ someInterAreaJet2_2 vid m n a b i q p = do
     fmap (fmap (\v -> let v' = 2*v in
                       if denominator v' == 1
                       then fromIntegral (numerator v')
-                      else error "someInterAreaJet2_2 is not fraction-free, as it should be!")) $ i1' .+ i2
+                      else error "someInterAreaJet2_2 is not fraction-free, as it should be!")
+          . removeZerosT) $ i1' .+ i2
   where
     c :: T Rational = someInterAreaCon vid m n a b
     dA = someDeltaArea vid a b
@@ -92,7 +93,7 @@ someInterAreaJet2_2 vid m n a b i q p = do
 --
 --  L_A^I * C^A_B_I^{pqm}_n * v^B
 --
-someInterAreaJet2_3 :: (Num v, MonadError String m) =>
+someInterAreaJet2_3 :: (Num v, Eq v, MonadError String m) =>
                        Label ->
                        Label -> Label ->
                        Label -> Label ->
@@ -107,7 +108,7 @@ someInterAreaJet2_3 vid m n a b i p q = do
     t4 <- transposeMultT (VSpace vid 4) [(m,p),(p,q),(q,m)] [] t1
     t5 <- transposeMultT (VSpace vid 4) [(m,q),(p,m),(q,p)] [] t1
     t6 <- transposeMultT (VSpace vid 4) [(m,q),(p,p),(q,m)] [] t1
-    res <- (t6 .+) =<< (t5 .+) =<< (t4 .+) =<< (t3 .+) =<< (t2 .+ t1)
+    res <- fmap removeZerosT $ (t6 .+) =<< (t5 .+) =<< (t4 .+) =<< (t3 .+) =<< (t2 .+ t1)
     return $ fmap (\v -> if denominator v == 1
                          then fromIntegral (numerator v)
                          else error "someInterAreaJet2_3 is not fraction-free, as it should be!") res

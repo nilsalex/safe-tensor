@@ -25,7 +25,9 @@ module Math.Tensor.LinearAlgebra.Equations
   , systemRank
   , Solution
   , fromRref
+  , fromRrefRev
   , fromRow
+  , fromRowRev
   , applySolution
   , solveTensor
   , solveSystem
@@ -150,6 +152,12 @@ fromRref ref = IM.fromList assocs
     rows   = HM.toLists ref
     assocs = mapMaybe fromRow rows
 
+fromRrefRev :: HM.Matrix HM.Z -> Solution
+fromRrefRev ref = IM.fromList assocs
+  where
+    rows   = fmap reverse $ HM.toLists ref
+    assocs = mapMaybe fromRowRev rows
+
 -- |Read single substitution rule from single
 -- row of reduced row echelon form.
 fromRow :: forall a.Integral a => [a] -> Maybe (Int, Poly Rational)
@@ -160,6 +168,15 @@ fromRow xs = case assocs of
                                  in Just (i, Affine 0 (Lin (IM.fromList assocs'')))
   where
     assocs = filter ((/=0). snd) $ zip [(1::Int)..] xs
+
+fromRowRev :: forall a.Integral a => [a] -> Maybe (Int, Poly Rational)
+fromRowRev xs = case assocs of
+                  []             -> Nothing
+                  [(i,_)]        -> Just (i, Const 0)
+                  (i, v):assocs' -> let assocs'' = fmap (\(i',v') -> (i', - fromIntegral @a @Rational v' / fromIntegral @a @Rational v)) assocs'
+                                    in Just (i, Affine 0 (Lin (IM.fromList assocs'')))
+  where
+    assocs = reverse $ filter ((/=0). snd) $ zip [(1::Int)..] xs
 
 -- |Apply substitution rules to tensor component.
 applySolution :: Solution -> Poly Rational -> Poly Rational
