@@ -9,4 +9,4 @@ This repository contains several projects:
 
 ---
 
-The repository [linear-area-lagrangian](https://github.com/nilsalex/linear-area-lagrangian) contains a [real world application](https://github.com/nilsalex/linear-area-lagrangian/tree/master/haskell/ansaetze) in modified gravity research.
+The repository [area-metric-gravity](https://github.com/nilsalex/area-metric-gravity) contains a [real world application](https://github.com/nilsalex/area-metric-gravity/tree/master/haskell/ansaetze) in modified gravity research.
