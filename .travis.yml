@@ -10,7 +10,7 @@ cache:
 
 matrix:
   include:
-  - env: GHCVER=8.10.1 SOLVER=nightly-2020-07-07
+  - env: GHCVER=8.10.2 SOLVER=nightly-2020-09-14
     addons:
       apt:
         sources:
@@ -19,7 +19,7 @@ matrix:
         - libblas-dev
         - liblapack-dev
         - ghc-8.10.1
-  - env: GHCVER=8.8.3 SOLVER=lts-16.1
+  - env: GHCVER=8.8.4 SOLVER=lts-16.14
     addons:
       apt:
         sources:
