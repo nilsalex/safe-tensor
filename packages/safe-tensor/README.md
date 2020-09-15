@@ -1,4 +1,4 @@
-![Hackage-Deps](https://img.shields.io/hackage-deps/v/safe-tensor) [![Hackage](https://img.shields.io/hackage/v/safe-tensor)](https://hackage.haskell.org/package/safe-tensor) [![Build Status](https://travis-ci.org/nilsalex/safe-tensor.svg?branch=master)](https://travis-ci.org/nilsalex/safe-tensor)
+[![DOI](https://zenodo.org/badge/226436124.svg)](https://zenodo.org/badge/latestdoi/226436124) ![Hackage-Deps](https://img.shields.io/hackage-deps/v/safe-tensor) [![Hackage](https://img.shields.io/hackage/v/safe-tensor)](https://hackage.haskell.org/package/safe-tensor) [![Build Status](https://travis-ci.org/nilsalex/safe-tensor.svg?branch=master)](https://travis-ci.org/nilsalex/safe-tensor)
 # safe-tensor
 Dependently typed tensor algebra in Haskell. Useful for applications in field theory, e.g., carrying out calculations for https://doi.org/10.1103/PhysRevD.101.084025
 
