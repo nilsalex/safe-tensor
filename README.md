@@ -1,4 +1,5 @@
 # safe-tensor
+[![DOI](https://zenodo.org/badge/226436124.svg)](https://zenodo.org/badge/latestdoi/226436124)
 
 This repository contains several projects:
 
