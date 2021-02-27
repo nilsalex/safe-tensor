@@ -1,5 +1,5 @@
 name:                safe-tensor
-version:             0.2.1.0
+version:             0.2.1.1
 github:              "nilsalex/safe-tensor"
 license:             MIT
 author:              "Nils Alex"
@@ -20,7 +20,7 @@ dependencies:
 - base >=4.7 && <5
 - deepseq >=1.4 && <1.5
 - singletons >=2.5 && <2.8
-- constraints >=0.10 && <0.13
+- constraints >=0.10 && <0.14
 - mtl >=2.2 && <2.3
 - containers >=0.6 && <0.7
 - hmatrix >=0.20 && <0.21

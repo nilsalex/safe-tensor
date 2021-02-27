@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.1.1] - 2021-02-27
+ * version bump of `constraints` dependency
+
 ## [0.2.1.0] - 2020-07-20
  * removeZeros is optional: Tensor addition and tensor contraction will not remove zero values afterwards in order to improve performance.
    Zero values have to be removed by explicitly applying removeZeros to a tensor.
